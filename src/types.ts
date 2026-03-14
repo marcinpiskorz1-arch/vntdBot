@@ -4,7 +4,7 @@
 
 /** Input do Scraper Agent — co skanować */
 export interface ScanConfig {
-  categoryIds: number[];
+  categoryIds?: number[];
   brandIds?: number[];
   priceMax?: number;
   sizes?: string[];

@@ -56,7 +56,7 @@ export async function fetchCatalogItems(
   url.searchParams.set("per_page", String(perPage));
   url.searchParams.set("order", "newest_first");
 
-  if (scanConfig.categoryIds.length > 0) {
+  if (scanConfig.categoryIds && scanConfig.categoryIds.length > 0) {
     url.searchParams.set("catalog_ids", scanConfig.categoryIds.join(","));
   }
   if (scanConfig.brandIds && scanConfig.brandIds.length > 0) {

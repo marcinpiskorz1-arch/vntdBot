@@ -23,6 +23,9 @@ export class TelegramAgent {
   constructor() {
     this.bot = new Bot(config.telegramBotToken);
     this.chatId = config.telegramChatId;
+    this.bot.catch((err) => {
+      logger.error({ err: err.error, update: err.ctx?.update?.update_id }, "Grammy error caught");
+    });
     this.setupHandlers();
   }
 
@@ -45,10 +48,8 @@ export class TelegramAgent {
 
     this.bot.command("help", (ctx) =>
       ctx.reply(
-        "🛒 KUP — otwiera link do Vinted\n" +
-          "❌ Pomiń — odrzuca ofertę\n" +
-          "🧠 Dlaczego? — pokazuje breakdown scoringu\n" +
-          "⏰ Snooze — przypomnij za 1h/6h/24h"
+        "� Otwórz na Vinted — link do oferty\n" +
+          "⏰ Snooze 1h/6h/24h — przypomnij później"
       )
     );
 
@@ -63,33 +64,6 @@ export class TelegramAgent {
       }
 
       switch (action) {
-        case "buy": {
-          const decision = getPendingDecision(vintedId);
-          const url = decision?.item.url || `${config.vintedDomain}/items/${vintedId}`;
-          recordUserAction(vintedId, "buy");
-          await ctx.answerCallbackQuery("🛒 Otwórz link poniżej!");
-          await ctx.reply(`🛒 <b>Kup teraz:</b>\n<a href="${url}">${url}</a>`, {
-            parse_mode: "HTML",
-          });
-          break;
-        }
-
-        case "skip":
-          recordUserAction(vintedId, "skip");
-          await ctx.answerCallbackQuery("❌ Pominięto");
-          break;
-
-        case "why": {
-          const decision = getPendingDecision(vintedId);
-          if (decision) {
-            const payload = formatNotification(decision);
-            await ctx.answerCallbackQuery({ text: payload.scoreBreakdown, show_alert: true });
-          } else {
-            await ctx.answerCallbackQuery("Brak danych");
-          }
-          break;
-        }
-
         case "snooze_1h":
         case "snooze_6h":
         case "snooze_24h": {
@@ -119,12 +93,9 @@ export class TelegramAgent {
     // Store for callback handlers
     storePendingDecision(decision);
 
-    // Build inline keyboard
+    // Build inline keyboard — just snooze reminders + link
     const keyboard = new InlineKeyboard()
-      .text("🛒 KUP", `buy:${payload.itemId}`)
-      .text("❌ Pomiń", `skip:${payload.itemId}`)
-      .row()
-      .text("🧠 Dlaczego?", `why:${payload.itemId}`)
+      .url("🔗 Otwórz na Vinted", payload.vintedUrl)
       .row()
       .text("⏰ 1h", `snooze_1h:${payload.itemId}`)
       .text("⏰ 6h", `snooze_6h:${payload.itemId}`)

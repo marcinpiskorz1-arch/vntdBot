@@ -1,5 +1,6 @@
 import cron from "node-cron";
 import { config } from "./config.js";
+import { stmts } from "./database.js";
 import { logger } from "./logger.js";
 import type { ScanConfig } from "./types.js";
 
@@ -22,13 +23,55 @@ const telegram = new TelegramAgent();
 // Define what to scan
 // ============================================================
 const scanConfigs: ScanConfig[] = [
-  // Buty
-  { categoryIds: [1242], searchText: "nike air max" },
-  { categoryIds: [1242], searchText: "jordan" },
-  { categoryIds: [1242], searchText: "new balance 550" },
-  // Elektronika
-  { categoryIds: [2678], searchText: "airpods" },
-  { categoryIds: [2678], searchText: "iphone" },
+  // Sneakersy
+  { searchText: "nike air max" },
+  { searchText: "jordan" },
+  { searchText: "new balance" },
+  { searchText: "under armour" },
+  { searchText: "asics" },
+  // Outdoor / góry
+  { searchText: "la sportiva" },
+  { searchText: "salewa" },
+  { searchText: "salomon" },
+  { searchText: "mammut" },
+  { searchText: "arc'teryx" },
+  { searchText: "scarpa" },
+  { searchText: "norrøna" },
+  { searchText: "haglöfs" },
+  { searchText: "rab" },
+  { searchText: "millet" },
+  { searchText: "meindl" },
+  { searchText: "lowa" },
+  { searchText: "osprey" },
+  // Streetwear / hype
+  { searchText: "the north face" },
+  { searchText: "patagonia" },
+  { searchText: "fjällräven" },
+  { searchText: "stone island" },
+  { searchText: "nervous" },
+  { searchText: "carhartt" },
+  { searchText: "dickies" },
+  { searchText: "supreme" },
+  { searchText: "stüssy" },
+  { searchText: "napapijri" },
+  { searchText: "ralph lauren" },
+  { searchText: "tommy hilfiger" },
+  // Workwear / vintage
+  { searchText: "levi's" },
+  { searchText: "wrangler" },
+  // Snow / board
+  { searchText: "volcom" },
+  { searchText: "quiksilver" },
+  { searchText: "burton" },
+  { searchText: "dc shoes" },
+  { searchText: "oakley" },
+  { searchText: "helly hansen" },
+  { searchText: "dakine" },
+  // Moto / sport
+  { searchText: "alpinestars" },
+  { searchText: "fox racing" },
+  // Inne
+  { searchText: "save the duck" },
   // Customize: add your own queries here
 ];
 
@@ -71,9 +114,14 @@ async function runPipeline(): Promise<void> {
 
     if (underpriced.length === 0) return;
 
-    // 3. AI ANALYST — analyze underpriced items only
-    logger.info({ count: underpriced.length }, "🧠 Sending to Gemini...");
-    const analyzed = await aiAnalyst.analyzeAll(underpriced);
+    // 3. AI ANALYST — analyze underpriced items (max 20 per cycle to stay within Gemini free tier)
+    const MAX_AI_PER_CYCLE = 20;
+    const toAnalyze = underpriced.slice(0, MAX_AI_PER_CYCLE);
+    if (underpriced.length > MAX_AI_PER_CYCLE) {
+      logger.info({ skipped: underpriced.length - MAX_AI_PER_CYCLE }, "\u23e9 AI limit reached, rest queued for next cycle");
+    }
+    logger.info({ count: toAnalyze.length }, "\ud83e\udde0 Sending to Gemini...");
+    const analyzed = await aiAnalyst.analyzeAll(toAnalyze);
 
     // 4. DECISION — score and decide
     for (const [item, signal, ai] of analyzed) {
@@ -147,6 +195,16 @@ async function main(): Promise<void> {
     telegram
       .sendMessage(`💓 Heartbeat — ${new Date().toLocaleTimeString("pl-PL")}`)
       .catch(() => {});
+  });
+
+  // Cleanup old data every day at 3 AM
+  cron.schedule("0 3 * * *", () => {
+    const deletedItems = stmts.deleteOldItems.run({ days: 30 });
+    const deletedDecisions = stmts.deleteOldDecisions.run({ days: 30 });
+    logger.info(
+      { deletedItems: deletedItems.changes, deletedDecisions: deletedDecisions.changes },
+      "🧹 30-day cleanup complete"
+    );
   });
 
   logger.info(`⏰ Scheduled: scan every ~${intervalSec}s + jitter, heartbeat every 5min`);

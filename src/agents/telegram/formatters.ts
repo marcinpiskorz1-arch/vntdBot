@@ -64,7 +64,5 @@ export function buildMessageText(payload: NotificationPayload): string {
     lines.push("", `🚩 <b>Ryzyka:</b> ${payload.riskFlags.join(", ")}`);
   }
 
-  lines.push("", `🔗 <a href="${payload.vintedUrl}">Otwórz na Vinted</a>`);
-
   return lines.join("\n");
 }

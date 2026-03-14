@@ -28,11 +28,12 @@ export class DecisionAgent {
       );
     }
 
-    // Risk flag penalty: -0.5 per flag
-    if (ai.riskFlags.length > 0) {
-      const penalty = ai.riskFlags.length * 0.5;
+    // Risk flag penalty: -0.3 per flag (excluding missing_details — normal on Vinted)
+    const penaltyFlags = ai.riskFlags.filter(f => f !== "missing_details");
+    if (penaltyFlags.length > 0) {
+      const penalty = penaltyFlags.length * 0.3;
       score = Math.max(0, score - penalty);
-      reasons.push(`🚩 ${ai.riskFlags.length} flag ryzyka: ${ai.riskFlags.join(", ")}`);
+      reasons.push(`🚩 ${penaltyFlags.length} flag ryzyka: ${penaltyFlags.join(", ")}`);
     }
 
     // Build explainability reasons

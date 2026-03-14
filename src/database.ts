@@ -118,4 +118,13 @@ export const stmts = {
   updateUserAction: db.prepare<{ vinted_id: string; user_action: string }>(
     `UPDATE decisions SET user_action = @user_action WHERE vinted_id = @vinted_id`
   ),
+
+  // Cleanup — delete items older than N days
+  deleteOldItems: db.prepare<{ days: number }>(
+    `DELETE FROM items WHERE discovered_at < datetime('now', '-' || @days || ' days')
+     AND vinted_id NOT IN (SELECT vinted_id FROM decisions WHERE level != 'ignore')`
+  ),
+  deleteOldDecisions: db.prepare<{ days: number }>(
+    `DELETE FROM decisions WHERE created_at < datetime('now', '-' || @days || ' days')`
+  ),
 };
