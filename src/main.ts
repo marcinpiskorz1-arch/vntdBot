@@ -124,13 +124,22 @@ async function runPipeline(): Promise<void> {
     const analyzed = await aiAnalyst.analyzeAll(toAnalyze);
 
     // 4. DECISION — score and decide
+    let notifiedCount = 0;
     for (const [item, signal, ai] of analyzed) {
       const result = decision.decide(item, signal, ai);
 
       // 5. TELEGRAM — notify if above threshold
       if (result.level !== "ignore") {
         await telegram.notify(result);
+        notifiedCount++;
       }
+    }
+
+    // Info when items were analyzed but none passed threshold
+    if (notifiedCount === 0 && analyzed.length > 0) {
+      await telegram.sendMessage(
+        `🔍 Przeskanowałem ${newItems.length} ofert, ${analyzed.length} przeanalizowałem — brak okazji. Szukam dalej...`
+      ).catch(() => {});
     }
 
     const elapsed = ((Date.now() - startTime) / 1000).toFixed(1);

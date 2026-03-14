@@ -56,8 +56,6 @@ export function buildMessageText(payload: NotificationPayload): string {
     `${payload.scoreLine}`,
     `💵 ${payload.priceLine}`,
     payload.profitLine,
-    "",
-    `🧠 <i>${payload.aiReasoning}</i>`,
   ];
 
   if (payload.riskFlags.length > 0) {
