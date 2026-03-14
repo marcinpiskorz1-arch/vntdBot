@@ -36,6 +36,19 @@ export class DecisionAgent {
       reasons.push(`🚩 ${penaltyFlags.length} flag ryzyka: ${penaltyFlags.join(", ")}`);
     }
 
+    // Shipping bonus / pickup penalty (especially important for OLX)
+    const itemText = `${item.title} ${item.description}`.toLowerCase();
+    const SHIPPING_KEYWORDS = /\b(wysyłk[aę]|paczkomat|inpost|orlen paczk|dpd|poczt[aą]|kurier)\b/i;
+    const PICKUP_KEYWORDS = /\b(tylko odbio|odbi[oó]r osobi|nie wysy[łl]am)\b/i;
+    if (SHIPPING_KEYWORDS.test(itemText)) {
+      score += 0.3;
+      reasons.push("📦 Wysyłka dostępna (+0.3)");
+    }
+    if (PICKUP_KEYWORDS.test(itemText)) {
+      score -= 0.5;
+      reasons.push("🚫 Tylko odbiór osobisty (-0.5)");
+    }
+
     // Build explainability reasons
     if (pricing.discountPct > 0) {
       reasons.push(

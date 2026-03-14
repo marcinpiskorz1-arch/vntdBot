@@ -9,6 +9,7 @@ export interface ScanConfig {
   priceMax?: number;
   sizes?: string[];
   searchText?: string;
+  priority?: boolean; // scanned every cycle (vs every other cycle for standard)
 }
 
 /** Scraper → Pricing: surowa oferta z Vinted */

@@ -33,59 +33,59 @@ const scanConfigs: ScanConfig[] = [
   { searchText: "under armour" },
   { searchText: "asics" },
   { searchText: "vans" },
-  // Jordan — modele
-  { searchText: "jordan 1" },
-  { searchText: "jordan 3" },
-  { searchText: "jordan 4" },
-  { searchText: "jordan 5" },
-  { searchText: "jordan 11" },
+  // Jordan — modele (priority: skanowane co cykl)
+  { searchText: "jordan 1", priority: true },
+  { searchText: "jordan 3", priority: true },
+  { searchText: "jordan 4", priority: true },
+  { searchText: "jordan 5", priority: true },
+  { searchText: "jordan 11", priority: true },
   // New Balance — modele hype
-  { searchText: "new balance 550" },
-  { searchText: "new balance 574" },
-  { searchText: "new balance 990" },
-  { searchText: "new balance 2002r" },
-  { searchText: "new balance 530" },
+  { searchText: "new balance 550", priority: true },
+  { searchText: "new balance 574", priority: true },
+  { searchText: "new balance 990", priority: true },
+  { searchText: "new balance 2002r", priority: true },
+  { searchText: "new balance 530", priority: true },
   // Asics — modele
-  { searchText: "asics gel lyte" },
-  { searchText: "asics gel kayano" },
-  // Nike — popularne modele (łapie oferty, które "nike" ogólne może przegapić)
-  { searchText: "nike air max" },
-  { searchText: "nike dunk" },
-  { searchText: "nike blazer" },
-  { searchText: "nike metcon" },
-  { searchText: "nike air force" },
-  { searchText: "nike vapormax" },
-  { searchText: "nike pegasus" },
-  { searchText: "nike acg" },
-  { searchText: "nike tech fleece" },
-  { searchText: "nike sb" },
+  { searchText: "asics gel lyte", priority: true },
+  { searchText: "asics gel kayano", priority: true },
+  // Nike — popularne modele (priority: skanowane co cykl)
+  { searchText: "nike air max", priority: true },
+  { searchText: "nike dunk", priority: true },
+  { searchText: "nike blazer", priority: true },
+  { searchText: "nike metcon", priority: true },
+  { searchText: "nike air force", priority: true },
+  { searchText: "nike vapormax", priority: true },
+  { searchText: "nike pegasus", priority: true },
+  { searchText: "nike acg", priority: true },
+  { searchText: "nike tech fleece", priority: true },
+  { searchText: "nike sb", priority: true },
   // Adidas — popularne modele
-  { searchText: "adidas samba" },
-  { searchText: "adidas gazelle" },
-  { searchText: "adidas superstar" },
-  { searchText: "adidas stan smith" },
-  { searchText: "adidas ultraboost" },
-  { searchText: "adidas nmd" },
-  { searchText: "adidas yeezy" },
-  { searchText: "adidas spezial" },
-  { searchText: "adidas campus" },
-  { searchText: "adidas forum" },
-  { searchText: "adidas terrex" },
+  { searchText: "adidas samba", priority: true },
+  { searchText: "adidas gazelle", priority: true },
+  { searchText: "adidas superstar", priority: true },
+  { searchText: "adidas stan smith", priority: true },
+  { searchText: "adidas ultraboost", priority: true },
+  { searchText: "adidas nmd", priority: true },
+  { searchText: "adidas yeezy", priority: true },
+  { searchText: "adidas spezial", priority: true },
+  { searchText: "adidas campus", priority: true },
+  { searchText: "adidas forum", priority: true },
+  { searchText: "adidas terrex", priority: true },
   // Outdoor / góry
   { searchText: "la sportiva" },
   { searchText: "salewa" },
   { searchText: "salomon" },
   // Salomon — modele hype
-  { searchText: "salomon xt-6" },
-  { searchText: "salomon speedcross" },
-  { searchText: "salomon xt-4" },
+  { searchText: "salomon xt-6", priority: true },
+  { searchText: "salomon speedcross", priority: true },
+  { searchText: "salomon xt-4", priority: true },
   { searchText: "mammut" },
   { searchText: "arc'teryx" },
   // Arc'teryx — modele premium
-  { searchText: "arcteryx alpha" },
-  { searchText: "arcteryx beta" },
-  { searchText: "arcteryx atom" },
-  { searchText: "arcteryx cerium" },
+  { searchText: "arcteryx alpha", priority: true },
+  { searchText: "arcteryx beta", priority: true },
+  { searchText: "arcteryx atom", priority: true },
+  { searchText: "arcteryx cerium", priority: true },
   { searchText: "scarpa" },
   { searchText: "norrøna" },
   { searchText: "haglöfs" },
@@ -97,20 +97,20 @@ const scanConfigs: ScanConfig[] = [
   // Streetwear / hype
   { searchText: "the north face" },
   // TNF — modele z wysokim resale
-  { searchText: "north face nuptse" },
-  { searchText: "north face 1996" },
-  { searchText: "north face denali" },
+  { searchText: "north face nuptse", priority: true },
+  { searchText: "north face 1996", priority: true },
+  { searchText: "north face denali", priority: true },
   { searchText: "patagonia" },
   // Patagonia — modele
-  { searchText: "patagonia retro-x" },
-  { searchText: "patagonia nano puff" },
+  { searchText: "patagonia retro-x", priority: true },
+  { searchText: "patagonia nano puff", priority: true },
   { searchText: "fjällräven" },
   { searchText: "stone island" },
   { searchText: "nervous" },
   { searchText: "carhartt" },
   { searchText: "dickies" },
   { searchText: "supreme" },
-  { searchText: "supreme box logo" },
+  { searchText: "supreme box logo", priority: true },
   { searchText: "stüssy" },
   { searchText: "napapijri" },
   { searchText: "bape" },
@@ -152,9 +152,9 @@ const scanConfigs: ScanConfig[] = [
   // Tier 2 resell
   { searchText: "columbia" },
   { searchText: "converse" },
-  { searchText: "converse chuck 70" },
+  { searchText: "converse chuck 70", priority: true },
   { searchText: "on running" },
-  { searchText: "on cloudmonster" },
+  { searchText: "on cloudmonster", priority: true },
   // Skate
   { searchText: "santa cruz" },
   // Customize: add your own queries here
@@ -165,10 +165,18 @@ const olxScanConfigs: ScanConfig[] = scanConfigs
   // Strip Vinted-specific options (categoryIds/brandIds don't apply to OLX API)
   .map(({ searchText }) => ({ searchText }));
 
+// Priority configs (hype models) = scanned every cycle
+// Standard configs (generic brands) = scanned every other cycle
+const priorityConfigs = scanConfigs.filter(c => c.priority);
+const standardConfigs = scanConfigs.filter(c => !c.priority);
+const olxPriorityConfigs = olxScanConfigs.filter((_, i) => scanConfigs[i]?.priority);
+const olxStandardConfigs = olxScanConfigs.filter((_, i) => !scanConfigs[i]?.priority);
+
 // ============================================================
 // Pipeline: Scraper → Pricing → AI Analyst → Decision → Telegram
 // ============================================================
 let isRunning = false;
+let cycleCount = 0; // used to alternate priority/standard scans
 
 // Queue for underpriced items that didn't fit in the AI limit
 let aiQueue: Array<[import("./types.js").RawItem, import("./types.js").PriceSignal]> = [];
@@ -206,10 +214,15 @@ async function runPipeline(): Promise<void> {
 
   try {
     // 1. SCRAPER — fetch new items from Vinted + OLX
-    logger.info("🔍 Pipeline: Starting scan...");
-    const vintedItems = await scraper.scan(scanConfigs);
-    const olxItems = await olxScraper.scan(olxScanConfigs);
+    // Priority (hype models) every cycle, standard (generic brands) every other cycle
+    const isFullCycle = cycleCount % 2 === 0;
+    const vintedToScan = isFullCycle ? scanConfigs : priorityConfigs;
+    const olxToScan = isFullCycle ? olxScanConfigs : olxPriorityConfigs;
+    logger.info({ cycle: cycleCount, full: isFullCycle, vintedQueries: vintedToScan.length, olxQueries: olxToScan.length }, "🔍 Pipeline: Starting scan...");
+    const vintedItems = await scraper.scan(vintedToScan);
+    const olxItems = await olxScraper.scan(olxToScan);
     const newItems = [...vintedItems, ...olxItems];
+    cycleCount++;
 
     let underpriced: Array<[import("./types.js").RawItem, import("./types.js").PriceSignal]> = [];
 
@@ -238,8 +251,15 @@ async function runPipeline(): Promise<void> {
       const BAD_CONDITION = /zadowalaj|satisf|słaby|poor|accep/i;
       const conditionFiltered = noHats.filter(i => !BAD_CONDITION.test(i.condition));
 
-      if (conditionFiltered.length < newItems.length) {
-        const removedCount = newItems.length - conditionFiltered.length;
+      // Filter: skip pickup-only items (OLX especially — no way to ship)
+      const PICKUP_ONLY = /\b(tylko odbio|odbi[oó]r osobi|nie wysy[łl]am|osobisty odbio)\b/i;
+      const shippable = conditionFiltered.filter(i => {
+        const text = `${i.title} ${i.description}`;
+        return !PICKUP_ONLY.test(text);
+      });
+
+      if (shippable.length < newItems.length) {
+        const removedCount = newItems.length - shippable.length;
         stats.filtered += removedCount;
         logger.info({
           removed: removedCount,
@@ -247,12 +267,13 @@ async function runPipeline(): Promise<void> {
           kids: priceFiltered.length - filtered.length,
           hats: filtered.length - noHats.length,
           badCondition: noHats.length - conditionFiltered.length,
-        }, "🚫 Filtered out cheap/kids/hats/bad-condition items");
+          pickupOnly: conditionFiltered.length - shippable.length,
+        }, "🚫 Filtered out cheap/kids/hats/bad-condition/pickup-only items");
       }
 
-      if (conditionFiltered.length > 0) {
+      if (shippable.length > 0) {
         // 2. PRICING — evaluate each item
-        const evaluated = pricing.evaluateAll(conditionFiltered);
+        const evaluated = pricing.evaluateAll(shippable);
         underpriced = evaluated.filter(([, signal]) => signal.isUnderpriced);
         stats.underpriced += underpriced.length;
 
