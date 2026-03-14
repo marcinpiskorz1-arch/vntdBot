@@ -2,6 +2,8 @@ import cron from "node-cron";
 import { config } from "./config.js";
 import { stmts } from "./database.js";
 import { logger } from "./logger.js";
+import { settings } from "./settings.js";
+import { botState } from "./bot-state.js";
 import type { ScanConfig } from "./types.js";
 
 import { ScraperAgent } from "./agents/scraper/index.js";
@@ -233,72 +235,103 @@ const olxScanConfigs: ScanConfig[] = scanConfigs
   // Strip Vinted-specific options (categoryIds/brandIds don't apply to OLX API)
   .map(({ searchText }) => ({ searchText }));
 
-// Priority configs (hype models) = scanned every cycle
-// Standard configs (generic brands) = scanned every other cycle
-const priorityConfigs = scanConfigs.filter(c => c.priority);
-const standardConfigs = scanConfigs.filter(c => !c.priority);
-const olxPriorityConfigs = olxScanConfigs.filter((_, i) => scanConfigs[i]?.priority);
-const olxStandardConfigs = olxScanConfigs.filter((_, i) => !scanConfigs[i]?.priority);
+/** Load custom queries from DB and merge with hardcoded configs */
+function buildScanLists() {
+  const customRows = stmts.getCustomQueries.all() as { search_text: string; priority: number }[];
+  const customConfigs: ScanConfig[] = customRows.map(r => ({
+    searchText: r.search_text,
+    priority: r.priority === 1,
+  }));
+
+  const allVinted = [...scanConfigs, ...customConfigs];
+  const allOlx: ScanConfig[] = allVinted.map(({ searchText }) => ({ searchText }));
+
+  const priority = allVinted.filter(c => c.priority);
+  const olxPriority = allOlx.filter((_, i) => allVinted[i]?.priority);
+
+  // Update botState for /status command
+  botState.totalQueries = scanConfigs.length;
+  botState.priorityQueries = scanConfigs.filter(c => c.priority).length;
+  botState.customQueries = customRows.length;
+
+  return { allVinted, allOlx, priority, olxPriority };
+}
 
 // ============================================================
 // Pipeline: Scraper → Pricing → AI Analyst → Decision → Telegram
 // ============================================================
-let isRunning = false;
-let cycleCount = 0; // used to alternate priority/standard scans
 
-// Queue for underpriced items that didn't fit in the AI limit
-let aiQueue: Array<[import("./types.js").RawItem, import("./types.js").PriceSignal]> = [];
+// Alias for brevity — botState.stats is the shared stats object
+const stats = botState.stats;
 
-// Cumulative stats between heartbeats
-const stats = {
-  cycles: 0,
-  scanned: 0,
-  filtered: 0,
-  underpriced: 0,
-  aiAnalyzed: 0,
-  notified: 0,
-  errors: 0,
-  startedAt: Date.now(),
-  reset() {
-    this.cycles = 0;
-    this.scanned = 0;
-    this.filtered = 0;
-    this.underpriced = 0;
-    this.aiAnalyzed = 0;
-    this.notified = 0;
-    this.errors = 0;
-    this.startedAt = Date.now();
-  },
-};
+/** Enqueue items to persistent AI queue (survives restarts) */
+function enqueueToAi(items: Array<[import("./types.js").RawItem, import("./types.js").PriceSignal]>): void {
+  for (const [item, signal] of items) {
+    stmts.enqueueAi.run({
+      vinted_id: item.vintedId,
+      item_json: JSON.stringify(item),
+      signal_json: JSON.stringify(signal),
+    });
+  }
+}
+
+/** Dequeue items from persistent AI queue */
+function dequeueFromAi(limit: number): Array<[import("./types.js").RawItem, import("./types.js").PriceSignal, number]> {
+  const rows = stmts.dequeueAi.all({ limit }) as { id: number; item_json: string; signal_json: string }[];
+  return rows.map(r => [JSON.parse(r.item_json), JSON.parse(r.signal_json), r.id]);
+}
+
+function getAiQueueCount(): number {
+  return (stmts.countAiQueue.get() as { count: number }).count;
+}
+
+function resetStats() {
+  stats.cycles = 0;
+  stats.scanned = 0;
+  stats.filtered = 0;
+  stats.underpriced = 0;
+  stats.aiAnalyzed = 0;
+  stats.notified = 0;
+  stats.errors = 0;
+}
 
 async function runPipeline(): Promise<void> {
-  if (isRunning) {
+  // Check if paused via Telegram /pause command
+  if (settings.paused) {
+    logger.info("⏸️ Bot paused, skipping cycle");
+    return;
+  }
+
+  if (botState.isRunning) {
     logger.warn("Pipeline already running, skipping this cycle");
     return;
   }
 
-  isRunning = true;
+  botState.isRunning = true;
   const startTime = Date.now();
 
   try {
+    // Reload custom queries from DB each cycle (picks up Telegram /queries_add changes)
+    const lists = buildScanLists();
+
     // 1. SCRAPER — fetch new items from Vinted + OLX
     // Priority (hype models) every cycle, standard (generic brands) every other cycle
-    const isFullCycle = cycleCount % 2 === 0;
-    const vintedToScan = isFullCycle ? scanConfigs : priorityConfigs;
-    const olxToScan = isFullCycle ? olxScanConfigs : olxPriorityConfigs;
-    logger.info({ cycle: cycleCount, full: isFullCycle, vintedQueries: vintedToScan.length, olxQueries: olxToScan.length }, "🔍 Pipeline: Starting scan...");
+    const isFullCycle = botState.cycleCount % 2 === 0;
+    const vintedToScan = isFullCycle ? lists.allVinted : lists.priority;
+    const olxToScan = isFullCycle ? lists.allOlx : lists.olxPriority;
+    logger.info({ cycle: botState.cycleCount, full: isFullCycle, vintedQueries: vintedToScan.length, olxQueries: olxToScan.length }, "🔍 Pipeline: Starting scan...");
     const vintedItems = await scraper.scan(vintedToScan);
     const olxItems = await olxScraper.scan(olxToScan);
     const newItems = [...vintedItems, ...olxItems];
-    cycleCount++;
+    botState.cycleCount++;
 
     let underpriced: Array<[import("./types.js").RawItem, import("./types.js").PriceSignal]> = [];
 
     if (newItems.length > 0) {
       logger.info({ count: newItems.length }, "📦 New items found");
 
-      // Filter: minimum price (below 20 PLN = no profit after shipping)
-      const MIN_PRICE = 20;
+      // Filter: minimum price (dynamic — settable via /set min_price)
+      const MIN_PRICE = settings.minPrice;
       const priceFiltered = newItems.filter(i => i.price >= MIN_PRICE);
 
       // Filter: skip children's items
@@ -352,24 +385,32 @@ async function runPipeline(): Promise<void> {
       }
     }
 
-    // Merge with queued items from previous cycles
-    const combined = [...aiQueue, ...underpriced];
-    aiQueue = []; // clear queue
+    // Enqueue new underpriced items to persistent AI queue
+    if (underpriced.length > 0) {
+      enqueueToAi(underpriced);
+    }
 
-    if (combined.length === 0) {
+    // Dequeue from persistent queue (includes items from previous cycles that survived restarts)
+    const MAX_AI_PER_CYCLE = settings.aiLimit;
+    const queued = dequeueFromAi(MAX_AI_PER_CYCLE);
+
+    if (queued.length === 0) {
       if (newItems.length === 0) logger.info("No new items found this cycle");
       return;
     }
 
-    // 3. AI ANALYST — analyze underpriced items (max 200 per cycle)
-    const MAX_AI_PER_CYCLE = 200;
-    const toAnalyze = combined.slice(0, MAX_AI_PER_CYCLE);
-    if (combined.length > MAX_AI_PER_CYCLE) {
-      aiQueue = combined.slice(MAX_AI_PER_CYCLE);
-      logger.info({ queued: aiQueue.length, total: combined.length }, "⏩ AI limit reached, rest queued for next cycle");
+    const remainingInQueue = getAiQueueCount();
+    if (remainingInQueue > 0) {
+      logger.info({ processing: queued.length, remaining: remainingInQueue }, "⏩ AI limit reached, rest stays in persistent queue");
     }
-    logger.info({ count: toAnalyze.length, queued: aiQueue.length }, "🧠 Sending to Gemini...");
+    logger.info({ count: queued.length, queued: remainingInQueue }, "🧠 Sending to Gemini...");
+    const toAnalyze: Array<[import("./types.js").RawItem, import("./types.js").PriceSignal]> = queued.map(([item, signal]) => [item, signal]);
     const analyzed = await aiAnalyst.analyzeAll(toAnalyze);
+
+    // Remove successfully analyzed items from persistent queue
+    for (const [,, dbId] of queued) {
+      stmts.removeFromAiQueue.run({ id: dbId });
+    }
 
     // 4. DECISION — score and decide
     let notifiedCount = 0;
@@ -411,7 +452,8 @@ async function runPipeline(): Promise<void> {
       .sendMessage(`⚠️ Pipeline error: ${err instanceof Error ? err.message : "unknown"}`)
       .catch(() => {});
   } finally {
-    isRunning = false;
+    botState.isRunning = false;
+    botState.aiQueueLength = getAiQueueCount();
   }
 }
 
@@ -420,12 +462,23 @@ async function runPipeline(): Promise<void> {
 // ============================================================
 async function main(): Promise<void> {
   logger.info("🤖 VintedBot starting...");
+  // Initialize query counts for /status
+  const initialLists = buildScanLists();
+
   logger.info({
     scanConfigs: scanConfigs.length,
+    customQueries: botState.customQueries,
     intervalMs: config.scanIntervalMs,
     threshold: config.dealThreshold,
     proxies: config.proxyUrls.length,
   }, "Configuration loaded");
+
+  // Check for items left in persistent AI queue from previous run
+  const pendingAi = getAiQueueCount();
+  if (pendingAi > 0) {
+    logger.info({ pending: pendingAi }, "📋 Found items in persistent AI queue from previous run — will process this cycle");
+  }
+  botState.aiQueueLength = pendingAi;
 
   // Start Telegram bot (listens for commands + button callbacks)
   await telegram.start();
@@ -451,10 +504,13 @@ async function main(): Promise<void> {
   scheduleNext();
 
   // Heartbeat every hour with stats summary
+  let lastHeartbeat = Date.now();
   cron.schedule("0 * * * *", () => {
-    const uptime = Math.round((Date.now() - stats.startedAt) / 60000);
+    const uptime = Math.round((Date.now() - lastHeartbeat) / 60000);
     const msg = [
       `💓 Heartbeat — ${new Date().toLocaleTimeString("pl-PL")}`,
+      ``,
+      settings.paused ? `⏸️ BOT WSTRZYMANY` : `▶️ Aktywny`,
       ``,
       `📊 Od ostatniego raportu (${uptime} min):`,
       `  🔄 Cykli: ${stats.cycles}`,
@@ -464,7 +520,7 @@ async function main(): Promise<void> {
       `  🧠 Analiza AI: ${stats.aiAnalyzed}`,
       `  📩 Powiadomień: ${stats.notified}`,
       `  ❌ Błędów: ${stats.errors}`,
-      `  📋 W kolejce AI: ${aiQueue.length}`,
+      `  📋 W kolejce AI: ${getAiQueueCount()}`,
     ].join("\n");
     telegram.sendMessage(msg).catch(() => {});
     stmts.insertHeartbeat.run({
@@ -475,10 +531,11 @@ async function main(): Promise<void> {
       ai_analyzed: stats.aiAnalyzed,
       notified: stats.notified,
       errors: stats.errors,
-      ai_queue: aiQueue.length,
+      ai_queue: getAiQueueCount(),
       period_min: uptime,
     });
-    stats.reset();
+    resetStats();
+    lastHeartbeat = Date.now();
   });
 
   // Cleanup old data every day at 3 AM

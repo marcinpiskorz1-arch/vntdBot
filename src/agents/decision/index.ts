@@ -1,9 +1,10 @@
 import { config } from "../../config.js";
+import { settings } from "../../settings.js";
 import { stmts } from "../../database.js";
 import { logger } from "../../logger.js";
 import type { RawItem, PriceSignal, AiAnalysis, Decision } from "../../types.js";
 
-const { weights, notifyThreshold, hotThreshold, hotMinProfit, lowSamplePenalty } = config;
+const { weights, lowSamplePenalty } = config;
 
 export class DecisionAgent {
   /**
@@ -72,7 +73,11 @@ export class DecisionAgent {
     // Minimum profit gate — not worth the effort below 35 PLN
     const MIN_PROFIT_TO_NOTIFY = 35;
 
-    // Determine level
+    // Determine level (read thresholds from dynamic settings)
+    const notifyThreshold = settings.notifyThreshold;
+    const hotThreshold = settings.hotThreshold;
+    const hotMinProfit = settings.hotMinProfit;
+
     let level: Decision["level"] = "ignore";
     if (score >= hotThreshold && ai.estimatedProfit >= hotMinProfit) {
       level = "hot";

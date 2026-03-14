@@ -80,6 +80,28 @@ db.exec(`
     period_min  INTEGER NOT NULL DEFAULT 0,
     created_at  TEXT    NOT NULL DEFAULT (datetime('now'))
   );
+
+  CREATE TABLE IF NOT EXISTS settings (
+    key         TEXT PRIMARY KEY,
+    value       TEXT NOT NULL,
+    updated_at  TEXT NOT NULL DEFAULT (datetime('now'))
+  );
+
+  CREATE TABLE IF NOT EXISTS custom_queries (
+    id          INTEGER PRIMARY KEY AUTOINCREMENT,
+    search_text TEXT NOT NULL UNIQUE,
+    priority    INTEGER NOT NULL DEFAULT 0,
+    enabled     INTEGER NOT NULL DEFAULT 1,
+    added_at    TEXT NOT NULL DEFAULT (datetime('now'))
+  );
+
+  CREATE TABLE IF NOT EXISTS ai_queue (
+    id          INTEGER PRIMARY KEY AUTOINCREMENT,
+    vinted_id   TEXT NOT NULL UNIQUE,
+    item_json   TEXT NOT NULL,
+    signal_json TEXT NOT NULL,
+    added_at    TEXT NOT NULL DEFAULT (datetime('now'))
+  );
 `);
 
 // ============================================================
@@ -155,5 +177,46 @@ export const stmts = {
   ),
   deleteOldDecisions: db.prepare<{ days: number }>(
     `DELETE FROM decisions WHERE created_at < datetime('now', '-' || @days || ' days')`
+  ),
+
+  // Settings
+  getSetting: db.prepare<{ key: string }>(
+    `SELECT value FROM settings WHERE key = @key`
+  ),
+  setSetting: db.prepare(
+    `INSERT INTO settings (key, value, updated_at) VALUES (@key, @value, datetime('now'))
+     ON CONFLICT(key) DO UPDATE SET value = @value, updated_at = datetime('now')`
+  ),
+  getAllSettings: db.prepare(`SELECT key, value FROM settings`),
+
+  // Custom queries
+  getCustomQueries: db.prepare(
+    `SELECT search_text, priority FROM custom_queries WHERE enabled = 1`
+  ),
+  addCustomQuery: db.prepare(
+    `INSERT OR IGNORE INTO custom_queries (search_text, priority) VALUES (@search_text, @priority)`
+  ),
+  removeCustomQuery: db.prepare<{ search_text: string }>(
+    `DELETE FROM custom_queries WHERE search_text = @search_text`
+  ),
+  listCustomQueries: db.prepare(
+    `SELECT search_text, priority, enabled FROM custom_queries ORDER BY added_at`
+  ),
+
+  // AI Queue (persistent — survives restarts)
+  enqueueAi: db.prepare(
+    `INSERT OR IGNORE INTO ai_queue (vinted_id, item_json, signal_json) VALUES (@vinted_id, @item_json, @signal_json)`
+  ),
+  dequeueAi: db.prepare<{ limit: number }>(
+    `SELECT id, item_json, signal_json FROM ai_queue ORDER BY added_at ASC LIMIT @limit`
+  ),
+  removeFromAiQueue: db.prepare<{ id: number }>(
+    `DELETE FROM ai_queue WHERE id = @id`
+  ),
+  clearAiQueue: db.prepare(
+    `DELETE FROM ai_queue`
+  ),
+  countAiQueue: db.prepare(
+    `SELECT COUNT(*) as count FROM ai_queue`
   ),
 };
