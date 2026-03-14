@@ -24,11 +24,13 @@ const telegram = new TelegramAgent();
 // ============================================================
 const scanConfigs: ScanConfig[] = [
   // Sneakersy
-  { searchText: "nike air max" },
+  { searchText: "nike" },
   { searchText: "jordan" },
+  { searchText: "adidas" },
   { searchText: "new balance" },
   { searchText: "under armour" },
   { searchText: "asics" },
+  { searchText: "vans" },
   // Outdoor / góry
   { searchText: "la sportiva" },
   { searchText: "salewa" },
@@ -38,7 +40,7 @@ const scanConfigs: ScanConfig[] = [
   { searchText: "scarpa" },
   { searchText: "norrøna" },
   { searchText: "haglöfs" },
-  { searchText: "rab" },
+  { searchText: "rab", categoryIds: [5] },  // only clothing — avoid random matches
   { searchText: "millet" },
   { searchText: "meindl" },
   { searchText: "lowa" },
@@ -54,6 +56,7 @@ const scanConfigs: ScanConfig[] = [
   { searchText: "supreme" },
   { searchText: "stüssy" },
   { searchText: "napapijri" },
+  { searchText: "bape" },
   { searchText: "ralph lauren" },
   { searchText: "tommy hilfiger" },
   // Workwear / vintage
@@ -69,9 +72,32 @@ const scanConfigs: ScanConfig[] = [
   { searchText: "dakine" },
   // Moto / sport
   { searchText: "alpinestars" },
-  { searchText: "fox racing" },
+  { searchText: "fox racing", categoryIds: [5] },  // only clothing — avoid animals
+  { searchText: "dainese" },
   // Inne
   { searchText: "save the duck" },
+  // Technologie / materiały premium
+  { searchText: "gore-tex" },
+  { searchText: "goretex" },
+  { searchText: "windstopper" },
+  { searchText: "pertex" },
+  { searchText: "primaloft" },
+  { searchText: "cordura" },
+  { searchText: "vibram" },
+  { searchText: "polartec" },
+  // Premium / luxury resell
+  { searchText: "moncler" },
+  { searchText: "canada goose" },
+  { searchText: "off-white" },
+  { searchText: "balenciaga" },
+  { searchText: "burberry" },
+  { searchText: "barbour" },
+  // Tier 2 resell
+  { searchText: "columbia" },
+  { searchText: "converse" },
+  { searchText: "on running" },
+  // Skate
+  { searchText: "santa cruz" },
   // Customize: add your own queries here
 ];
 
@@ -79,6 +105,9 @@ const scanConfigs: ScanConfig[] = [
 // Pipeline: Scraper → Pricing → AI Analyst → Decision → Telegram
 // ============================================================
 let isRunning = false;
+
+// Queue for underpriced items that didn't fit in the AI limit
+let aiQueue: Array<[import("./types.js").RawItem, import("./types.js").PriceSignal]> = [];
 
 async function runPipeline(): Promise<void> {
   if (isRunning) {
@@ -94,50 +123,64 @@ async function runPipeline(): Promise<void> {
     logger.info("🔍 Pipeline: Starting scan...");
     const newItems = await scraper.scan(scanConfigs);
 
-    if (newItems.length === 0) {
-      logger.info("No new items found this cycle");
+    let underpriced: Array<[import("./types.js").RawItem, import("./types.js").PriceSignal]> = [];
+
+    if (newItems.length > 0) {
+      logger.info({ count: newItems.length }, "📦 New items found");
+
+      // Filter: minimum price (below 20 PLN = no profit after shipping)
+      const MIN_PRICE = 20;
+      const priceFiltered = newItems.filter(i => i.price >= MIN_PRICE);
+
+      // Filter: skip children's items
+      const KIDS_KEYWORDS = /\b(dziec|kids?|enfant|copii|barn|kinder|junior|bébé|bebe|niemowl|maluch|dziewczyn.*lat|ch[łl]op.*lat|rozmiar \d{2,3} cm)\b/i;
+      const filtered = priceFiltered.filter(i => {
+        const text = `${i.title} ${i.description} ${i.size}`;
+        return !KIDS_KEYWORDS.test(text);
+      });
+
+      // Filter: skip items in poor condition
+      const BAD_CONDITION = /zadowalaj|satisf|słaby|poor|accep/i;
+      const conditionFiltered = filtered.filter(i => !BAD_CONDITION.test(i.condition));
+
+      if (conditionFiltered.length < newItems.length) {
+        logger.info({
+          removed: newItems.length - conditionFiltered.length,
+          priceTooLow: newItems.length - priceFiltered.length,
+          kids: priceFiltered.length - filtered.length,
+          badCondition: filtered.length - conditionFiltered.length,
+        }, "🚫 Filtered out cheap/kids/bad-condition items");
+      }
+
+      if (conditionFiltered.length > 0) {
+        // 2. PRICING — evaluate each item
+        const evaluated = pricing.evaluateAll(conditionFiltered);
+        underpriced = evaluated.filter(([, signal]) => signal.isUnderpriced);
+
+        logger.info(
+          { total: evaluated.length, underpriced: underpriced.length },
+          "💰 Price filtering done"
+        );
+      }
+    }
+
+    // Merge with queued items from previous cycles
+    const combined = [...aiQueue, ...underpriced];
+    aiQueue = []; // clear queue
+
+    if (combined.length === 0) {
+      if (newItems.length === 0) logger.info("No new items found this cycle");
       return;
     }
 
-    logger.info({ count: newItems.length }, "📦 New items found");
-
-    // Filter: minimum price (below 30 PLN = no profit after shipping)
-    const MIN_PRICE = 30;
-    const priceFiltered = newItems.filter(i => i.price >= MIN_PRICE);
-
-    // Filter: skip children's items
-    const KIDS_KEYWORDS = /\b(dziec|kids?|enfant|copii|barn|kinder|junior|bébé|bebe|niemowl|maluch|dziewczyn.*lat|ch[łl]op.*lat|rozmiar \d{2,3} cm)\b/i;
-    const filtered = priceFiltered.filter(i => {
-      const text = `${i.title} ${i.description} ${i.size}`;
-      return !KIDS_KEYWORDS.test(text);
-    });
-
-    if (filtered.length < newItems.length) {
-      logger.info({ removed: newItems.length - filtered.length, priceTooLow: newItems.length - priceFiltered.length }, "🚫 Filtered out cheap/kids items");
+    // 3. AI ANALYST — analyze underpriced items (max 200 per cycle)
+    const MAX_AI_PER_CYCLE = 200;
+    const toAnalyze = combined.slice(0, MAX_AI_PER_CYCLE);
+    if (combined.length > MAX_AI_PER_CYCLE) {
+      aiQueue = combined.slice(MAX_AI_PER_CYCLE);
+      logger.info({ queued: aiQueue.length, total: combined.length }, "⏩ AI limit reached, rest queued for next cycle");
     }
-
-    if (filtered.length === 0) return;
-
-    // 2. PRICING — evaluate each item
-    const evaluated = pricing.evaluateAll(filtered);
-
-    // Filter: only underpriced items go to AI
-    const underpriced = evaluated.filter(([, signal]) => signal.isUnderpriced);
-
-    logger.info(
-      { total: evaluated.length, underpriced: underpriced.length },
-      "💰 Price filtering done"
-    );
-
-    if (underpriced.length === 0) return;
-
-    // 3. AI ANALYST — analyze underpriced items (max 20 per cycle to stay within Gemini free tier)
-    const MAX_AI_PER_CYCLE = 20;
-    const toAnalyze = underpriced.slice(0, MAX_AI_PER_CYCLE);
-    if (underpriced.length > MAX_AI_PER_CYCLE) {
-      logger.info({ skipped: underpriced.length - MAX_AI_PER_CYCLE }, "\u23e9 AI limit reached, rest queued for next cycle");
-    }
-    logger.info({ count: toAnalyze.length }, "\ud83e\udde0 Sending to Gemini...");
+    logger.info({ count: toAnalyze.length, queued: aiQueue.length }, "🧠 Sending to Gemini...");
     const analyzed = await aiAnalyst.analyzeAll(toAnalyze);
 
     // 4. DECISION — score and decide
@@ -152,11 +195,9 @@ async function runPipeline(): Promise<void> {
       }
     }
 
-    // Info when items were analyzed but none passed threshold
+    // Log when items were analyzed but none passed threshold (no Telegram spam)
     if (notifiedCount === 0 && analyzed.length > 0) {
-      await telegram.sendMessage(
-        `🔍 Przeskanowałem ${newItems.length} ofert, ${analyzed.length} przeanalizowałem — brak okazji. Szukam dalej...`
-      ).catch(() => {});
+      logger.info({ scanned: newItems.length, analyzed: analyzed.length }, "No deals this cycle");
     }
 
     const elapsed = ((Date.now() - startTime) / 1000).toFixed(1);
@@ -216,8 +257,8 @@ async function main(): Promise<void> {
 
   scheduleNext();
 
-  // Heartbeat every 5 minutes
-  cron.schedule("*/5 * * * *", () => {
+  // Heartbeat every 30 minutes
+  cron.schedule("*/30 * * * *", () => {
     telegram
       .sendMessage(`💓 Heartbeat — ${new Date().toLocaleTimeString("pl-PL")}`)
       .catch(() => {});

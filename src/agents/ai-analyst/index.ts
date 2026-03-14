@@ -94,6 +94,8 @@ export class AiAnalystAgent {
     for (const [item, signal] of items) {
       const analysis = await this.analyze(item, signal);
       results.push([item, signal, analysis]);
+      // 0.5s delay between Gemini calls to avoid 429 rate limits
+      if (items.length > 1) await new Promise(r => setTimeout(r, 500));
     }
 
     return results;

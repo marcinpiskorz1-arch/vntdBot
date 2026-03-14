@@ -56,8 +56,8 @@ export class DecisionAgent {
       reasons.push(`💵 Szacowany zysk: ~${ai.estimatedProfit} PLN`);
     }
 
-    // Minimum profit gate — micro-deals not worth the effort
-    const MIN_PROFIT_TO_NOTIFY = 20;
+    // Minimum profit gate — not worth the effort below 35 PLN
+    const MIN_PROFIT_TO_NOTIFY = 35;
 
     // Determine level
     let level: Decision["level"] = "ignore";

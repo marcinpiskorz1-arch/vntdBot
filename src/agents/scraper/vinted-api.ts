@@ -47,7 +47,7 @@ export async function fetchCatalogItems(
   session: VintedSession,
   scanConfig: ScanConfig,
   page = 1,
-  perPage = 48
+  perPage = 96
 ): Promise<RawItem[]> {
   const url = new URL(`${config.vintedDomain}/api/v2/catalog/items`);
 

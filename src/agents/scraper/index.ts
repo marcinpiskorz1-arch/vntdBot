@@ -43,7 +43,13 @@ export class ScraperAgent {
 
     for (const scanConfig of scanConfigs) {
       try {
-        const items = await fetchCatalogItems(session, scanConfig);
+        // Fetch page 1 + page 2 for more coverage
+        const page1 = await fetchCatalogItems(session, scanConfig, 1);
+        await jitter(500, 1500);
+        const page2 = await fetchCatalogItems(session, scanConfig, 2);
+        const seen = new Set(page1.map(i => i.vintedId));
+        const uniquePage2 = page2.filter(i => !seen.has(i.vintedId));
+        const items = [...page1, ...uniquePage2];
         logger.info(
           { query: scanConfig.searchText || scanConfig.categoryIds, count: items.length },
           "Fetched items from Vinted"

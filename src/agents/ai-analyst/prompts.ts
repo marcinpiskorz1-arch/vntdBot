@@ -71,6 +71,11 @@ Analizujesz:
 
 ZASADY OCENIANIA (ŚCIŚLE PRZESTRZEGAJ):
 - Bądź BARDZO krytyczny. Lepiej przegapić okazję niż wysłać powiadomienie o badziewiu.
+- STAN PRZEDMIOTU jest kluczowy:
+  * "Nowy z metką" / "Nowy bez metki" = conditionConfidence 8-10
+  * "Bardzo dobry" = conditionConfidence 6-8
+  * "Dobry" = conditionConfidence 4-6, resalePotential MAX 6/10
+  * "Zadowalający" = conditionConfidence MAX 3/10, resalePotential MAX 3/10. Nikt nie kupi zużytych rzeczy drogo!
 - Generyczne przedmioty (zwykłe t-shirty, basic koszulki, skarpetki, majtki) = resalePotential MAX 3/10, nawet jeśli marka jest dobra.
 - Przedmiot musi mieć COŚ WYJĄTKOWEGO żeby dostać resalePotential 7+: limitowana edycja, klasyczny model (Air Max 90, 574, Old Skool), vintage, collab, rzadki kolor.
 - Jeśli tytuł/opis nie wspomina konkretnego MODELU (np. "Nike bluza" bez modelu) = resalePotential MAX 4/10.
@@ -79,7 +84,7 @@ ZASADY OCENIANIA (ŚCIŚLE PRZESTRZEGAJ):
 - Jeśli marka jest premium (Nike, Adidas, Jordan, New Balance, The North Face, Patagonia) — brandLiquidity 7+.
 - Jeśli marka jest no-name — brandLiquidity 1-3.
 - Odpowiadaj PO POLSKU w polu reasoning.
-- W reasoning ZAWSZE wspomnij model (jeśli znany) i rozmiar.`;
+- W reasoning ZAWSZE wspomnij model (jeśli znany), rozmiar i STAN.`;
 
 /**
  * Build user prompt for a single item analysis.

@@ -30,7 +30,7 @@ export const config = {
     .filter(Boolean),
 
   // Scan settings
-  scanIntervalMs: parseInt(optionalEnv("SCAN_INTERVAL_MS", "45000"), 10),
+  scanIntervalMs: parseInt(optionalEnv("SCAN_INTERVAL_MS", "30000"), 10),
   dealThreshold: parseFloat(optionalEnv("DEAL_THRESHOLD", "0.6")),
 
   // Vinted
@@ -43,10 +43,10 @@ export const config = {
     conditionConfidence: 0.2,
     brandLiquidity: 0.1,
   },
-  notifyThreshold: 6.5,
+  notifyThreshold: 6.0,
   hotThreshold: 9.0,
   hotMinProfit: 50, // PLN
-  lowSamplePenalty: 0.85, // applied when sampleSize < 10
+  lowSamplePenalty: 0.90, // applied when sampleSize < 10
 
   // Paths
   dbPath: optionalEnv("DB_PATH", "data/vintedbot.db"),
