@@ -17,6 +17,7 @@ export class AiAnalystAgent {
       item.brand,
       item.price,
       item.condition,
+      item.size || "",
       signal.medianPrice,
       signal.sampleSize
     );

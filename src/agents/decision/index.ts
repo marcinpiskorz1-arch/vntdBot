@@ -56,13 +56,18 @@ export class DecisionAgent {
       reasons.push(`💵 Szacowany zysk: ~${ai.estimatedProfit} PLN`);
     }
 
+    // Minimum profit gate — micro-deals not worth the effort
+    const MIN_PROFIT_TO_NOTIFY = 20;
+
     // Determine level
     let level: Decision["level"] = "ignore";
     if (score >= hotThreshold && ai.estimatedProfit >= hotMinProfit) {
       level = "hot";
       reasons.unshift("🔥 HOT DEAL — wysoki score + duży zysk");
-    } else if (score >= notifyThreshold) {
+    } else if (score >= notifyThreshold && ai.estimatedProfit >= MIN_PROFIT_TO_NOTIFY) {
       level = "notify";
+    } else if (score >= notifyThreshold && ai.estimatedProfit < MIN_PROFIT_TO_NOTIFY) {
+      reasons.push(`⛔ Zysk za mały (${ai.estimatedProfit} PLN < ${MIN_PROFIT_TO_NOTIFY} PLN)`);
     }
 
     // Clamp final score

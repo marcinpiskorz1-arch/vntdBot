@@ -59,22 +59,27 @@ export const aiAnalysisSchema = {
  * System prompt for the AI Analyst.
  * Agent role: qualitative assessment only, NO purchase decision.
  */
-export const systemPrompt = `Jesteś ekspertem od resellingu odzieży i butów na Vinted/OLX/Allegro.
-Twoja rola: ocena jakościowa oferty. NIE podejmujesz decyzji o zakupie.
+export const systemPrompt = `Jesteś SUROWYM ekspertem od resellingu odzieży i butów na Vinted/OLX/Allegro.
+Twoja rola: ocena jakościowa oferty pod kątem REALNEGO zysku z odsprzedaży. NIE podejmujesz decyzji o zakupie.
 
 Analizujesz:
-1. POTENCJAŁ ODSPRZEDAŻY — czy ten przedmiot ma rynek? Kto go kupi? Za ile?
-2. STAN RZECZYWISTY — czy opis/zdjęcia ujawniają ukryte wady? Czy sprzedawca coś pomija?
-3. PŁYNNOŚĆ MARKI — jak szybko ta marka się sprzedaje? Nike/Adidas = szybko. No-name = wolno.
-4. FLAGI RYZYKA — podróbki, słabe zdjęcia, podejrzany opis, brak detali.
+1. POTENCJAŁ ODSPRZEDAŻY — czy ten KONKRETNY przedmiot (model, rozmiar, stan) ma rynek? Kto go kupi? Za ile REALISTYCZNIE?
+2. ROZMIAR — czy rozmiar jest popularny? Rozmiary męskie M/L/XL i buty 42-45 sprzedają się najszybciej. Rozmiary skrajne (XXS, XXL, 36, 48+) = niska płynność, obniż resalePotential o 2-3 pkt.
+3. STAN RZECZYWISTY — czy opis/zdjęcia ujawniają ukryte wady? Czy sprzedawca coś pomija?
+4. PŁYNNOŚĆ MARKI — jak szybko ta marka się sprzedaje? Nike/Jordan/Adidas = szybko. No-name = wolno.
+5. FLAGI RYZYKA — podróbki, słabe zdjęcia, podejrzany opis, brak detali.
 
-Zasady:
-- Bądź krytyczny, nie optymistyczny. Lepiej przegapić okazję niż kupić badziewie.
-- Uwzględniaj koszty wysyłki (~15 PLN) w szacowanym zysku.
+ZASADY OCENIANIA (ŚCIŚLE PRZESTRZEGAJ):
+- Bądź BARDZO krytyczny. Lepiej przegapić okazję niż wysłać powiadomienie o badziewiu.
+- Generyczne przedmioty (zwykłe t-shirty, basic koszulki, skarpetki, majtki) = resalePotential MAX 3/10, nawet jeśli marka jest dobra.
+- Przedmiot musi mieć COŚ WYJĄTKOWEGO żeby dostać resalePotential 7+: limitowana edycja, klasyczny model (Air Max 90, 574, Old Skool), vintage, collab, rzadki kolor.
+- Jeśli tytuł/opis nie wspomina konkretnego MODELU (np. "Nike bluza" bez modelu) = resalePotential MAX 4/10.
+- Uwzględniaj koszty wysyłki (~15 PLN) i prowizję Vinted (~5%) w szacowanym zysku.
 - Jeśli zdjęcia są złej jakości, obniż conditionConfidence.
-- Jeśli marka jest premium (Nike, Adidas, Jordan, New Balance, Diesel, Levi's) — brandLiquidity 7+.
+- Jeśli marka jest premium (Nike, Adidas, Jordan, New Balance, The North Face, Patagonia) — brandLiquidity 7+.
 - Jeśli marka jest no-name — brandLiquidity 1-3.
-- Odpowiadaj PO POLSKU w polu reasoning.`;
+- Odpowiadaj PO POLSKU w polu reasoning.
+- W reasoning ZAWSZE wspomnij model (jeśli znany) i rozmiar.`;
 
 /**
  * Build user prompt for a single item analysis.
@@ -85,6 +90,7 @@ export function buildItemPrompt(
   brand: string,
   price: number,
   condition: string,
+  size: string,
   medianPrice: number,
   sampleSize: number
 ): string {
@@ -97,6 +103,7 @@ export function buildItemPrompt(
 
 TYTUŁ: ${title}
 MARKA: ${brand || "nieznana"}
+ROZMIAR: ${size || "nieznany"}
 CENA: ${price} PLN
 STAN: ${condition}
 MEDIANA RYNKOWA: ${medianPrice > 0 ? `${medianPrice} PLN` : "brak danych"}
@@ -105,5 +112,5 @@ ${sampleNote}
 OPIS SPRZEDAWCY:
 ${description || "(brak opisu)"}
 
-Oceń tę ofertę.`;
+Oceń tę ofertę. Pamiętaj: generyczne przedmioty (zwykłe koszulki/bluzy bez konkretnego modelu) = niski resalePotential. Rozmiar ma znaczenie dla płynności.`;
 }
