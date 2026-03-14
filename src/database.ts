@@ -66,6 +66,20 @@ db.exec(`
   );
 
   CREATE INDEX IF NOT EXISTS idx_decisions_vinted_id ON decisions(vinted_id);
+
+  CREATE TABLE IF NOT EXISTS heartbeats (
+    id          INTEGER PRIMARY KEY AUTOINCREMENT,
+    cycles      INTEGER NOT NULL DEFAULT 0,
+    scanned     INTEGER NOT NULL DEFAULT 0,
+    filtered    INTEGER NOT NULL DEFAULT 0,
+    underpriced INTEGER NOT NULL DEFAULT 0,
+    ai_analyzed INTEGER NOT NULL DEFAULT 0,
+    notified    INTEGER NOT NULL DEFAULT 0,
+    errors      INTEGER NOT NULL DEFAULT 0,
+    ai_queue    INTEGER NOT NULL DEFAULT 0,
+    period_min  INTEGER NOT NULL DEFAULT 0,
+    created_at  TEXT    NOT NULL DEFAULT (datetime('now'))
+  );
 `);
 
 // ============================================================
@@ -92,9 +106,18 @@ export const stmts = {
     `SELECT * FROM items WHERE vinted_id = @vinted_id`
   ),
 
-  // Pricing Agent
+  // Pricing Agent — 14-day window, with size group
+  getPricesForGroupWithSize: db.prepare<{ brand: string; category: string; size: string }>(
+    `SELECT price FROM items
+     WHERE brand = @brand AND category = @category AND size = @size
+       AND discovered_at >= datetime('now', '-14 days')
+     ORDER BY price`
+  ),
   getPricesForGroup: db.prepare<{ brand: string; category: string }>(
-    `SELECT price FROM items WHERE brand = @brand AND category = @category ORDER BY price`
+    `SELECT price FROM items
+     WHERE brand = @brand AND category = @category
+       AND discovered_at >= datetime('now', '-14 days')
+     ORDER BY price`
   ),
   upsertPriceHistory: db.prepare(`
     INSERT INTO price_history (brand, model, category, size_group, median_price, p25_price, sample_count, updated_at)
@@ -118,6 +141,12 @@ export const stmts = {
   updateUserAction: db.prepare<{ vinted_id: string; user_action: string }>(
     `UPDATE decisions SET user_action = @user_action WHERE vinted_id = @vinted_id`
   ),
+
+  // Heartbeat stats
+  insertHeartbeat: db.prepare(`
+    INSERT INTO heartbeats (cycles, scanned, filtered, underpriced, ai_analyzed, notified, errors, ai_queue, period_min)
+    VALUES (@cycles, @scanned, @filtered, @underpriced, @ai_analyzed, @notified, @errors, @ai_queue, @period_min)
+  `),
 
   // Cleanup — delete items older than N days
   deleteOldItems: db.prepare<{ days: number }>(

@@ -1,7 +1,7 @@
 import { config } from "../../config.js";
 import { logger } from "../../logger.js";
 import type { RawItem, PriceSignal } from "../../types.js";
-import { updatePriceStats, getPriceStats } from "./price-history.js";
+import { updatePriceStats, getPriceStats, normalizeSizeGroup } from "./price-history.js";
 
 const LOW_SAMPLE_THRESHOLD = 10;
 
@@ -11,11 +11,13 @@ export class PricingAgent {
    * Returns PriceSignal with discount info and confidence.
    */
   evaluate(item: RawItem): PriceSignal {
-    // First, update stats with this item's price
-    updatePriceStats(item.brand, item.category, item.model);
+    const sizeGroup = normalizeSizeGroup(item.size);
+
+    // First, update stats with this item's price (size-aware, 14-day, IQR-cleaned)
+    updatePriceStats(item.brand, item.category, item.model, sizeGroup);
 
     // Then get the (now updated) stats
-    const stats = getPriceStats(item.brand, item.category, item.model);
+    const stats = getPriceStats(item.brand, item.category, item.model, sizeGroup);
 
     if (!stats || stats.sampleCount === 0) {
       // No price history at all — low confidence, let AI decide

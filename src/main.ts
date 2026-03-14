@@ -5,6 +5,7 @@ import { logger } from "./logger.js";
 import type { ScanConfig } from "./types.js";
 
 import { ScraperAgent } from "./agents/scraper/index.js";
+import { OlxScraperAgent } from "./agents/scraper-olx/index.js";
 import { PricingAgent } from "./agents/pricing/index.js";
 import { AiAnalystAgent } from "./agents/ai-analyst/index.js";
 import { DecisionAgent } from "./agents/decision/index.js";
@@ -14,6 +15,7 @@ import { TelegramAgent } from "./agents/telegram/index.js";
 // Initialize agents
 // ============================================================
 const scraper = new ScraperAgent();
+const olxScraper = new OlxScraperAgent();
 const pricing = new PricingAgent();
 const aiAnalyst = new AiAnalystAgent();
 const decision = new DecisionAgent();
@@ -101,6 +103,11 @@ const scanConfigs: ScanConfig[] = [
   // Customize: add your own queries here
 ];
 
+// OLX uses the same scan configs — reuse full brand list
+const olxScanConfigs: ScanConfig[] = scanConfigs
+  // Strip Vinted-specific options (categoryIds/brandIds don't apply to OLX API)
+  .map(({ searchText }) => ({ searchText }));
+
 // ============================================================
 // Pipeline: Scraper → Pricing → AI Analyst → Decision → Telegram
 // ============================================================
@@ -108,6 +115,28 @@ let isRunning = false;
 
 // Queue for underpriced items that didn't fit in the AI limit
 let aiQueue: Array<[import("./types.js").RawItem, import("./types.js").PriceSignal]> = [];
+
+// Cumulative stats between heartbeats
+const stats = {
+  cycles: 0,
+  scanned: 0,
+  filtered: 0,
+  underpriced: 0,
+  aiAnalyzed: 0,
+  notified: 0,
+  errors: 0,
+  startedAt: Date.now(),
+  reset() {
+    this.cycles = 0;
+    this.scanned = 0;
+    this.filtered = 0;
+    this.underpriced = 0;
+    this.aiAnalyzed = 0;
+    this.notified = 0;
+    this.errors = 0;
+    this.startedAt = Date.now();
+  },
+};
 
 async function runPipeline(): Promise<void> {
   if (isRunning) {
@@ -119,9 +148,11 @@ async function runPipeline(): Promise<void> {
   const startTime = Date.now();
 
   try {
-    // 1. SCRAPER — fetch new items
+    // 1. SCRAPER — fetch new items from Vinted + OLX
     logger.info("🔍 Pipeline: Starting scan...");
-    const newItems = await scraper.scan(scanConfigs);
+    const vintedItems = await scraper.scan(scanConfigs);
+    const olxItems = await olxScraper.scan(olxScanConfigs);
+    const newItems = [...vintedItems, ...olxItems];
 
     let underpriced: Array<[import("./types.js").RawItem, import("./types.js").PriceSignal]> = [];
 
@@ -139,23 +170,34 @@ async function runPipeline(): Promise<void> {
         return !KIDS_KEYWORDS.test(text);
       });
 
+      // Filter: skip beanies / hats / czapki (low-value accessories)
+      const BEANIE_KEYWORDS = /\b(beanie|czapk[aię]|bonnet|m[üu]tze|hat|kapelusz|beret)\b/i;
+      const noHats = filtered.filter(i => {
+        const text = `${i.title} ${i.description} ${i.category}`;
+        return !BEANIE_KEYWORDS.test(text);
+      });
+
       // Filter: skip items in poor condition
       const BAD_CONDITION = /zadowalaj|satisf|słaby|poor|accep/i;
-      const conditionFiltered = filtered.filter(i => !BAD_CONDITION.test(i.condition));
+      const conditionFiltered = noHats.filter(i => !BAD_CONDITION.test(i.condition));
 
       if (conditionFiltered.length < newItems.length) {
+        const removedCount = newItems.length - conditionFiltered.length;
+        stats.filtered += removedCount;
         logger.info({
-          removed: newItems.length - conditionFiltered.length,
+          removed: removedCount,
           priceTooLow: newItems.length - priceFiltered.length,
           kids: priceFiltered.length - filtered.length,
-          badCondition: filtered.length - conditionFiltered.length,
-        }, "🚫 Filtered out cheap/kids/bad-condition items");
+          hats: filtered.length - noHats.length,
+          badCondition: noHats.length - conditionFiltered.length,
+        }, "🚫 Filtered out cheap/kids/hats/bad-condition items");
       }
 
       if (conditionFiltered.length > 0) {
         // 2. PRICING — evaluate each item
         const evaluated = pricing.evaluateAll(conditionFiltered);
         underpriced = evaluated.filter(([, signal]) => signal.isUnderpriced);
+        stats.underpriced += underpriced.length;
 
         logger.info(
           { total: evaluated.length, underpriced: underpriced.length },
@@ -195,6 +237,12 @@ async function runPipeline(): Promise<void> {
       }
     }
 
+    // Update cumulative stats
+    stats.cycles++;
+    stats.scanned += newItems.length;
+    stats.aiAnalyzed += analyzed.length;
+    stats.notified += notifiedCount;
+
     // Log when items were analyzed but none passed threshold (no Telegram spam)
     if (notifiedCount === 0 && analyzed.length > 0) {
       logger.info({ scanned: newItems.length, analyzed: analyzed.length }, "No deals this cycle");
@@ -205,14 +253,13 @@ async function runPipeline(): Promise<void> {
       {
         newItems: newItems.length,
         underpriced: underpriced.length,
-        notified: analyzed.filter(
-          ([, , ai]) => ai.resalePotential >= 0 // just counting
-        ).length,
+        notified: notifiedCount,
         elapsed: `${elapsed}s`,
       },
       "✅ Pipeline cycle complete"
     );
   } catch (err) {
+    stats.errors++;
     logger.error({ err }, "❌ Pipeline error");
     await telegram
       .sendMessage(`⚠️ Pipeline error: ${err instanceof Error ? err.message : "unknown"}`)
@@ -257,11 +304,35 @@ async function main(): Promise<void> {
 
   scheduleNext();
 
-  // Heartbeat every 30 minutes
-  cron.schedule("*/30 * * * *", () => {
-    telegram
-      .sendMessage(`💓 Heartbeat — ${new Date().toLocaleTimeString("pl-PL")}`)
-      .catch(() => {});
+  // Heartbeat every hour with stats summary
+  cron.schedule("0 * * * *", () => {
+    const uptime = Math.round((Date.now() - stats.startedAt) / 60000);
+    const msg = [
+      `💓 Heartbeat — ${new Date().toLocaleTimeString("pl-PL")}`,
+      ``,
+      `📊 Od ostatniego raportu (${uptime} min):`,
+      `  🔄 Cykli: ${stats.cycles}`,
+      `  🔍 Sprawdzono ofert: ${stats.scanned}`,
+      `  🚫 Odfiltrowano: ${stats.filtered}`,
+      `  💰 Zaniżona cena: ${stats.underpriced}`,
+      `  🧠 Analiza AI: ${stats.aiAnalyzed}`,
+      `  📩 Powiadomień: ${stats.notified}`,
+      `  ❌ Błędów: ${stats.errors}`,
+      `  📋 W kolejce AI: ${aiQueue.length}`,
+    ].join("\n");
+    telegram.sendMessage(msg).catch(() => {});
+    stmts.insertHeartbeat.run({
+      cycles: stats.cycles,
+      scanned: stats.scanned,
+      filtered: stats.filtered,
+      underpriced: stats.underpriced,
+      ai_analyzed: stats.aiAnalyzed,
+      notified: stats.notified,
+      errors: stats.errors,
+      ai_queue: aiQueue.length,
+      period_min: uptime,
+    });
+    stats.reset();
   });
 
   // Cleanup old data every day at 3 AM
