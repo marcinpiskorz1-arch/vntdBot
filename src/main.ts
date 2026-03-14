@@ -101,8 +101,25 @@ async function runPipeline(): Promise<void> {
 
     logger.info({ count: newItems.length }, "📦 New items found");
 
+    // Filter: minimum price (below 30 PLN = no profit after shipping)
+    const MIN_PRICE = 30;
+    const priceFiltered = newItems.filter(i => i.price >= MIN_PRICE);
+
+    // Filter: skip children's items
+    const KIDS_KEYWORDS = /\b(dziec|kids?|enfant|copii|barn|kinder|junior|bébé|bebe|niemowl|maluch|dziewczyn.*lat|ch[łl]op.*lat|rozmiar \d{2,3} cm)\b/i;
+    const filtered = priceFiltered.filter(i => {
+      const text = `${i.title} ${i.description} ${i.size}`;
+      return !KIDS_KEYWORDS.test(text);
+    });
+
+    if (filtered.length < newItems.length) {
+      logger.info({ removed: newItems.length - filtered.length, priceTooLow: newItems.length - priceFiltered.length }, "🚫 Filtered out cheap/kids items");
+    }
+
+    if (filtered.length === 0) return;
+
     // 2. PRICING — evaluate each item
-    const evaluated = pricing.evaluateAll(newItems);
+    const evaluated = pricing.evaluateAll(filtered);
 
     // Filter: only underpriced items go to AI
     const underpriced = evaluated.filter(([, signal]) => signal.isUnderpriced);
