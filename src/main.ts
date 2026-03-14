@@ -201,6 +201,29 @@ const scanConfigs: ScanConfig[] = [
   { searchText: "leatherman" },
   { searchText: "nalgene" },
   { searchText: "camelbak" },
+
+  // Telefony
+  { searchText: "iphone 13", priority: true },
+  { searchText: "iphone 14", priority: true },
+  { searchText: "iphone 15", priority: true },
+  { searchText: "iphone 16", priority: true },
+  { searchText: "samsung galaxy s23" },
+  { searchText: "samsung galaxy s24", priority: true },
+  { searchText: "google pixel" },
+  { searchText: "xiaomi" },
+
+  // Tablety
+  { searchText: "ipad pro", priority: true },
+  { searchText: "ipad air", priority: true },
+  { searchText: "ipad mini" },
+
+  // Laptopy / komputery
+  { searchText: "macbook pro", priority: true },
+  { searchText: "macbook air", priority: true },
+  { searchText: "thinkpad", priority: true },
+  { searchText: "dell xps" },
+  { searchText: "surface pro" },
+  { searchText: "steam deck", priority: true },
 ];
 
 // OLX uses the same scan configs — reuse full brand list
