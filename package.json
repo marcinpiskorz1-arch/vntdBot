@@ -1,0 +1,32 @@
+{
+  "name": "vinted-bot",
+  "version": "0.1.0",
+  "description": "AI-Powered Vinted Deal Sniper — Gemini + Playwright + Telegram",
+  "type": "module",
+  "scripts": {
+    "dev": "tsx src/main.ts",
+    "scraper:test": "tsx src/agents/scraper/index.ts",
+    "pricing:test": "tsx src/agents/pricing/index.ts",
+    "ai:test": "tsx src/agents/ai-analyst/index.ts",
+    "decision:test": "tsx src/agents/decision/index.ts",
+    "telegram:test": "tsx src/agents/telegram/index.ts",
+    "build": "tsc",
+    "start": "node dist/main.js"
+  },
+  "dependencies": {
+    "@google/generative-ai": "^0.24.0",
+    "better-sqlite3": "^11.0.0",
+    "dotenv": "^16.4.7",
+    "grammy": "^1.30.0",
+    "node-cron": "^3.0.3",
+    "pino": "^9.0.0",
+    "playwright": "^1.48.0"
+  },
+  "devDependencies": {
+    "@types/better-sqlite3": "^7.6.12",
+    "@types/node": "^22.0.0",
+    "@types/node-cron": "^3.0.11",
+    "tsx": "^4.19.0",
+    "typescript": "^5.7.0"
+  }
+}

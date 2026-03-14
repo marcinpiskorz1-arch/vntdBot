@@ -1,0 +1,114 @@
+import { config } from "../../config.js";
+import { logger } from "../../logger.js";
+import type { RawItem, PriceSignal } from "../../types.js";
+import { updatePriceStats, getPriceStats } from "./price-history.js";
+
+const LOW_SAMPLE_THRESHOLD = 10;
+
+export class PricingAgent {
+  /**
+   * Evaluate a single item against market prices.
+   * Returns PriceSignal with discount info and confidence.
+   */
+  evaluate(item: RawItem): PriceSignal {
+    // First, update stats with this item's price
+    updatePriceStats(item.brand, item.category, item.model);
+
+    // Then get the (now updated) stats
+    const stats = getPriceStats(item.brand, item.category, item.model);
+
+    if (!stats || stats.sampleCount === 0) {
+      // No price history at all — low confidence, let AI decide
+      return {
+        discountPct: 0,
+        isUnderpriced: false,
+        confidence: 0,
+        sampleSize: 0,
+        medianPrice: 0,
+        p25Price: 0,
+        priceDiscountScore: 0,
+      };
+    }
+
+    // Use P25 instead of median when sample is small (< 10)
+    const referencePrice =
+      stats.sampleCount < LOW_SAMPLE_THRESHOLD
+        ? stats.p25Price
+        : stats.medianPrice;
+
+    // Discount calculation
+    const discountPct =
+      referencePrice > 0
+        ? ((1 - item.price / referencePrice) * 100)
+        : 0;
+
+    const isUnderpriced = discountPct >= (1 - config.dealThreshold) * 100;
+
+    // Confidence: 0-1, based on sample size (saturates at ~50 samples)
+    const confidence = Math.min(1, stats.sampleCount / 50);
+
+    // Price discount score: 0-10, capped
+    // 0% discount = 0, 100% discount = 10
+    const priceDiscountScore = Math.max(0, Math.min(10, discountPct / 10));
+
+    logger.debug(
+      {
+        item: item.vintedId,
+        price: item.price,
+        median: stats.medianPrice,
+        p25: stats.p25Price,
+        refPrice: referencePrice,
+        discount: discountPct.toFixed(1),
+        underpriced: isUnderpriced,
+        confidence: confidence.toFixed(2),
+      },
+      "Price signal computed"
+    );
+
+    return {
+      discountPct: Math.round(discountPct * 10) / 10,
+      isUnderpriced,
+      confidence: Math.round(confidence * 100) / 100,
+      sampleSize: stats.sampleCount,
+      medianPrice: stats.medianPrice,
+      p25Price: stats.p25Price,
+      priceDiscountScore: Math.round(priceDiscountScore * 10) / 10,
+    };
+  }
+
+  /**
+   * Evaluate multiple items at once.
+   * Returns array of [item, signal] tuples.
+   */
+  evaluateAll(items: RawItem[]): Array<[RawItem, PriceSignal]> {
+    return items.map((item) => [item, this.evaluate(item)]);
+  }
+}
+
+// ============================================================
+// Standalone test: npx tsx src/agents/pricing/index.ts
+// ============================================================
+if (process.argv[1]?.includes("pricing")) {
+  const agent = new PricingAgent();
+
+  const mockItem: RawItem = {
+    vintedId: "test-1",
+    title: "Nike Air Max 90",
+    brand: "Nike",
+    price: 45,
+    currency: "PLN",
+    size: "42",
+    category: "shoes",
+    condition: "good",
+    description: "Buty w dobrym stanie",
+    photoUrls: [],
+    sellerRating: 4.5,
+    sellerTransactions: 12,
+    listedAt: "2026-03-13",
+    url: "https://www.vinted.pl/items/test-1",
+  };
+
+  const signal = agent.evaluate(mockItem);
+  console.log("\n✅ PriceSignal for mock item:");
+  console.log(JSON.stringify(signal, null, 2));
+}
