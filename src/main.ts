@@ -157,7 +157,50 @@ const scanConfigs: ScanConfig[] = [
   { searchText: "on cloudmonster", priority: true },
   // Skate
   { searchText: "santa cruz" },
-  // Customize: add your own queries here
+
+  // ============================================================
+  // High ROI (shipping-friendly) — Electronics + Collectibles + Premium small goods
+  // ============================================================
+
+  // Audio / wearables
+  { searchText: "airpods", priority: true },
+  { searchText: "sony wh-1000xm", priority: true },
+  { searchText: "bose qc", priority: true },
+  { searchText: "jbl" },
+  { searchText: "garmin fenix", priority: true },
+  { searchText: "garmin forerunner", priority: true },
+  { searchText: "apple watch", priority: true },
+  { searchText: "g-shock", priority: true },
+
+  // Small tech / gaming peripherals
+  { searchText: "kindle" },
+  { searchText: "nintendo switch", priority: true },
+  { searchText: "joy-con" },
+  { searchText: "dualshock" },
+  { searchText: "dualsense" },
+  { searchText: "logitech mx master" },
+  { searchText: "keychron" },
+
+  // Collectibles / hobby
+  { searchText: "lego technic", priority: true },
+  { searchText: "pokemon karta", priority: true },
+  { searchText: "mtg karta" },
+  { searchText: "funko pop" },
+  { searchText: "warhammer" },
+
+  // Premium accessories
+  { searchText: "ray-ban", priority: true },
+  { searchText: "michael kors" },
+  { searchText: "seiko", priority: true },
+  { searchText: "casio edifice" },
+  { searchText: "orient zegarek" },
+
+  // Outdoor accessories (małe, wysyłkowe)
+  { searchText: "petzl" },
+  { searchText: "black diamond" },
+  { searchText: "leatherman" },
+  { searchText: "nalgene" },
+  { searchText: "camelbak" },
 ];
 
 // OLX uses the same scan configs — reuse full brand list
