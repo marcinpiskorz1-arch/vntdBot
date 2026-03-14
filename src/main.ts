@@ -100,10 +100,12 @@ const scanConfigs: ScanConfig[] = [
   { searchText: "north face nuptse", priority: true },
   { searchText: "north face 1996", priority: true },
   { searchText: "north face denali", priority: true },
+  { searchText: "north face duffel", priority: true },
   { searchText: "patagonia" },
   // Patagonia — modele
   { searchText: "patagonia retro-x", priority: true },
   { searchText: "patagonia nano puff", priority: true },
+  { searchText: "patagonia black hole", priority: true },
   { searchText: "fjällräven" },
   { searchText: "stone island" },
   { searchText: "nervous" },
