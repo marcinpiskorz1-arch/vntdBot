@@ -25,7 +25,7 @@ const telegram = new TelegramAgent();
 // Define what to scan
 // ============================================================
 const scanConfigs: ScanConfig[] = [
-  // Sneakersy
+  // Sneakersy — marki
   { searchText: "nike" },
   { searchText: "jordan" },
   { searchText: "adidas" },
@@ -33,12 +33,59 @@ const scanConfigs: ScanConfig[] = [
   { searchText: "under armour" },
   { searchText: "asics" },
   { searchText: "vans" },
+  // Jordan — modele
+  { searchText: "jordan 1" },
+  { searchText: "jordan 3" },
+  { searchText: "jordan 4" },
+  { searchText: "jordan 5" },
+  { searchText: "jordan 11" },
+  // New Balance — modele hype
+  { searchText: "new balance 550" },
+  { searchText: "new balance 574" },
+  { searchText: "new balance 990" },
+  { searchText: "new balance 2002r" },
+  { searchText: "new balance 530" },
+  // Asics — modele
+  { searchText: "asics gel lyte" },
+  { searchText: "asics gel kayano" },
+  // Nike — popularne modele (łapie oferty, które "nike" ogólne może przegapić)
+  { searchText: "nike air max" },
+  { searchText: "nike dunk" },
+  { searchText: "nike blazer" },
+  { searchText: "nike metcon" },
+  { searchText: "nike air force" },
+  { searchText: "nike vapormax" },
+  { searchText: "nike pegasus" },
+  { searchText: "nike acg" },
+  { searchText: "nike tech fleece" },
+  { searchText: "nike sb" },
+  // Adidas — popularne modele
+  { searchText: "adidas samba" },
+  { searchText: "adidas gazelle" },
+  { searchText: "adidas superstar" },
+  { searchText: "adidas stan smith" },
+  { searchText: "adidas ultraboost" },
+  { searchText: "adidas nmd" },
+  { searchText: "adidas yeezy" },
+  { searchText: "adidas spezial" },
+  { searchText: "adidas campus" },
+  { searchText: "adidas forum" },
+  { searchText: "adidas terrex" },
   // Outdoor / góry
   { searchText: "la sportiva" },
   { searchText: "salewa" },
   { searchText: "salomon" },
+  // Salomon — modele hype
+  { searchText: "salomon xt-6" },
+  { searchText: "salomon speedcross" },
+  { searchText: "salomon xt-4" },
   { searchText: "mammut" },
   { searchText: "arc'teryx" },
+  // Arc'teryx — modele premium
+  { searchText: "arcteryx alpha" },
+  { searchText: "arcteryx beta" },
+  { searchText: "arcteryx atom" },
+  { searchText: "arcteryx cerium" },
   { searchText: "scarpa" },
   { searchText: "norrøna" },
   { searchText: "haglöfs" },
@@ -49,13 +96,21 @@ const scanConfigs: ScanConfig[] = [
   { searchText: "osprey" },
   // Streetwear / hype
   { searchText: "the north face" },
+  // TNF — modele z wysokim resale
+  { searchText: "north face nuptse" },
+  { searchText: "north face 1996" },
+  { searchText: "north face denali" },
   { searchText: "patagonia" },
+  // Patagonia — modele
+  { searchText: "patagonia retro-x" },
+  { searchText: "patagonia nano puff" },
   { searchText: "fjällräven" },
   { searchText: "stone island" },
   { searchText: "nervous" },
   { searchText: "carhartt" },
   { searchText: "dickies" },
   { searchText: "supreme" },
+  { searchText: "supreme box logo" },
   { searchText: "stüssy" },
   { searchText: "napapijri" },
   { searchText: "bape" },
@@ -97,7 +152,9 @@ const scanConfigs: ScanConfig[] = [
   // Tier 2 resell
   { searchText: "columbia" },
   { searchText: "converse" },
+  { searchText: "converse chuck 70" },
   { searchText: "on running" },
+  { searchText: "on cloudmonster" },
   // Skate
   { searchText: "santa cruz" },
   // Customize: add your own queries here
