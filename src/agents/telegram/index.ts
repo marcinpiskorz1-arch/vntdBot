@@ -10,14 +10,7 @@ import {
   storePendingDecision,
   getPendingDecision,
   recordUserAction,
-  scheduleSnooze,
 } from "./callbacks.js";
-
-const SNOOZE_DURATIONS: Record<string, number> = {
-  snooze_1h: 60 * 60 * 1000,
-  snooze_6h: 6 * 60 * 60 * 1000,
-  snooze_24h: 24 * 60 * 60 * 1000,
-};
 
 export class TelegramAgent {
   private bot: Bot;
@@ -43,19 +36,10 @@ export class TelegramAgent {
     this.bot.command("start", (ctx) => {
       if (!this.isAuthorized(ctx)) return;
       ctx.reply(
-        "🤖 VintedBot aktywny!\n\n" +
+        "🤖 <b>VintedBot aktywny!</b>\n\n" +
           "Monitoruję Vinted i wyślę Ci powiadomienie gdy znajdę okazję.\n\n" +
-          "Komendy:\n" +
-          "/status — status bota + ustawienia\n" +
-          "/pause — wstrzymaj skanowanie\n" +
-          "/resume — wznów skanowanie\n" +
-          "/set <klucz> <wartość> — zmień ustawienie\n" +
-          "/queries — info o zapytaniach\n" +
-          "/queries_add <tekst> — dodaj zapytanie\n" +
-          "/queries_add_p <tekst> — dodaj priorytetowe\n" +
-          "/queries_remove <tekst> — usuń zapytanie\n" +
-          "/queries_list — lista własnych zapytań\n" +
-          "/help — pomoc"
+          "Wpisz /help żeby zobaczyć wszystkie komendy.",
+        { parse_mode: "HTML" }
       );
     });
 
@@ -85,13 +69,14 @@ export class TelegramAgent {
         `⏱️ Uptime: ${hours}h ${mins}m`,
         `🔄 Cykl: #${botState.cycleCount} ${botState.isRunning ? "(w trakcie)" : ""}`,
         "",
-        "<b>Ustawienia:</b>",
-        `  📊 Próg powiadomień: ${s.notify_threshold}`,
-        `  🔥 Próg HOT: ${s.hot_threshold}`,
-        `  💰 Min zysk HOT: ${s.hot_min_profit} PLN`,
-        `  💵 Min cena: ${s.min_price} PLN`,
-        `  🧠 Limit AI/cykl: ${s.ai_limit}`,
-        `  🔒 Limit AI/dzień: ${s.daily_ai_limit}`,
+        "<b>Ustawienia:</b>  (/set)",
+        `  notify_threshold: ${s.notify_threshold}`,
+        `  hot_threshold: ${s.hot_threshold}`,
+        `  hot_min_profit: ${s.hot_min_profit} PLN`,
+        `  min_price: ${s.min_price} PLN`,
+        `  ai_limit: ${s.ai_limit}`,
+        `  daily_ai_limit: ${s.daily_ai_limit}`,
+        `  instant_threshold: ${s.instant_threshold}%`,
         "",
         `<b>Limit dzienny AI:</b> ${botState.daily.aiCalls}/${s.daily_ai_limit} (${Math.round((botState.daily.aiCalls / (s.daily_ai_limit as number || 1)) * 100)}%)`,
         "",
@@ -116,13 +101,14 @@ export class TelegramAgent {
       if (!this.isAuthorized(ctx)) return;
       const args = ctx.message?.text?.split(/\s+/).slice(1) || [];
       if (args.length < 2) {
-        const lines = settings.VALID_KEYS.map(k => {
+        const keys = settings.VALID_KEYS.map(k => {
           const r = settings.RULES[k];
-          const current = settings.getNumber(k, 0);
-          return `<b>${k}</b> = ${current}\n  📏 ${r.min}–${r.max} | ${r.desc}\n  ⚠️ ${r.warn}`;
+          return `  <b>${k}</b> (${r.min}–${r.max})`;
         });
         await ctx.reply(
-          "Użycie: /set <klucz> <wartość>\n\n" + lines.join("\n\n"),
+          "Użycie: /set &lt;klucz&gt; &lt;wartość&gt;\n\n" +
+          "Dostępne klucze:\n" + keys.join("\n") +
+          "\n\nAktualne wartości: /status",
           { parse_mode: "HTML" }
         );
         return;
@@ -238,13 +224,13 @@ export class TelegramAgent {
           "/fav_stats — statystyki sprzedaży\n\n" +
           "<b>Powiadomienia:</b>\n" +
           "🔗 Open link — link do oferty\n" +
-          "❤️ Ulubione — dodaj/usuń z ulubionych\n" +
-          "⏰ Snooze 1h/6h/24h — przypomnij później\n\n" +
+          "❤️ Ulubione — dodaj/usuń z ulubionych\n\n" +
           "<b>⚠️ Wskazówki:</b>\n" +
-          "• ai_limit &gt; 100 = szybko rośnie koszt Gemini\n" +
-          "• notify_threshold &lt; 5 = spam powiadomień\n" +
-          "• min_price &lt; 10 = tonę śmieciowych ofert\n" +
-          "• Kolejka AI ma limit 100 — nadmiar jest odrzucany",
+          "• ai_limit &gt; 30 = szybko rośnie koszt Gemini (max 50)\n" +
+          "• notify_threshold &lt; 5 = spam powiadomień (zakres 3–9.5)\n" +
+          "• min_price &lt; 10 = tonę śmieciowych ofert (zakres 5–200)\n" +
+          "• Kolejka AI ma limit 100 — nadmiar jest odrzucany\n" +
+          "• Wpisz /set żeby zobaczyć wszystkie limity",
         { parse_mode: "HTML" }
       );
     });
@@ -361,21 +347,6 @@ export class TelegramAgent {
           break;
         }
 
-        case "snooze_1h":
-        case "snooze_6h":
-        case "snooze_24h": {
-          const delayMs = SNOOZE_DURATIONS[action];
-          if (delayMs) {
-            recordUserAction(vintedId, action);
-            scheduleSnooze(vintedId, delayMs, (id) => {
-              const d = getPendingDecision(id);
-              if (d) this.notify(d);
-            });
-            await ctx.answerCallbackQuery(`⏰ Przypomnę za ${action.replace("snooze_", "")}`);
-          }
-          break;
-        }
-
         default:
           await ctx.answerCallbackQuery("❓ Nieznana akcja");
       }
@@ -390,15 +361,11 @@ export class TelegramAgent {
     // Store for callback handlers
     storePendingDecision(decision);
 
-    // Build inline keyboard — link first, then favorite + snooze
+    // Build inline keyboard — link + favorite
     const keyboard = new InlineKeyboard()
       .url("🔗 Open link", payload.vintedUrl)
       .row()
-      .text("❤️ Ulubione", `fav:${payload.itemId}`)
-      .row()
-      .text("⏰ 1h", `snooze_1h:${payload.itemId}`)
-      .text("⏰ 6h", `snooze_6h:${payload.itemId}`)
-      .text("⏰ 24h", `snooze_24h:${payload.itemId}`);
+      .text("❤️ Ulubione", `fav:${payload.itemId}`);
 
     try {
       // Try sending with photo
@@ -477,11 +444,7 @@ export class TelegramAgent {
     const keyboard = new InlineKeyboard()
       .url("🔗 Open link", opts.url)
       .row()
-      .text("❤️ Ulubione", `fav:${opts.vintedId}`)
-      .row()
-      .text("⏰ 1h", `snooze_1h:${opts.vintedId}`)
-      .text("⏰ 6h", `snooze_6h:${opts.vintedId}`)
-      .text("⏰ 24h", `snooze_24h:${opts.vintedId}`);
+      .text("❤️ Ulubione", `fav:${opts.vintedId}`);
 
     try {
       if (opts.photoUrl) {
