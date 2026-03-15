@@ -242,46 +242,54 @@ describe("needsAiReview", () => {
       score: 7.0, level: "notify", reasons: [],
       syntheticAi: mockAi({ estimatedProfit: 80 }),
     };
-    expect(needsAiReview(result, mockSignal({ sampleSize: 5 }), "premium")).toBe(false);
+    expect(needsAiReview(result, mockSignal({ sampleSize: 5 }), "premium", 50)).toBe(false);
   });
 
-  it("returns true for borderline score + low samples", () => {
+  it("returns true for borderline score + low samples + profit >= minProfit", () => {
     const result: RuleScoreResult = {
       score: 5.0, level: "ignore", reasons: [],
-      syntheticAi: mockAi({ estimatedProfit: 40 }),
+      syntheticAi: mockAi({ estimatedProfit: 60 }),
     };
-    expect(needsAiReview(result, mockSignal({ sampleSize: 5 }), "premium")).toBe(true);
+    expect(needsAiReview(result, mockSignal({ sampleSize: 5 }), "premium", 50)).toBe(true);
   });
 
   it("returns true for borderline score + unknown brand", () => {
     const result: RuleScoreResult = {
       score: 4.5, level: "ignore", reasons: [],
-      syntheticAi: mockAi({ estimatedProfit: 30 }),
+      syntheticAi: mockAi({ estimatedProfit: 55 }),
     };
-    expect(needsAiReview(result, mockSignal({ sampleSize: 30 }), "budget")).toBe(true);
+    expect(needsAiReview(result, mockSignal({ sampleSize: 30 }), "budget", 50)).toBe(true);
   });
 
   it("returns false when score too low", () => {
     const result: RuleScoreResult = {
       score: 3.0, level: "ignore", reasons: [],
-      syntheticAi: mockAi({ estimatedProfit: 50 }),
+      syntheticAi: mockAi({ estimatedProfit: 80 }),
     };
-    expect(needsAiReview(result, mockSignal({ sampleSize: 5 }), "budget")).toBe(false);
+    expect(needsAiReview(result, mockSignal({ sampleSize: 5 }), "budget", 50)).toBe(false);
   });
 
-  it("returns false when profit too low", () => {
+  it("returns false when profit below minProfit", () => {
     const result: RuleScoreResult = {
       score: 5.0, level: "ignore", reasons: [],
-      syntheticAi: mockAi({ estimatedProfit: 10 }),
+      syntheticAi: mockAi({ estimatedProfit: 40 }),
     };
-    expect(needsAiReview(result, mockSignal({ sampleSize: 5 }), "budget")).toBe(false);
+    expect(needsAiReview(result, mockSignal({ sampleSize: 5 }), "budget", 50)).toBe(false);
   });
 
   it("returns false when premium brand + enough samples", () => {
     const result: RuleScoreResult = {
       score: 5.0, level: "ignore", reasons: [],
-      syntheticAi: mockAi({ estimatedProfit: 40 }),
+      syntheticAi: mockAi({ estimatedProfit: 60 }),
     };
-    expect(needsAiReview(result, mockSignal({ sampleSize: 30 }), "premium")).toBe(false);
+    expect(needsAiReview(result, mockSignal({ sampleSize: 30 }), "premium", 50)).toBe(false);
+  });
+
+  it("works with Decision-shaped object (ai instead of syntheticAi)", () => {
+    const result = {
+      score: 5.0, level: "ignore" as const, reasons: [],
+      ai: mockAi({ estimatedProfit: 60 }),
+    };
+    expect(needsAiReview(result, mockSignal({ sampleSize: 5 }), "premium", 50)).toBe(true);
   });
 });

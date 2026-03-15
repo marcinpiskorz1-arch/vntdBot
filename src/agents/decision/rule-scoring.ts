@@ -237,17 +237,18 @@ export function computeRuleScore(
 
 const AI_REVIEW_MIN_SCORE = 4.0;
 const AI_REVIEW_MAX_SCORE = 5.9;
-const AI_REVIEW_MIN_PROFIT = 20;
 
 export function needsAiReview(
-  ruleResult: RuleScoreResult,
+  result: { score: number; level: string; ai: AiAnalysis } | RuleScoreResult,
   pricing: PriceSignal,
   brandTier: string,
+  minProfit: number,
 ): boolean {
-  if (ruleResult.level !== "ignore") return false;
-  if (ruleResult.score < AI_REVIEW_MIN_SCORE) return false;
-  if (ruleResult.score > AI_REVIEW_MAX_SCORE) return false;
-  if (ruleResult.syntheticAi.estimatedProfit < AI_REVIEW_MIN_PROFIT) return false;
+  if (result.level !== "ignore") return false;
+  if (result.score < AI_REVIEW_MIN_SCORE) return false;
+  if (result.score > AI_REVIEW_MAX_SCORE) return false;
+  const profit = "syntheticAi" in result ? result.syntheticAi.estimatedProfit : result.ai.estimatedProfit;
+  if (profit < minProfit) return false;
 
   const lowSamples = pricing.sampleSize < 10;
   const unknownBrand = brandTier === "budget" || brandTier === "unknown";

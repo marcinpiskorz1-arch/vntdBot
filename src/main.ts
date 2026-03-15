@@ -130,100 +130,95 @@ async function runPipeline(): Promise<void> {
     const vintedToScan = isFullCycle ? lists.allVinted : lists.priority;
     const olxToScan = isFullCycle ? lists.allOlx : lists.olxPriority;
     logger.info({ cycle: botState.cycleCount, full: isFullCycle, vintedQueries: vintedToScan.length, olxQueries: olxToScan.length }, "🔍 Pipeline: Starting scan...");
-    const vintedItems = await scraper.scan(vintedToScan);
-    const olxItems = await olxScraper.scan(olxToScan);
-    const newItems = [...vintedItems, ...olxItems];
-    botState.cycleCount++;
 
-    let underpriced: Array<[import("./types.js").RawItem, import("./types.js").PriceSignal]> = [];
+    // Streaming counters — updated by processBatch callback
+    let totalNewItems = 0;
+    let totalUnderpriced = 0;
+    let notifiedCount = 0;
+    let analyzedCount = 0;
+    const aiCandidates: Array<[import("./types.js").RawItem, import("./types.js").PriceSignal]> = [];
 
-    if (newItems.length > 0) {
-      logger.info({ count: newItems.length }, "📦 New items found");
+    // Process items immediately as each scan batch arrives
+    const processBatch = async (newItems: import("./types.js").RawItem[]): Promise<void> => {
+      if (newItems.length === 0) return;
+      totalNewItems += newItems.length;
 
-      // Run all filters (price, kids, hats, condition, pickup)
+      // FILTER
       const { passed: shippable, removed: removedCount, breakdown } = filterItems(newItems, settings.minPrice);
-
       if (removedCount > 0) {
         stats.filtered += removedCount;
         logger.info({ removed: removedCount, ...breakdown }, "🚫 Filtered items");
       }
+      if (shippable.length === 0) return;
 
-      if (shippable.length > 0) {
-        // 2. PRICING — evaluate each item
-        const evaluated = pricing.evaluateAll(shippable);
-        underpriced = evaluated.filter(([, signal]) => signal.isUnderpriced);
-        stats.underpriced += underpriced.length;
+      // PRICING
+      const evaluated = pricing.evaluateAll(shippable);
+      const underpriced = evaluated.filter(([, signal]) => signal.isUnderpriced);
+      stats.underpriced += underpriced.length;
+      totalUnderpriced += underpriced.length;
 
-        logger.info(
-          { total: evaluated.length, underpriced: underpriced.length },
-          "💰 Price filtering done"
-        );
-      }
-    }
+      if (underpriced.length === 0) return;
 
-    // Enqueue new underpriced items to persistent AI queue
-    if (underpriced.length > 0) {
-      // ⚡ INSTANT ALERTS — ultra-cheap items, no AI needed
-      const INSTANT_DISCOUNT = settings.instantThreshold; // default 70%
+      // ⚡ INSTANT ALERTS
+      const INSTANT_DISCOUNT = settings.instantThreshold;
       const INSTANT_MIN_PRICE = 50;
       const INSTANT_MIN_SAMPLE = 15;
-
+      const instantIds = new Set<string>();
       const instantItems = underpriced.filter(([item, signal]) =>
         signal.discountPct >= INSTANT_DISCOUNT &&
         signal.sampleSize >= INSTANT_MIN_SAMPLE &&
         item.price >= INSTANT_MIN_PRICE
       );
-
-      if (instantItems.length > 0) {
-        logger.info({ count: instantItems.length, threshold: INSTANT_DISCOUNT }, "⚡ Instant alerts triggered");
-        for (const [item, signal] of instantItems) {
-          await telegram.sendInstantAlert({
-            vintedId: item.vintedId,
-            title: item.title,
-            brand: item.brand,
-            price: item.price,
-            medianPrice: signal.medianPrice,
-            discountPct: signal.discountPct,
-            sampleSize: signal.sampleSize,
-            url: item.url,
-            photoUrl: item.photoUrls?.[0],
-          });
-        }
+      for (const [item, signal] of instantItems) {
+        instantIds.add(item.vintedId);
+        await telegram.sendInstantAlert({
+          vintedId: item.vintedId,
+          title: item.title,
+          brand: item.brand,
+          price: item.price,
+          medianPrice: signal.medianPrice,
+          discountPct: signal.discountPct,
+          sampleSize: signal.sampleSize,
+          url: item.url,
+          photoUrl: item.photoUrls?.[0],
+        });
       }
 
-    }
-
-    // ============================================================
-    // SCORING — always rule-based first, then AI for uncertain items
-    // ============================================================
-    let notifiedCount = 0;
-    let analyzedCount = 0;
-    const aiCandidates: Array<[import("./types.js").RawItem, import("./types.js").PriceSignal]> = [];
-
-    // STEP 1: Rule-based scoring for ALL underpriced items
-    if (underpriced.length > 0) {
+      // RULE-BASED SCORING — skip items already sent as instant alerts
       for (const [item, signal] of underpriced) {
+        if (instantIds.has(item.vintedId)) continue;
         const result = decision.decideWithRules(item, signal);
         analyzedCount++;
-
         if (result.level !== "ignore") {
           await telegram.notify(result);
           notifiedCount++;
         } else if (settings.aiEnabled) {
           const brandTier = getBrandTier(item.brand).tier;
-          if (needsAiReview(result, signal, brandTier)) {
+          if (needsAiReview(result, signal, brandTier, settings.minProfitToNotify)) {
             aiCandidates.push([item, signal]);
           }
         }
       }
+    };
+
+    // Run Vinted + OLX in parallel, streaming batches through processBatch
+    await Promise.all([
+      scraper.scan(vintedToScan, processBatch),
+      olxScraper.scan(olxToScan, processBatch),
+    ]);
+    botState.cycleCount++;
+
+    if (totalUnderpriced > 0) {
       logger.info({
-        analyzed: underpriced.length,
+        analyzed: analyzedCount,
         notified: notifiedCount,
         aiCandidates: aiCandidates.length,
       }, "📊 Rule-based scoring done");
     }
 
-    // STEP 2: AI review for uncertain items (hybrid mode)
+    // ============================================================
+    // AI review for uncertain items (hybrid mode)
+    // ============================================================
     if (aiCandidates.length > 0) {
       enqueueToAi(aiCandidates);
       logger.info({ count: aiCandidates.length }, "🧠 Uncertain items queued for AI review");
@@ -270,26 +265,26 @@ async function runPipeline(): Promise<void> {
       }
     }
 
-    if (newItems.length === 0 && analyzedCount === 0) {
+    if (totalNewItems === 0 && analyzedCount === 0) {
       logger.info("No new items found this cycle");
     }
 
     // Update cumulative stats
     stats.cycles++;
-    stats.scanned += newItems.length;
+    stats.scanned += totalNewItems;
     stats.aiAnalyzed += analyzedCount;
     stats.notified += notifiedCount;
 
     // Log when items were analyzed but none passed threshold
     if (notifiedCount === 0 && analyzedCount > 0) {
-      logger.info({ scanned: newItems.length, analyzed: analyzedCount }, "No deals this cycle");
+      logger.info({ scanned: totalNewItems, analyzed: analyzedCount }, "No deals this cycle");
     }
 
     const elapsed = ((Date.now() - startTime) / 1000).toFixed(1);
     logger.info(
       {
-        newItems: newItems.length,
-        underpriced: underpriced.length,
+        newItems: totalNewItems,
+        underpriced: totalUnderpriced,
         notified: notifiedCount,
         elapsed: `${elapsed}s`,
       },
