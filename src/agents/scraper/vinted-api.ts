@@ -174,14 +174,16 @@ export async function checkItemAvailable(itemUrl: string, session: VintedSession
       redirect: "manual",
     });
 
-    if (!response.ok) return false; // 404/403 = item gone
+    // Only treat 404 as "gone". Rate limits (429), server errors (5xx) = assume available
+    if (response.status === 404) return false;
+    if (!response.ok) return true;
 
     const data = await response.json() as any;
     const item = data?.item;
-    if (!item) return false;
+    if (!item) return true; // Missing data — don't mark as sold
 
-    // is_closed = sold or removed
-    if (item.is_closed || item.status === "sold") return false;
+    // Only trust explicit "sold" status, not is_closed (could be editing/paused)
+    if (item.status === "sold") return false;
 
     return true;
   } catch {

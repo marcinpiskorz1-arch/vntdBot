@@ -4,8 +4,14 @@ import type { Decision } from "../../types.js";
 
 // In-memory store for decisions pending callback (keyed by vintedId)
 const pendingDecisions = new Map<string, Decision>();
+const MAX_PENDING = 500;
 
 export function storePendingDecision(decision: Decision): void {
+  if (pendingDecisions.size >= MAX_PENDING) {
+    // Evict oldest entry (FIFO)
+    const oldest = pendingDecisions.keys().next().value!;
+    pendingDecisions.delete(oldest);
+  }
   pendingDecisions.set(decision.item.vintedId, decision);
 }
 

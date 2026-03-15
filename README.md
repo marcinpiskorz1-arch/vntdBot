@@ -219,8 +219,6 @@ src/
 │       ├── index.ts
 │       ├── formatters.ts
 │       └── callbacks.ts
-└── purchasing/
-    └── buyer.ts               # (stub for future automation)
 tests/
 ├── helpers.ts                   # Mock factories (mockItem, mockSignal, mockAi)
 ├── filters.test.ts              # 28 tests: kids, hats, condition, pickup, integration

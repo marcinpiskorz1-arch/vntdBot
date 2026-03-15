@@ -109,26 +109,3 @@ export class ScraperAgent {
     return allNewItems;
   }
 }
-
-// ============================================================
-// Standalone test: npx tsx src/agents/scraper/index.ts
-// ============================================================
-if (process.argv[1]?.includes("scraper")) {
-  const agent = new ScraperAgent();
-  const testConfig: ScanConfig[] = [
-    { categoryIds: [], searchText: "nike air max" },
-  ];
-
-  agent
-    .scan(testConfig)
-    .then((items) => {
-      console.log(`\n✅ Found ${items.length} new items:`);
-      for (const item of items.slice(0, 5)) {
-        console.log(`  ${item.title} — ${item.price} ${item.currency} — ${item.url}`);
-      }
-    })
-    .catch((err) => {
-      console.error("❌ Scraper test failed:", err);
-      process.exit(1);
-    });
-}

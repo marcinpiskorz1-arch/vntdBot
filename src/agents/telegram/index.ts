@@ -5,7 +5,7 @@ import { settings } from "../../settings.js";
 import { botState } from "../../bot-state.js";
 import { stmts } from "../../database.js";
 import type { Decision } from "../../types.js";
-import { formatNotification, buildMessageText } from "./formatters.js";
+import { formatNotification, buildMessageText, escapeHtml } from "./formatters.js";
 import {
   storePendingDecision,
   getPendingDecision,
@@ -70,13 +70,14 @@ export class TelegramAgent {
         `🔄 Cykl: #${botState.cycleCount} ${botState.isRunning ? "(w trakcie)" : ""}`,
         "",
         "<b>Ustawienia:</b>  (/set)",
-        `  notify_threshold: ${s.notify_threshold}`,
-        `  hot_threshold: ${s.hot_threshold}`,
-        `  hot_min_profit: ${s.hot_min_profit} PLN`,
-        `  min_price: ${s.min_price} PLN`,
-        `  ai_limit: ${s.ai_limit}`,
-        `  daily_ai_limit: ${s.daily_ai_limit}`,
-        `  instant_threshold: ${s.instant_threshold}%`,
+        `  notify_threshold: ${s.notify_threshold} — min score do powiadomienia`,
+        `  hot_threshold: ${s.hot_threshold} — min score dla 🔥 HOT`,
+        `  hot_min_profit: ${s.hot_min_profit} PLN — min zysk dla HOT`,
+        `  min_price: ${s.min_price} PLN — pomijaj tańsze oferty`,
+        `  ai_limit: ${s.ai_limit} — max analiz AI / cykl`,
+        `  daily_ai_limit: ${s.daily_ai_limit} — twardy limit AI / dzień`,
+        `  instant_threshold: ${s.instant_threshold}% — alert bez AI od tej zniżki`,
+        `  min_profit: ${s.min_profit} PLN — min zysk żeby powiadomić`,
         "",
         `<b>Limit dzienny AI:</b> ${botState.daily.aiCalls}/${s.daily_ai_limit} (${Math.round((botState.daily.aiCalls / (s.daily_ai_limit as number || 1)) * 100)}%)`,
         "",
@@ -156,7 +157,7 @@ export class TelegramAgent {
         return;
       }
       stmts.addCustomQuery.run({ search_text: text, priority: 0 });
-      await ctx.reply(`✅ Dodano zapytanie: "${text}"`);
+      await ctx.reply(`✅ Dodano zapytanie: "${escapeHtml(text)}"`);
       logger.info({ query: text, priority: false }, "Custom query added via Telegram");
     });
 
@@ -168,7 +169,7 @@ export class TelegramAgent {
         return;
       }
       stmts.addCustomQuery.run({ search_text: text, priority: 1 });
-      await ctx.reply(`✅ Dodano priorytetowe zapytanie: "${text}" ⚡`);
+      await ctx.reply(`✅ Dodano priorytetowe zapytanie: "${escapeHtml(text)}" ⚡`);
       logger.info({ query: text, priority: true }, "Priority custom query added via Telegram");
     });
 
@@ -181,10 +182,10 @@ export class TelegramAgent {
       }
       const result = stmts.removeCustomQuery.run({ search_text: text });
       if (result.changes > 0) {
-        await ctx.reply(`✅ Usunięto zapytanie: "${text}"`);
+        await ctx.reply(`✅ Usunięto zapytanie: "${escapeHtml(text)}"`);
         logger.info({ query: text }, "Custom query removed via Telegram");
       } else {
-        await ctx.reply(`❌ Nie znaleziono zapytania: "${text}"`);
+        await ctx.reply(`❌ Nie znaleziono zapytania: "${escapeHtml(text)}"`);
       }
     });
 
@@ -249,7 +250,7 @@ export class TelegramAgent {
       }
       const lines = favs.map((f, i) => {
         const ago = Math.round((Date.now() - new Date(f.added_at).getTime()) / 3600000);
-        return `${i + 1}. <b>${f.title}</b>\n   ${f.brand} | ${f.price} PLN | ⭐${f.score.toFixed(1)} | ${ago}h temu`;
+        return `${i + 1}. <b>${escapeHtml(f.title)}</b>\n   ${escapeHtml(f.brand)} | ${f.price} PLN | ⭐${f.score.toFixed(1)} | ${ago}h temu`;
       });
       await ctx.reply(`❤️ <b>Ulubione (${favs.length})</b>\n\n${lines.join("\n\n")}`, { parse_mode: "HTML" });
     });
@@ -276,7 +277,7 @@ export class TelegramAgent {
         .slice(0, 5)
         .map(f => {
           const hours = Math.round((new Date(f.sold_at!).getTime() - new Date(f.added_at).getTime()) / 3600000);
-          return `  • ${f.title} — ${f.price} PLN — sprzedane po ${hours}h`;
+          return `  • ${escapeHtml(f.title)} — ${f.price} PLN — sprzedane po ${hours}h`;
         });
 
       const lines = [
@@ -344,6 +345,23 @@ export class TelegramAgent {
             }
             await ctx.answerCallbackQuery("❤️ Dodano do ulubionych!");
           }
+
+          // Update the button label to reflect new state
+          try {
+            const nowFav = !existing;
+            const oldMarkup = ctx.callbackQuery.message?.reply_markup;
+            if (oldMarkup) {
+              const newRows = oldMarkup.inline_keyboard.map(row =>
+                row.map(btn => {
+                  if ("callback_data" in btn && btn.callback_data?.startsWith("fav:")) {
+                    return { ...btn, text: nowFav ? "💔 Usuń z ulubionych" : "❤️ Dodaj do ulubionych" };
+                  }
+                  return btn;
+                })
+              );
+              await ctx.editMessageReplyMarkup({ reply_markup: { inline_keyboard: newRows } });
+            }
+          } catch { /* ignore edit errors for old messages */ }
           break;
         }
 
@@ -362,20 +380,19 @@ export class TelegramAgent {
     storePendingDecision(decision);
 
     // Build inline keyboard — link + favorite
+    const isFav = !!stmts.getFavoriteByVintedId.get({ vinted_id: payload.itemId });
     const keyboard = new InlineKeyboard()
       .url("🔗 Open link", payload.vintedUrl)
       .row()
-      .text("❤️ Ulubione", `fav:${payload.itemId}`);
+      .text(isFav ? "💔 Usuń z ulubionych" : "❤️ Dodaj do ulubionych", `fav:${payload.itemId}`);
 
     try {
-      // Try sending with photo
       if (payload.photoUrl) {
-        // Send photo first (no caption), then text+keyboard as reply
-        const photoMsg = await this.bot.api.sendPhoto(this.chatId, payload.photoUrl);
-        await this.bot.api.sendMessage(this.chatId, text, {
+        // Send photo with caption — single message instead of two
+        await this.bot.api.sendPhoto(this.chatId, payload.photoUrl, {
+          caption: text,
           parse_mode: "HTML",
           reply_markup: keyboard,
-          reply_parameters: { message_id: photoMsg.message_id },
         });
       } else {
         await this.bot.api.sendMessage(this.chatId, text, {
@@ -392,15 +409,13 @@ export class TelegramAgent {
       logger.error({ err, item: payload.itemId }, "Failed to send Telegram notification");
 
       // Fallback: send without photo
-      if (payload.photoUrl) {
-        try {
-          await this.bot.api.sendMessage(this.chatId, text, {
-            parse_mode: "HTML",
-            reply_markup: keyboard,
-          });
-        } catch (fallbackErr) {
-          logger.error({ err: fallbackErr }, "Fallback message also failed");
-        }
+      try {
+        await this.bot.api.sendMessage(this.chatId, text, {
+          parse_mode: "HTML",
+          reply_markup: keyboard,
+        });
+      } catch (fallbackErr) {
+        logger.error({ err: fallbackErr }, "Fallback message also failed");
       }
     }
   }
@@ -432,27 +447,27 @@ export class TelegramAgent {
     const text = [
       `⚡ <b>INSTANT DEAL</b>`,
       ``,
-      `<b>${opts.title}</b>`,
+      `<b>${escapeHtml(opts.title)}</b>`,
       `💰 ${opts.price} PLN (mediana: ${Math.round(opts.medianPrice)} PLN, -${discount}%)`,
       `📈 Szacowany zysk: ~${profit} PLN`,
       `📊 Próbka: ${opts.sampleSize} ofert`,
-      `🏷️ ${opts.brand || "—"}`,
+      `🏷️ ${opts.brand ? escapeHtml(opts.brand) : "—"}`,
       ``,
       `⚠️ <i>Alert bez AI — zweryfikuj ręcznie!</i>`,
     ].join("\n");
 
+    const isFav = !!stmts.getFavoriteByVintedId.get({ vinted_id: opts.vintedId });
     const keyboard = new InlineKeyboard()
       .url("🔗 Open link", opts.url)
       .row()
-      .text("❤️ Ulubione", `fav:${opts.vintedId}`);
+      .text(isFav ? "💔 Usuń z ulubionych" : "❤️ Dodaj do ulubionych", `fav:${opts.vintedId}`);
 
     try {
       if (opts.photoUrl) {
-        const photoMsg = await this.bot.api.sendPhoto(this.chatId, opts.photoUrl);
-        await this.bot.api.sendMessage(this.chatId, text, {
+        await this.bot.api.sendPhoto(this.chatId, opts.photoUrl, {
+          caption: text,
           parse_mode: "HTML",
           reply_markup: keyboard,
-          reply_parameters: { message_id: photoMsg.message_id },
         });
       } else {
         await this.bot.api.sendMessage(this.chatId, text, {

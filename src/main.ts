@@ -16,6 +16,7 @@ import { PricingAgent } from "./agents/pricing/index.js";
 import { AiAnalystAgent } from "./agents/ai-analyst/index.js";
 import { DecisionAgent } from "./agents/decision/index.js";
 import { TelegramAgent } from "./agents/telegram/index.js";
+import { escapeHtml } from "./agents/telegram/formatters.js";
 
 // ============================================================
 // Initialize agents
@@ -378,7 +379,7 @@ async function main(): Promise<void> {
           const hoursAgo = Math.round((Date.now() - new Date(fav.added_at).getTime()) / 3600000);
           await telegram.sendMessage(
             `⚡ <b>Ulubione — SPRZEDANE!</b>\n\n` +
-            `${fav.title}\n` +
+            `${escapeHtml(fav.title)}\n` +
             `💰 ${fav.price} PLN\n` +
             `⏱️ Sprzedane po ${hoursAgo}h od dodania do ulubionych`
           ).catch(() => {});
@@ -395,7 +396,7 @@ async function main(): Promise<void> {
     }
   });
 
-  logger.info(`⏰ Scheduled: scan every ~${intervalSec}s + jitter, heartbeat every 5min`);
+  logger.info(`⏰ Scheduled: scan every ~${intervalSec}s + jitter, heartbeat hourly`);
 }
 
 // ============================================================

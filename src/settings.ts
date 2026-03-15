@@ -70,6 +70,9 @@ export const settings = {
   get instantThreshold(): number {
     return getNumber("instant_threshold", 70);
   },
+  get minProfitToNotify(): number {
+    return getNumber("min_profit", 35);
+  },
 
   /** Return all current values (for /status display) */
   dump(): Record<string, string | number | boolean> {
@@ -82,11 +85,12 @@ export const settings = {
       ai_limit: getNumber("ai_limit", 20),
       daily_ai_limit: getNumber("daily_ai_limit", 500),
       instant_threshold: getNumber("instant_threshold", 70),
+      min_profit: getNumber("min_profit", 35),
     };
   },
 
   /** List of valid setting keys for /set command */
-  VALID_KEYS: ["notify_threshold", "hot_threshold", "hot_min_profit", "min_price", "ai_limit", "daily_ai_limit", "instant_threshold"] as const,
+  VALID_KEYS: ["notify_threshold", "hot_threshold", "hot_min_profit", "min_price", "ai_limit", "daily_ai_limit", "instant_threshold", "min_profit"] as const,
 
   /** Validation rules: min, max, description, warning */
   RULES: {
@@ -97,5 +101,6 @@ export const settings = {
     ai_limit: { min: 5, max: 50, desc: "Max analiz AI / cykl", warn: "> 30 = szybko rośnie koszt Gemini, kolejka max 100" },
     daily_ai_limit: { min: 100, max: 5000, desc: "Twardy dzienny limit wywołań AI", warn: "< 200 = mało analiz, > 2000 = drogo (~5-10 PLN/dzień)" },
     instant_threshold: { min: 50, max: 90, desc: "Min % zniżki do instant alertu (bez AI)", warn: "< 60 = dużo fałszywych, > 80 = prawie nic nie przejdzie" },
+    min_profit: { min: 10, max: 200, desc: "Min zysk (PLN) żeby powiadomić", warn: "< 20 = powiadomienia za tanio, > 100 = pominiesz dobre deale" },
   } as Record<string, { min: number; max: number; desc: string; warn: string }>,
 };

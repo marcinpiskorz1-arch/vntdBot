@@ -86,31 +86,3 @@ export class PricingAgent {
     return items.map((item) => [item, this.evaluate(item)]);
   }
 }
-
-// ============================================================
-// Standalone test: npx tsx src/agents/pricing/index.ts
-// ============================================================
-if (process.argv[1]?.includes("pricing")) {
-  const agent = new PricingAgent();
-
-  const mockItem: RawItem = {
-    vintedId: "test-1",
-    title: "Nike Air Max 90",
-    brand: "Nike",
-    price: 45,
-    currency: "PLN",
-    size: "42",
-    category: "shoes",
-    condition: "good",
-    description: "Buty w dobrym stanie",
-    photoUrls: [],
-    sellerRating: 4.5,
-    sellerTransactions: 12,
-    listedAt: "2026-03-13",
-    url: "https://www.vinted.pl/items/test-1",
-  };
-
-  const signal = agent.evaluate(mockItem);
-  console.log("\n✅ PriceSignal for mock item:");
-  console.log(JSON.stringify(signal, null, 2));
-}
