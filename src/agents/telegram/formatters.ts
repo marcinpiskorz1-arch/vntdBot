@@ -27,7 +27,7 @@ export function formatNotification(decision: Decision): NotificationPayload {
     `  ✅ Pewność stanu: ${ai.conditionConfidence}/10 (waga 20%)`,
     `  🏷️ Płynność marki: ${ai.brandLiquidity}/10 (waga 10%)`,
     pricing.sampleSize < 10 ? `  ⚠️ Mała baza (${pricing.sampleSize} próbek)` : "",
-    ai.riskFlags.length > 0 ? `  🚩 Ryzyka: ${ai.riskFlags.join(", ")}` : "",
+    ai.riskFlags.filter(f => f !== "missing_details").length > 0 ? `  🚩 Ryzyka: ${ai.riskFlags.filter(f => f !== "missing_details").join(", ")}` : "",
   ]
     .filter(Boolean)
     .join("\n");
@@ -39,7 +39,7 @@ export function formatNotification(decision: Decision): NotificationPayload {
     scoreLine,
     profitLine,
     aiReasoning: ai.reasoning,
-    riskFlags: ai.riskFlags,
+    riskFlags: ai.riskFlags.filter(f => f !== "missing_details"),
     vintedUrl: item.url,
     scoreBreakdown: breakdown,
     itemId: item.vintedId,

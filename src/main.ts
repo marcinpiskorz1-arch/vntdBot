@@ -91,6 +91,12 @@ const scanConfigs: ScanConfig[] = [
   { searchText: "scarpa" },
   { searchText: "norrøna" },
   { searchText: "haglöfs" },
+  { searchText: "revolutionrace" },
+  { searchText: "hunter boots" },
+  { searchText: "timberland" },
+  { searchText: "dynafit" },
+  { searchText: "merrell" },
+  { searchText: "peak performance" },
   { searchText: "rab", categoryIds: [5] },  // only clothing — avoid random matches
   { searchText: "millet" },
   { searchText: "meindl" },
@@ -245,12 +251,11 @@ function buildScanLists() {
 
   const allVinted = [...scanConfigs, ...customConfigs];
 
-  // OLX: only generic brand queries (not model-specific) — OLX has less volume, no need for 161 queries
-  const olxBrandQueries = scanConfigs.filter(c => !c.priority);
-  const allOlx: ScanConfig[] = [...olxBrandQueries, ...customConfigs].map(({ searchText }) => ({ searchText }));
+  // OLX: all queries (no category filter — OLX API handles relevance via search text)
+  const allOlx: ScanConfig[] = [...scanConfigs, ...customConfigs].map(({ searchText }) => ({ searchText }));
 
   const priority = allVinted.filter(c => c.priority);
-  const olxPriority: ScanConfig[] = []; // OLX doesn't need priority scanning
+  const olxPriority: ScanConfig[] = scanConfigs.filter(c => c.priority).map(({ searchText }) => ({ searchText }));
 
   // Update botState for /status command
   botState.totalQueries = scanConfigs.length;

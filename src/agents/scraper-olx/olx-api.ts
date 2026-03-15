@@ -13,12 +13,8 @@ interface OlxOffer {
   description: string;
   params: OlxParam[];
   photos: Array<{ link: string }>;
-  price: {
-    value: number | null;
-    currency: string;
-    type: string; // "price", "exchange", "free"
-    negotiable: boolean;
-  };
+  category: { id: number; type: string };
+  delivery?: { rock?: { active: boolean; mode: string } };
   user: {
     id: number;
     name: string;
@@ -26,13 +22,13 @@ interface OlxOffer {
   };
   created_time: string;
   last_refresh_time: string;
-  category_id: number;
 }
 
 interface OlxParam {
   key: string;
   name: string;
-  value: { key?: string; label: string };
+  type: string;
+  value: { key?: string; label?: string; value?: number; currency?: string; type?: string };
 }
 
 const USER_AGENTS = [
@@ -41,11 +37,9 @@ const USER_AGENTS = [
   "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:133.0) Gecko/20100101 Firefox/133.0",
 ];
 
-// OLX Fashion category = 1604
-const OLX_FASHION_CATEGORY = 1604;
-
 /**
  * Fetch offers from OLX.pl public API.
+ * No category filter — query text handles relevance.
  */
 export async function fetchOlxOffers(
   scanConfig: ScanConfig,
@@ -57,7 +51,6 @@ export async function fetchOlxOffers(
   url.searchParams.set("offset", String(offset));
   url.searchParams.set("limit", String(limit));
   url.searchParams.set("sort_by", "created_at:desc");
-  url.searchParams.set("category_id", String(OLX_FASHION_CATEGORY));
 
   if (scanConfig.searchText) {
     url.searchParams.set("query", scanConfig.searchText);
@@ -94,10 +87,11 @@ export async function fetchOlxOffers(
     return [];
   }
 
-  // Filter: only items with a price (skip "exchange" or "free")
-  const priced = data.data.filter(
-    (o) => o.price?.type === "price" && o.price.value != null && o.price.value > 0,
-  );
+  // Price is inside the params array (key: "price")
+  const priced = data.data.filter((o) => {
+    const pp = o.params.find((p) => p.key === "price");
+    return pp?.value?.type === "price" && pp.value.value != null && pp.value.value > 0;
+  });
 
   return priced.map(mapOlxToRawItem);
 }
@@ -111,20 +105,33 @@ function mapOlxToRawItem(offer: OlxOffer): RawItem {
   const condition = extractParam(offer.params, "state");
   const size = extractParam(offer.params, "size");
 
-  // Try to extract brand from title (first word that looks like a brand)
-  const brand = extractParam(offer.params, "brand") || "";
+  // Brand param is "fashionbrand" on OLX (not "brand")
+  const brand = extractParam(offer.params, "fashionbrand") || "";
+
+  // Price is in params array
+  const priceParam = offer.params.find((p) => p.key === "price");
+  const price = priceParam?.value?.value || 0;
+  const currency = priceParam?.value?.currency || "PLN";
+
+  // Photos have template URLs — resolve to 800x600
+  const photoUrls = (offer.photos || []).map(
+    (p) => p.link.replace("{width}", "800").replace("{height}", "600")
+  );
+
+  // Detect shipping from delivery.rock
+  const hasShipping = offer.delivery?.rock?.active === true;
 
   return {
     vintedId: `olx_${offer.id}`,
     title: offer.title || "",
     brand,
-    price: offer.price.value || 0,
-    currency: offer.price.currency || "PLN",
+    price,
+    currency,
     size,
-    category: String(offer.category_id || ""),
+    category: String(offer.category?.id || ""),
     condition: condition || "Brak informacji",
-    description: offer.description || "",
-    photoUrls: (offer.photos || []).map((p) => p.link),
+    description: (hasShipping ? "" : "[TYLKO ODBIÓR OSOBISTY] ") + (offer.description || ""),
+    photoUrls,
     sellerRating: 0, // OLX doesn't expose rating in search API
     sellerTransactions: 0,
     listedAt: offer.created_time || "",
