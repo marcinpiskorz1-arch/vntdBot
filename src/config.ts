@@ -31,7 +31,7 @@ export const config = {
 
   // Scan settings
   scanIntervalMs: parseInt(optionalEnv("SCAN_INTERVAL_MS", "30000"), 10),
-  dealThreshold: parseFloat(optionalEnv("DEAL_THRESHOLD", "0.5")),
+  dealThreshold: parseFloat(optionalEnv("DEAL_THRESHOLD", "0.35")),
 
   // Vinted
   vintedDomain: optionalEnv("VINTED_DOMAIN", "https://www.vinted.pl"),

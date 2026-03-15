@@ -62,7 +62,7 @@ export const settings = {
     return getNumber("min_price", 20);
   },
   get aiLimit(): number {
-    return getNumber("ai_limit", 100);
+    return getNumber("ai_limit", 20);
   },
 
   /** Return all current values (for /status display) */
@@ -73,7 +73,7 @@ export const settings = {
       hot_threshold: getNumber("hot_threshold", config.hotThreshold),
       hot_min_profit: getNumber("hot_min_profit", config.hotMinProfit),
       min_price: getNumber("min_price", 20),
-      ai_limit: getNumber("ai_limit", 100),
+      ai_limit: getNumber("ai_limit", 20),
     };
   },
 
@@ -86,6 +86,6 @@ export const settings = {
     hot_threshold: { min: 7, max: 10, desc: "Próg score dla HOT deal", warn: "< 8 = za łatwo HOT, powinien być > notify_threshold" },
     hot_min_profit: { min: 10, max: 500, desc: "Min zysk (PLN) dla HOT", warn: "< 30 = HOT za tanio" },
     min_price: { min: 5, max: 200, desc: "Min cena oferty (PLN)", warn: "< 10 = dużo śmieci, > 50 = pominiesz tanie okazje" },
-    ai_limit: { min: 10, max: 200, desc: "Max analiz AI / cykl", warn: "> 100 = szybko rośnie koszt Gemini, kolejka max 300" },
+    ai_limit: { min: 5, max: 50, desc: "Max analiz AI / cykl", warn: "> 30 = szybko rośnie koszt Gemini, kolejka max 100" },
   } as Record<string, { min: number; max: number; desc: string; warn: string }>,
 };

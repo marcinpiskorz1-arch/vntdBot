@@ -275,7 +275,7 @@ const stats = botState.stats;
 /** Enqueue items to persistent AI queue (survives restarts) */
 function enqueueToAi(items: Array<[import("./types.js").RawItem, import("./types.js").PriceSignal]>): void {
   // Cap queue size to prevent unbounded growth (old items become stale anyway)
-  const MAX_QUEUE = 300;
+  const MAX_QUEUE = 100;
   const currentSize = getAiQueueCount();
   if (currentSize >= MAX_QUEUE) {
     logger.warn({ currentSize, dropped: items.length }, "AI queue full, dropping new items");
