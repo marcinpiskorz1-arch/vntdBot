@@ -5,6 +5,7 @@ import {
   isNotHat,
   isGoodCondition,
   isShippable,
+  isNotJunk,
   filterItems,
 } from "../src/filters.js";
 import { mockItem } from "./helpers.js";
@@ -114,10 +115,16 @@ describe("isNotHat", () => {
 // isGoodCondition
 // ============================================================
 describe("isGoodCondition", () => {
-  it("keeps items in good condition", () => {
-    expect(isGoodCondition(mockItem({ condition: "Dobry" }))).toBe(true);
+  it("keeps very good and new condition", () => {
     expect(isGoodCondition(mockItem({ condition: "Bardzo dobry" }))).toBe(true);
+    expect(isGoodCondition(mockItem({ condition: "Very good" }))).toBe(true);
     expect(isGoodCondition(mockItem({ condition: "Nowy" }))).toBe(true);
+    expect(isGoodCondition(mockItem({ condition: "Nowy z metką" }))).toBe(true);
+  });
+
+  it("filters good/dobry condition", () => {
+    expect(isGoodCondition(mockItem({ condition: "Dobry" }))).toBe(false);
+    expect(isGoodCondition(mockItem({ condition: "good" }))).toBe(false);
   });
 
   it("filters satisfactory condition", () => {
@@ -154,12 +161,63 @@ describe("isShippable", () => {
 });
 
 // ============================================================
+// isNotJunk
+// ============================================================
+describe("isNotJunk", () => {
+  it("filters phone/tablet cases", () => {
+    expect(isNotJunk(mockItem({ title: "iPhone 15 case silicone" }))).toBe(false);
+    expect(isNotJunk(mockItem({ title: "Etui na Nintendo Switch" }))).toBe(false);
+    expect(isNotJunk(mockItem({ title: "Samsung Galaxy S24 cover" }))).toBe(false);
+    expect(isNotJunk(mockItem({ title: "Pokrowiec na laptop" }))).toBe(false);
+    expect(isNotJunk(mockItem({ title: "Obudowa iPhone 14" }))).toBe(false);
+  });
+
+  it("filters screen protectors", () => {
+    expect(isNotJunk(mockItem({ title: "Szkiełko hartowane iPhone 15" }))).toBe(false);
+    expect(isNotJunk(mockItem({ title: "Tempered glass Samsung" }))).toBe(false);
+    expect(isNotJunk(mockItem({ title: "Folia ochronna iPad" }))).toBe(false);
+  });
+
+  it("filters cables and chargers", () => {
+    expect(isNotJunk(mockItem({ title: "Kabel Lightning USB-C" }))).toBe(false);
+    expect(isNotJunk(mockItem({ title: "Ładowarka iPhone" }))).toBe(false);
+    expect(isNotJunk(mockItem({ title: "Charger Samsung 25W" }))).toBe(false);
+  });
+
+  it("filters watch straps and bands", () => {
+    expect(isNotJunk(mockItem({ title: "Pasek do G-Shock" }))).toBe(false);
+    expect(isNotJunk(mockItem({ title: "Watch band Seiko" }))).toBe(false);
+    expect(isNotJunk(mockItem({ title: "Remień do zegarka" }))).toBe(false);
+    expect(isNotJunk(mockItem({ title: "Remien skórzany" }))).toBe(false);
+  });
+
+  it("filters instructions, socks, keychains, belts", () => {
+    expect(isNotJunk(mockItem({ title: "LEGO Technic instrukcja" }))).toBe(false);
+    expect(isNotJunk(mockItem({ title: "Skarpetki Nike 3-pack" }))).toBe(false);
+    expect(isNotJunk(mockItem({ title: "Brelok Supreme" }))).toBe(false);
+    expect(isNotJunk(mockItem({ title: "Sznurówki Jordan" }))).toBe(false);
+    expect(isNotJunk(mockItem({ title: "Naszywka Adidas" }))).toBe(false);
+    expect(isNotJunk(mockItem({ title: "Off white belt" }))).toBe(false);
+  });
+
+  it("keeps actual products", () => {
+    expect(isNotJunk(mockItem({ title: "Nintendo Switch OLED" }))).toBe(true);
+    expect(isNotJunk(mockItem({ title: "iPhone 15 Pro 256GB" }))).toBe(true);
+    expect(isNotJunk(mockItem({ title: "Nike Air Force 1" }))).toBe(true);
+    expect(isNotJunk(mockItem({ title: "Sony WH-1000XM5" }))).toBe(true);
+    expect(isNotJunk(mockItem({ title: "G-Shock GA-2100" }))).toBe(true);
+    expect(isNotJunk(mockItem({ title: "LEGO Technic 42143" }))).toBe(true);
+    expect(isNotJunk(mockItem({ title: "Levi's 501 jeansy" }))).toBe(true);
+  });
+});
+
+// ============================================================
 // filterItems (integration)
 // ============================================================
 describe("filterItems", () => {
   it("passes through valid items", () => {
-    const items = [mockItem(), mockItem({ vintedId: "test-2" })];
-    const result = filterItems(items, 20);
+    const items = [mockItem({ price: 100 }), mockItem({ vintedId: "test-2", price: 100 })];
+    const result = filterItems(items, 49);
     expect(result.passed).toHaveLength(2);
     expect(result.removed).toBe(0);
   });
@@ -170,17 +228,19 @@ describe("filterItems", () => {
       mockItem({ vintedId: "2", title: "Nike kids shoes" }),        // kids
       mockItem({ vintedId: "3", title: "Nike beanie" }),            // hat
       mockItem({ vintedId: "4", condition: "poor" }),               // bad condition
-      mockItem({ vintedId: "5", description: "Nie wysyłam" }),      // pickup only
-      mockItem({ vintedId: "6", price: 100 }),                     // should pass
+      mockItem({ vintedId: "5", title: "iPhone case silicone" }),   // junk
+      mockItem({ vintedId: "6", description: "Nie wysyłam" }),      // pickup only
+      mockItem({ vintedId: "7", price: 100 }),                     // should pass
     ];
 
-    const result = filterItems(items, 20);
+    const result = filterItems(items, 49);
     expect(result.passed).toHaveLength(1);
-    expect(result.passed[0].vintedId).toBe("6");
+    expect(result.passed[0].vintedId).toBe("7");
     expect(result.breakdown.priceTooLow).toBe(1);
     expect(result.breakdown.kids).toBe(1);
     expect(result.breakdown.hats).toBe(1);
     expect(result.breakdown.badCondition).toBe(1);
+    expect(result.breakdown.junk).toBe(1);
     expect(result.breakdown.pickupOnly).toBe(1);
   });
 
@@ -189,7 +249,7 @@ describe("filterItems", () => {
       mockItem({ price: 5 }),
       mockItem({ vintedId: "2", price: 100 }),
     ];
-    const result = filterItems(items, 20);
+    const result = filterItems(items, 49);
     expect(result.removed).toBe(1);
     expect(result.passed).toHaveLength(1);
   });

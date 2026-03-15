@@ -91,7 +91,7 @@ export function getConditionScore(condition: string): { score: number; label: st
   return { score: 4, label: condition };
 }
 
-/** Get size popularity bonus (+0 to +1.0) */
+/** Get size popularity bonus (+0 to +0.3 after scaling) */
 export function getSizeBonus(size: string | undefined): number {
   if (!size) return 0;
   const s = size.trim().toUpperCase();
@@ -111,7 +111,7 @@ export function getSizeBonus(size: string | undefined): number {
   return 0;
 }
 
-/** Get seller trust bonus (+0 to +0.5) */
+/** Get seller trust bonus (+0 to +0.25 after scaling) */
 export function getSellerBonus(sellerRating: number, sellerTransactions: number): number {
   if (sellerRating >= 4.5 && sellerTransactions >= 20) return 0.5;
   if (sellerRating >= 4.0 && sellerTransactions >= 10) return 0.3;
@@ -166,13 +166,13 @@ export function computeRuleScore(
   const sellerBonus = getSellerBonus(item.sellerRating, item.sellerTransactions);
   const profit = calculateProfit(item.price, pricing.medianPrice);
 
-  // Weighted score: 50% price + 20% brand + 20% condition + bonuses
+  // Weighted score: 60% price + 15% brand + 15% condition + small bonuses
   let score =
-    0.50 * pricing.priceDiscountScore +
-    0.20 * brand.score +
-    0.20 * condition.score +
-    sizeBonus +
-    sellerBonus;
+    0.60 * pricing.priceDiscountScore +
+    0.15 * brand.score +
+    0.15 * condition.score +
+    sizeBonus * 0.3 +
+    sellerBonus * 0.5;
 
   // Low sample penalty
   if (pricing.sampleSize < 10) {
@@ -229,4 +229,28 @@ export function computeRuleScore(
   };
 
   return { score, level, reasons, syntheticAi };
+}
+
+// ============================================================
+// AI review detection — which items should go to Gemini
+// ============================================================
+
+const AI_REVIEW_MIN_SCORE = 4.0;
+const AI_REVIEW_MAX_SCORE = 5.9;
+const AI_REVIEW_MIN_PROFIT = 20;
+
+export function needsAiReview(
+  ruleResult: RuleScoreResult,
+  pricing: PriceSignal,
+  brandTier: string,
+): boolean {
+  if (ruleResult.level !== "ignore") return false;
+  if (ruleResult.score < AI_REVIEW_MIN_SCORE) return false;
+  if (ruleResult.score > AI_REVIEW_MAX_SCORE) return false;
+  if (ruleResult.syntheticAi.estimatedProfit < AI_REVIEW_MIN_PROFIT) return false;
+
+  const lowSamples = pricing.sampleSize < 10;
+  const unknownBrand = brandTier === "budget" || brandTier === "unknown";
+
+  return lowSamples || unknownBrand;
 }

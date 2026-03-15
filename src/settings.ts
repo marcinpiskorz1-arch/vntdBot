@@ -59,13 +59,13 @@ export const settings = {
     return getNumber("hot_min_profit", config.hotMinProfit);
   },
   get minPrice(): number {
-    return getNumber("min_price", 20);
+    return getNumber("min_price", 49);
   },
   get aiLimit(): number {
     return getNumber("ai_limit", 20);
   },
   get dailyAiLimit(): number {
-    return getNumber("daily_ai_limit", 500);
+    return getNumber("daily_ai_limit", 100);
   },
   get instantThreshold(): number {
     return getNumber("instant_threshold", 60);
@@ -87,9 +87,9 @@ export const settings = {
       notify_threshold: getNumber("notify_threshold", config.notifyThreshold),
       hot_threshold: getNumber("hot_threshold", config.hotThreshold),
       hot_min_profit: getNumber("hot_min_profit", config.hotMinProfit),
-      min_price: getNumber("min_price", 20),
+      min_price: getNumber("min_price", 49),
       ai_limit: getNumber("ai_limit", 20),
-      daily_ai_limit: getNumber("daily_ai_limit", 500),
+      daily_ai_limit: getNumber("daily_ai_limit", 100),
       instant_threshold: getNumber("instant_threshold", 60),
       min_profit: getNumber("min_profit", 35),
       ai_enabled: getBool("ai_enabled", false),
@@ -109,6 +109,6 @@ export const settings = {
     daily_ai_limit: { min: 100, max: 5000, desc: "Twardy dzienny limit wywołań AI", warn: "< 200 = mało analiz, > 2000 = drogo (~5-10 PLN/dzień)" },
     instant_threshold: { min: 40, max: 90, desc: "Min % zniżki do instant alertu (bez AI)", warn: "< 50 = dużo fałszywych, > 80 = prawie nic nie przejdzie" },
     min_profit: { min: 10, max: 200, desc: "Min zysk (PLN) żeby powiadomić", warn: "< 20 = powiadomienia za tanio, > 100 = pominiesz dobre deale" },
-    ai_enabled: { min: 0, max: 1, desc: "Włącz Gemini AI (0=off, 1=on)", warn: "1 = koszt Gemini, wymaga GEMINI_API_KEY" },
+    ai_enabled: { min: 0, max: 1, desc: "Hybrid: AI dla wątpliwych (0=tylko reguły, 1=reguły+AI)", warn: "1 = ~50-100 AI/dzień, wymaga GEMINI_API_KEY" },
   } as Record<string, { min: number; max: number; desc: string; warn: string }>,
 };

@@ -15,7 +15,7 @@ export function buildHeartbeatMessage({ uptime, aiQueueCount }: HeartbeatData): 
     `💓 Heartbeat — ${new Date().toLocaleTimeString("pl-PL")}`,
     ``,
     settings.paused ? `⏸️ BOT WSTRZYMANY` : `▶️ Aktywny`,
-    `🧮 Scoring: ${aiOn ? "AI (Gemini)" : "rule-based"}`,
+    `🧮 Scoring: ${aiOn ? "hybrid (reguły + AI)" : "rule-based"}`,
     ``,
     `📊 Od ostatniego raportu (${uptime} min):`,
     `  🔄 Cykli: ${stats.cycles}`,

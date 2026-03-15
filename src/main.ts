@@ -17,6 +17,7 @@ import { AiAnalystAgent } from "./agents/ai-analyst/index.js";
 import { DecisionAgent } from "./agents/decision/index.js";
 import { TelegramAgent } from "./agents/telegram/index.js";
 import { escapeHtml } from "./agents/telegram/formatters.js";
+import { getBrandTier, needsAiReview } from "./agents/decision/rule-scoring.js";
 
 // ============================================================
 // Initialize agents
@@ -144,7 +145,7 @@ async function runPipeline(): Promise<void> {
 
       if (removedCount > 0) {
         stats.filtered += removedCount;
-        logger.info({ removed: removedCount, ...breakdown }, "🚫 Filtered out cheap/kids/hats/bad-condition/pickup-only items");
+        logger.info({ removed: removedCount, ...breakdown }, "🚫 Filtered items");
       }
 
       if (shippable.length > 0) {
@@ -190,69 +191,73 @@ async function runPipeline(): Promise<void> {
         }
       }
 
-      // All underpriced items: either rule-based scoring or AI queue
-      if (settings.aiEnabled) {
-        enqueueToAi(underpriced);
-      }
     }
 
     // ============================================================
-    // SCORING PATH — rule-based (default) or AI (opt-in)
+    // SCORING — always rule-based first, then AI for uncertain items
     // ============================================================
     let notifiedCount = 0;
     let analyzedCount = 0;
+    const aiCandidates: Array<[import("./types.js").RawItem, import("./types.js").PriceSignal]> = [];
 
-    if (!settings.aiEnabled) {
-      // RULE-BASED PATH — instant scoring, no API calls, no queue
-      if (underpriced.length > 0) {
-        for (const [item, signal] of underpriced) {
-          const result = decision.decideWithRules(item, signal);
-          analyzedCount++;
-          if (result.level !== "ignore") {
-            await telegram.notify(result);
-            notifiedCount++;
+    // STEP 1: Rule-based scoring for ALL underpriced items
+    if (underpriced.length > 0) {
+      for (const [item, signal] of underpriced) {
+        const result = decision.decideWithRules(item, signal);
+        analyzedCount++;
+
+        if (result.level !== "ignore") {
+          await telegram.notify(result);
+          notifiedCount++;
+        } else if (settings.aiEnabled) {
+          const brandTier = getBrandTier(item.brand).tier;
+          if (needsAiReview(result, signal, brandTier)) {
+            aiCandidates.push([item, signal]);
           }
         }
-        logger.info({ analyzed: underpriced.length, notified: notifiedCount }, "📊 Rule-based scoring done");
       }
-    } else {
-      // AI PATH — enqueue → dequeue → Gemini → decide
+      logger.info({
+        analyzed: underpriced.length,
+        notified: notifiedCount,
+        aiCandidates: aiCandidates.length,
+      }, "📊 Rule-based scoring done");
+    }
+
+    // STEP 2: AI review for uncertain items (hybrid mode)
+    if (aiCandidates.length > 0) {
+      enqueueToAi(aiCandidates);
+      logger.info({ count: aiCandidates.length }, "🧠 Uncertain items queued for AI review");
+    }
+
+    if (settings.aiEnabled) {
       const MAX_AI_PER_CYCLE = settings.aiLimit;
       const queued = dequeueFromAi(MAX_AI_PER_CYCLE);
 
       if (queued.length > 0) {
-        // Check daily AI limit before spending tokens
         const today = new Date().toISOString().slice(0, 10);
         if (botState.daily.date !== today) {
           botState.daily.aiCalls = 0;
           botState.daily.date = today;
         }
         if (botState.daily.aiCalls >= settings.dailyAiLimit) {
-          logger.warn({ dailyCalls: botState.daily.aiCalls, limit: settings.dailyAiLimit }, "🛑 Daily AI limit reached — skipping AI this cycle");
+          logger.warn({ dailyCalls: botState.daily.aiCalls, limit: settings.dailyAiLimit }, "🛑 Daily AI limit reached");
           if (!botState._dailyLimitAlerted) {
             botState._dailyLimitAlerted = true;
-            await telegram.sendMessage(`🛑 Dzienny limit AI osiągnięty (${botState.daily.aiCalls}/${settings.dailyAiLimit}).\nBot nadal skanuje oferty, ale AI analiza wstrzymana do jutra.\nZmień limit: /set daily_ai_limit <wartość>`).catch(() => {});
+            await telegram.sendMessage(`🛑 Dzienny limit AI osiągnięty (${botState.daily.aiCalls}/${settings.dailyAiLimit}).`).catch(() => {});
           }
         } else {
-          // Reset alert flag when new day starts
           if (botState._dailyLimitAlerted && botState.daily.aiCalls === 0) {
             botState._dailyLimitAlerted = false;
           }
-
           const remainingInQueue = getAiQueueCount();
-          if (remainingInQueue > 0) {
-            logger.info({ processing: queued.length, remaining: remainingInQueue }, "⏩ AI limit reached, rest stays in persistent queue");
-          }
-          logger.info({ count: queued.length, queued: remainingInQueue }, "🧠 Sending to Gemini...");
+          logger.info({ count: queued.length, queued: remainingInQueue }, "🧠 AI reviewing uncertain items...");
           const toAnalyze: Array<[import("./types.js").RawItem, import("./types.js").PriceSignal]> = queued.map(([item, signal]) => [item, signal]);
           const analyzed = await aiAnalyst.analyzeAll(toAnalyze);
 
-          // Remove successfully analyzed items from persistent queue
           for (const [,, dbId] of queued) {
             stmts.removeFromAiQueue.run({ id: dbId });
           }
 
-          // DECISION — score and decide
           for (const [item, signal, ai] of analyzed) {
             const result = decision.decide(item, signal, ai);
             analyzedCount++;
@@ -316,7 +321,7 @@ async function main(): Promise<void> {
     intervalMs: config.scanIntervalMs,
     threshold: config.dealThreshold,
     proxies: config.proxyUrls.length,
-    scoring: settings.aiEnabled ? "AI (Gemini)" : "rule-based",
+    scoring: settings.aiEnabled ? "hybrid (reguły + AI)" : "rule-based",
   }, "Configuration loaded");
 
   // Check for items left in persistent AI queue from previous run

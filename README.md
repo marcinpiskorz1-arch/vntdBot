@@ -1,13 +1,13 @@
-# VintedBot — AI Deal Sniper
+# VintedBot — Deal Sniper
 
-Autonomous deal-hunting bot that continuously monitors **Vinted** and **OLX.pl** for underpriced items, runs them through a multi-stage AI scoring pipeline, and delivers high-confidence deal alerts via **Telegram**.
+Autonomous deal-hunting bot that continuously monitors **Vinted** and **OLX.pl** for underpriced items, scores them with a rule-based engine (or optionally Gemini AI), and delivers deal alerts via **Telegram**.
 
 ## Tech Stack
 
 | Technology | Purpose |
 |---|---|
 | **TypeScript** (ESM, strict) | Core language |
-| **Gemini 2.5 Flash** | AI qualitative analysis (structured output) |
+| **Gemini 2.5 Flash** | AI qualitative analysis (optional, opt-in) |
 | **Grammy** | Telegram bot framework |
 | **Playwright** | Headless Chromium for Vinted session/cookies |
 | **better-sqlite3** | Embedded SQLite database (WAL mode) |
@@ -45,39 +45,38 @@ Autonomous deal-hunting bot that continuously monitors **Vinted** and **OLX.pl**
 │     → PriceSignal (isUnderpriced, discount %)        │
 └────────────┬─────────────────────────────────────────┘
              ▼
-        [Underpriced items → persistent AI queue (DB)]
+        [Underpriced items]
+             ▼
+     ┌───────┴───────┐
+     │ ai_enabled?   │
+     ├─── false ─────┼─── true ───────────────────┐
+     ▼               ▼                             │
+┌─────────────┐  ┌──────────────────────────────┐  │
+│ RULE-BASED  │  │ AI ANALYST (Gemini 2.5 Flash)│  │
+│ • Brand     │  │ • Polish resale expert       │  │
+│   tiers     │  │ • Structured output          │  │
+│ • Condition │  │ • Persistent AI queue (DB)   │  │
+│   mapping   │  │ → AiAnalysis                 │  │
+│ • Size      │  └──────────────┬───────────────┘  │
+│   popularity│                 ▼                   │
+│ • Seller    │  ┌──────────────────────────────┐  │
+│   trust     │  │ DECISION (AI weights)        │  │
+│ • Shipping  │  │ 40% price + 30% resale       │  │
+│ → synthetic │  │ + 20% condition + 10% brand  │  │
+│   AiAnalysis│  └──────────────┬───────────────┘  │
+└──────┬──────┘                 │                   │
+       └────────────┬───────────┘                   │
+                    ▼                               │
+┌──────────────────────────────────────────────────┐│
+│  ⚡ INSTANT ALERTS (always active)                ││
+│  • Items >60% below median, >50 PLN, sample >15 ││
+│  • Immediate Telegram alert — skip scoring queue ││
+└───────────────┬──────────────────────────────────┘│
              ▼
 ┌──────────────────────────────────────────────────────┐
-│  4. AI ANALYST AGENT (Gemini 2.5 Flash)              │
-│     • Polish resale expert persona (text-only, no    │
-│       photos — optimized for low token cost)         │
-│     • Structured output: resalePotential,            │
-│       conditionConfidence, brandLiquidity,            │
-│       estimatedProfit, riskFlags, reasoning           │
-│     → AiAnalysis                                     │
-└────────────┬─────────────────────────────────────────┘
-             ▼
-┌──────────────────────────────────────────────────────┐
-│  5. DECISION AGENT                                   │
-│     • Weighted score:                                │
-│       40% price + 30% resale + 20% condition         │
-│       + 10% brand liquidity                          │
-│     • Bonuses/penalties (shipping, pickup, risks)    │
-│     • Level: "hot" / "notify" / "ignore"             │
-│     → Decision                                       │
-└────────────┬─────────────────────────────────────────┘
-             ▼
-┌──────────────────────────────────────────────────────┐
-│  5a. ⚡ INSTANT ALERTS (no AI)                        │
-│     • Items >70% below median, >50 PLN, sample >15  │
-│     • Immediate Telegram alert — skip AI queue       │
-│     • Still enqueued to AI for full verification     │
-└────────────┬─────────────────────────────────────────┘
-             ▼
-┌──────────────────────────────────────────────────────┐
-│  6. TELEGRAM AGENT                                   │
-│     • Photo + HTML notification with score breakdown │
-│     • Inline buttons: link, ❤️ favorites, snooze     │
+│  TELEGRAM AGENT                                      │
+│     • Photo + caption in single message              │
+│     • Inline buttons: link, ❤️ Dodaj/Usuń favorites  │
 │     • Remote management: 13 commands                 │
 │     • Favorites tracking with sold-speed stats       │
 └──────────────────────────────────────────────────────┘
@@ -91,6 +90,8 @@ The bot alternates between two scan modes every cycle:
 |---|---|---|---|
 | Odd (1, 3, 5…) | **Priority** | ~73 hype model queries (Jordan 1/4, Dunk, Samba, NB 550…) | ~73 priority queries |
 | Even (0, 2, 4…) | **Full** | ~167 queries (all brands + models) | ~167 all queries |
+
+**Category filtering:** Electronics, phones, tablets, laptops, watches, gaming, LEGO, and other specific configs use Vinted `catalog_ids` to filter at API level — prevents cases/screen protectors from polluting results.
 
 OLX searches across all categories (fashion, electronics, collectibles, etc.) — no category filter applied.
 
@@ -107,6 +108,29 @@ Custom queries added via Telegram are merged into the scan list each cycle.
 
 ## Decision Scoring
 
+### Rule-based mode (default, `ai_enabled=0`)
+
+```
+score = 0.50 × priceDiscount + 0.20 × brandTier + 0.20 × conditionScore
+      + sizeBonus (0–1.0) + sellerBonus (0–0.5)
+
+Brand tiers:  premium (8/10): Nike, Jordan, TNF, Arc'teryx, Supreme, Apple, Sony…
+              mid (5/10): Asics, Converse, Columbia, Garmin, Samsung, Carhartt…
+              budget (2/10): unknown brands
+
+Condition:    Nowy z metką=9, Nowy bez metki=8, Bardzo dobry=7, Dobry=5, Zadowalający=3
+
+Size bonus:   Most popular (42–45, M/L/XL) +1.0, average (39–40, S/XXL) +0.5
+Seller bonus: ≥4.5★ + 20 txn → +0.5,  ≥4.0★ + 10 txn → +0.3
+
+Adjustments:
+  if sampleSize < 10      → score × 0.90
+  if shipping available    → score + 0.3
+  if pickup-only           → score − 0.5
+```
+
+### AI mode (opt-in, `ai_enabled=1`)
+
 ```
 score = 0.4 × priceDiscount + 0.3 × resalePotential
       + 0.2 × conditionConfidence + 0.1 × brandLiquidity
@@ -114,14 +138,17 @@ score = 0.4 × priceDiscount + 0.3 × resalePotential
 Adjustments:
   if sampleSize < 10      → score × 0.90
   per riskFlag             → score − 0.3
-  if inflated_median flag  → score × 0.60 (electronics/collectibles median often inflated)
+  if inflated_median flag  → score × 0.60
   if shipping available    → score + 0.3
   if pickup-only           → score − 0.5
+```
 
-Levels:
-  score ≥ 9.0 AND profit ≥ 50 PLN → "hot"
-  score ≥ 6.0 AND profit ≥ 35 PLN → "notify"
-  else                             → "ignore"
+### Shared thresholds
+
+```
+score ≥ 9.0 AND profit ≥ 50 PLN → "hot"
+score ≥ 6.0 AND profit ≥ 35 PLN → "notify"
+else                             → "ignore"
 ```
 
 AI queue is capped at 100 items, sorted by **discount DESC** (biggest deals first). Daily AI limit: 500 calls (configurable).
@@ -164,8 +191,7 @@ SQLite with WAL mode. Tables:
 ### Notification Inline Buttons
 
 - **🔗 Open link** — Opens the item URL directly
-- **❤️ Ulubione** — Toggle add/remove from favorites
-- **⏰ 1h / 6h / 24h** — Snooze the notification and get a reminder later
+- **❤️ Dodaj do ulubionych / 💔 Usuń z ulubionych** — Toggle favorites (button updates in-place)
 
 ### Dynamic Settings (`/set`)
 
@@ -179,7 +205,9 @@ All settings have enforced min/max limits to prevent misconfiguration. Running `
 | `min_price` | 20 | 5–200 | Filter items below this price (PLN) | < 10 = junk, > 50 = miss cheap deals |
 | `ai_limit` | 20 | 5–50 | Max AI analyses per cycle | > 30 = Gemini cost grows fast |
 | `daily_ai_limit` | 500 | 100–5000 | Max Gemini API calls per day | > 1000 = expensive day |
-| `instant_threshold` | 70 | 50–90 | Min discount % for instant alert (no AI) | < 60 = too many instant alerts |
+| `instant_threshold` | 60 | 40–90 | Min discount % for instant alert (no AI) | < 50 = too many instant alerts |
+| `min_profit` | 35 | 10–200 | Min est. profit (PLN) to notify | < 20 = spam, > 100 = miss deals |
+| `ai_enabled` | 0 | 0–1 | Enable Gemini AI scoring (0=rules, 1=AI) | 1 = requires GEMINI_API_KEY |
 
 ## Project Structure
 
@@ -214,7 +242,8 @@ src/
 │   │   └── prompts.ts
 │   ├── decision/              # Scoring & level determination
 │   │   ├── index.ts
-│   │   └── scoring.ts         # Pure scoring function (testable, no DB deps)
+│   │   ├── scoring.ts         # AI-based scoring function (pure, testable)
+│   │   └── rule-scoring.ts    # Rule-based scoring (brand tiers, condition, size)
 │   └── telegram/              # Notifications & remote commands
 │       ├── index.ts
 │       ├── formatters.ts
@@ -222,7 +251,8 @@ src/
 tests/
 ├── helpers.ts                   # Mock factories (mockItem, mockSignal, mockAi)
 ├── filters.test.ts              # 28 tests: kids, hats, condition, pickup, integration
-└── decision.test.ts             # 12 tests: scoring, penalties, shipping, levels
+├── decision.test.ts             # 12 tests: AI scoring, penalties, shipping, levels
+└── rule-scoring.test.ts         # 40 tests: brand tiers, condition, size, seller, full scoring
 ```
 
 ## Setup
@@ -235,9 +265,10 @@ npx playwright install chromium
 Create `.env`:
 
 ```env
-GEMINI_API_KEY=your_gemini_key
 TELEGRAM_BOT_TOKEN=your_telegram_token
 TELEGRAM_CHAT_ID=your_chat_id
+# Optional — only needed when ai_enabled=1
+GEMINI_API_KEY=your_gemini_key
 ```
 
 ## Run
@@ -253,7 +284,17 @@ npm test            # run all tests once
 npm run test:watch  # watch mode
 ```
 
-40 unit tests covering filters, decision scoring, penalties, and level determination.
+80 unit tests covering filters, decision scoring, rule-based scoring, and level determination.
+
+## AI Development Guidelines
+
+See [`.github/copilot-instructions.md`](.github/copilot-instructions.md) for mandatory rules on:
+- TypeScript/ESM conventions, import patterns
+- Agent architecture and pure function patterns
+- Testing requirements (every change needs tests)
+- Anti-patterns to avoid
+- Database access, settings, error handling
+- Scan config categories
 
 ## Lifecycle
 

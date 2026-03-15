@@ -1,5 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { mockItem, mockSignal } from "./helpers.js";
+import { mockAi } from "./helpers.js";
 import {
   getBrandTier,
   getConditionScore,
@@ -7,7 +8,9 @@ import {
   getSellerBonus,
   calculateProfit,
   computeRuleScore,
+  needsAiReview,
   type RuleScoreConfig,
+  type RuleScoreResult,
 } from "../src/agents/decision/rule-scoring.js";
 
 // ============================================================
@@ -147,8 +150,8 @@ describe("computeRuleScore", () => {
     const item = mockItem({ brand: "Nike", condition: "Bardzo dobry", size: "43", sellerRating: 4.8, sellerTransactions: 30 });
     const signal = mockSignal({ priceDiscountScore: 7, discountPct: 70, medianPrice: 300, sampleSize: 40 });
     const result = computeRuleScore(item, signal, defaultCfg);
-    // 0.5*7 + 0.2*8 + 0.2*7 + 1.0 (size) + 0.5 (seller) = 3.5 + 1.6 + 1.4 + 1.0 + 0.5 = 8.0
-    expect(result.score).toBeGreaterThanOrEqual(7);
+    // 0.6*7 + 0.15*8 + 0.15*7 + 0.3*1.0 (size) + 0.5*0.5 (seller) = 4.2 + 1.2 + 1.05 + 0.3 + 0.25 = 7.0
+    expect(result.score).toBeGreaterThanOrEqual(6.5);
     expect(result.syntheticAi).toBeDefined();
     expect(result.syntheticAi.reasoning).toContain("Nike");
   });
@@ -157,7 +160,7 @@ describe("computeRuleScore", () => {
     const item = mockItem({ brand: "NoName", condition: "Dobry", size: "36" });
     const signal = mockSignal({ priceDiscountScore: 5, medianPrice: 100, sampleSize: 30 });
     const result = computeRuleScore(item, signal, defaultCfg);
-    // 0.5*5 + 0.2*2 + 0.2*5 + 0 + 0 = 2.5 + 0.4 + 1.0 = 3.9
+    // 0.6*5 + 0.15*2 + 0.15*5 + 0 + 0 = 3.0 + 0.3 + 0.75 = 4.05
     expect(result.score).toBeLessThan(5);
     expect(result.level).toBe("ignore");
   });
@@ -194,7 +197,7 @@ describe("computeRuleScore", () => {
 
   it("returns 'notify' for moderate score + enough profit", () => {
     const item = mockItem({ brand: "Nike", condition: "Bardzo dobry", size: "42", sellerRating: 4.5, sellerTransactions: 20 });
-    const signal = mockSignal({ priceDiscountScore: 6, discountPct: 60, medianPrice: 250, sampleSize: 30 });
+    const signal = mockSignal({ priceDiscountScore: 8, discountPct: 60, medianPrice: 250, sampleSize: 30 });
     const result = computeRuleScore(item, signal, defaultCfg);
     expect(result.level).toBe("notify");
   });
@@ -227,5 +230,58 @@ describe("computeRuleScore", () => {
     expect(typeof ai.suggestedPrice).toBe("number");
     expect(Array.isArray(ai.riskFlags)).toBe(true);
     expect(typeof ai.reasoning).toBe("string");
+  });
+});
+
+// ============================================================
+// AI review detection
+// ============================================================
+describe("needsAiReview", () => {
+  it("returns false when rules already passed (notify)", () => {
+    const result: RuleScoreResult = {
+      score: 7.0, level: "notify", reasons: [],
+      syntheticAi: mockAi({ estimatedProfit: 80 }),
+    };
+    expect(needsAiReview(result, mockSignal({ sampleSize: 5 }), "premium")).toBe(false);
+  });
+
+  it("returns true for borderline score + low samples", () => {
+    const result: RuleScoreResult = {
+      score: 5.0, level: "ignore", reasons: [],
+      syntheticAi: mockAi({ estimatedProfit: 40 }),
+    };
+    expect(needsAiReview(result, mockSignal({ sampleSize: 5 }), "premium")).toBe(true);
+  });
+
+  it("returns true for borderline score + unknown brand", () => {
+    const result: RuleScoreResult = {
+      score: 4.5, level: "ignore", reasons: [],
+      syntheticAi: mockAi({ estimatedProfit: 30 }),
+    };
+    expect(needsAiReview(result, mockSignal({ sampleSize: 30 }), "budget")).toBe(true);
+  });
+
+  it("returns false when score too low", () => {
+    const result: RuleScoreResult = {
+      score: 3.0, level: "ignore", reasons: [],
+      syntheticAi: mockAi({ estimatedProfit: 50 }),
+    };
+    expect(needsAiReview(result, mockSignal({ sampleSize: 5 }), "budget")).toBe(false);
+  });
+
+  it("returns false when profit too low", () => {
+    const result: RuleScoreResult = {
+      score: 5.0, level: "ignore", reasons: [],
+      syntheticAi: mockAi({ estimatedProfit: 10 }),
+    };
+    expect(needsAiReview(result, mockSignal({ sampleSize: 5 }), "budget")).toBe(false);
+  });
+
+  it("returns false when premium brand + enough samples", () => {
+    const result: RuleScoreResult = {
+      score: 5.0, level: "ignore", reasons: [],
+      syntheticAi: mockAi({ estimatedProfit: 40 }),
+    };
+    expect(needsAiReview(result, mockSignal({ sampleSize: 30 }), "premium")).toBe(false);
   });
 });

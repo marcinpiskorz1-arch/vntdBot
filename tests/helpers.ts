@@ -10,7 +10,7 @@ export function mockItem(overrides: Partial<RawItem> = {}): RawItem {
     currency: "PLN",
     size: "42",
     category: "shoes",
-    condition: "Dobry",
+    condition: "Bardzo dobry",
     description: "Buty w dobrym stanie",
     photoUrls: ["https://example.com/photo.jpg"],
     sellerRating: 4.5,
