@@ -79,4 +79,13 @@ export const settings = {
 
   /** List of valid setting keys for /set command */
   VALID_KEYS: ["notify_threshold", "hot_threshold", "hot_min_profit", "min_price", "ai_limit"] as const,
+
+  /** Validation rules: min, max, description, warning */
+  RULES: {
+    notify_threshold: { min: 3, max: 9.5, desc: "Próg score do powiadomienia", warn: "< 5 = dużo spamu, > 8 = prawie nic nie przejdzie" },
+    hot_threshold: { min: 7, max: 10, desc: "Próg score dla HOT deal", warn: "< 8 = za łatwo HOT, powinien być > notify_threshold" },
+    hot_min_profit: { min: 10, max: 500, desc: "Min zysk (PLN) dla HOT", warn: "< 30 = HOT za tanio" },
+    min_price: { min: 5, max: 200, desc: "Min cena oferty (PLN)", warn: "< 10 = dużo śmieci, > 50 = pominiesz tanie okazje" },
+    ai_limit: { min: 10, max: 200, desc: "Max analiz AI / cykl", warn: "> 100 = szybko rośnie koszt Gemini, kolejka max 300" },
+  } as Record<string, { min: number; max: number; desc: string; warn: string }>,
 };

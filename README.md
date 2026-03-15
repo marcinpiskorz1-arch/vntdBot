@@ -105,6 +105,7 @@ score = 0.4 × priceDiscount + 0.3 × resalePotential
 Adjustments:
   if sampleSize < 10      → score × 0.90
   per riskFlag             → score − 0.3
+  if inflated_median flag  → score × 0.70 (electronics/collectibles median often inflated)
   if shipping available    → score + 0.3
   if pickup-only           → score − 0.5
 
@@ -113,6 +114,8 @@ Levels:
   score ≥ 6.0 AND profit ≥ 35 PLN → "notify"
   else                             → "ignore"
 ```
+
+AI queue is capped at 300 items. Excess items are dropped to prevent unbounded Gemini costs.
 
 All thresholds are adjustable at runtime via Telegram `/set` command.
 
@@ -153,13 +156,15 @@ SQLite with WAL mode. Tables:
 
 ### Dynamic Settings (`/set`)
 
-| Key | Default | Description |
-|---|---|---|
-| `notify_threshold` | 6.0 | Minimum score to send a "notify" alert |
-| `hot_threshold` | 9.0 | Minimum score for a "hot" deal alert |
-| `hot_min_profit` | 50 | Minimum estimated profit (PLN) for "hot" level |
-| `min_price` | 20 | Filter out items below this price (PLN) |
-| `ai_limit` | 100 | Max AI analyses per cycle |
+All settings have enforced min/max limits to prevent misconfiguration. Running `/set` without arguments shows all settings with current values, allowed ranges, and risk warnings.
+
+| Key | Default | Range | Description | Warning |
+|---|---|---|---|---|
+| `notify_threshold` | 6.0 | 3–9.5 | Min score to send a "notify" alert | < 5 = spam, > 8 = almost nothing passes |
+| `hot_threshold` | 9.0 | 7–10 | Min score for a "hot" deal alert | < 8 = too easy to be HOT |
+| `hot_min_profit` | 50 | 10–500 | Min estimated profit (PLN) for "hot" | < 30 = HOT triggers too cheap |
+| `min_price` | 20 | 5–200 | Filter items below this price (PLN) | < 10 = junk, > 50 = miss cheap deals |
+| `ai_limit` | 100 | 10–200 | Max AI analyses per cycle | > 100 = Gemini cost grows fast, queue max 300 |
 
 ## Project Structure
 

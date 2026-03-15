@@ -29,12 +29,18 @@ export class DecisionAgent {
       );
     }
 
-    // Risk flag penalty: -0.3 per flag (excluding missing_details — normal on Vinted)
-    const penaltyFlags = ai.riskFlags.filter(f => f !== "missing_details");
+    // Risk flag penalty: -0.3 per flag (excluding missing_details and inflated_median — handled separately)
+    const penaltyFlags = ai.riskFlags.filter(f => f !== "missing_details" && f !== "inflated_median");
     if (penaltyFlags.length > 0) {
       const penalty = penaltyFlags.length * 0.3;
       score = Math.max(0, score - penalty);
       reasons.push(`🚩 ${penaltyFlags.length} flag ryzyka: ${penaltyFlags.join(", ")}`);
+    }
+
+    // Inflated median penalty — Gemini detected Vinted median is above retail price
+    if (ai.riskFlags.includes("inflated_median")) {
+      score *= 0.6; // heavy penalty — pricing data is unreliable
+      reasons.push("⚠️ Mediana zawyżona vs cena detaliczna (score ×0.6)");
     }
 
     // Shipping bonus / pickup penalty (especially important for OLX)

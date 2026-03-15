@@ -113,8 +113,15 @@ export class TelegramAgent {
       if (!this.isAuthorized(ctx)) return;
       const args = ctx.message?.text?.split(/\s+/).slice(1) || [];
       if (args.length < 2) {
-        const validKeys = settings.VALID_KEYS.join(", ");
-        await ctx.reply(`Użycie: /set <klucz> <wartość>\n\nDostępne klucze: ${validKeys}`);
+        const lines = settings.VALID_KEYS.map(k => {
+          const r = settings.RULES[k];
+          const current = settings.getNumber(k, 0);
+          return `<b>${k}</b> = ${current}\n  📏 ${r.min}–${r.max} | ${r.desc}\n  ⚠️ ${r.warn}`;
+        });
+        await ctx.reply(
+          "Użycie: /set <klucz> <wartość>\n\n" + lines.join("\n\n"),
+          { parse_mode: "HTML" }
+        );
         return;
       }
       const [key, value] = args;
@@ -127,8 +134,13 @@ export class TelegramAgent {
         await ctx.reply(`❌ Wartość musi być liczbą: ${value}`);
         return;
       }
+      const rule = settings.RULES[key];
+      if (rule && (num < rule.min || num > rule.max)) {
+        await ctx.reply(`❌ ${key} musi być ${rule.min}–${rule.max} (podano: ${num})\n\n⚠️ ${rule.warn}`);
+        return;
+      }
       settings.set(key, value);
-      await ctx.reply(`✅ ${key} = ${value}`);
+      await ctx.reply(`✅ ${key} = ${value}${rule ? `\n\n💡 ${rule.desc}` : ""}`);
       logger.info({ key, value }, "Setting changed via Telegram");
     });
 
@@ -209,21 +221,23 @@ export class TelegramAgent {
           "/pause — wstrzymaj skanowanie\n" +
           "/resume — wznów skanowanie\n" +
           "/status — status + ustawienia\n\n" +
-          "<b>Ustawienia:</b>\n" +
-          "/set notify_threshold 6.0 — próg powiadomień\n" +
-          "/set hot_threshold 9.0 — próg HOT\n" +
-          "/set hot_min_profit 50 — min zysk HOT (PLN)\n" +
-          "/set min_price 20 — min cena oferty (PLN)\n" +
-          "/set ai_limit 100 — limit AI analiz/cykl\n\n" +
+          "<b>Ustawienia (/set):</b>\n" +
+          "/set — pokaż wszystkie z opisami i limitami\n" +
+          "/set &lt;klucz&gt; &lt;wartość&gt; — zmień\n\n" +
           "<b>Zapytania:</b>\n" +
           "/queries — podsumowanie\n" +
-          "/queries_add <tekst> — dodaj\n" +
-          "/queries_add_p <tekst> — dodaj priorytetowe\n" +
-          "/queries_remove <tekst> — usuń\n" +
+          "/queries_add &lt;tekst&gt; — dodaj zwykłe\n" +
+          "/queries_add_p &lt;tekst&gt; — dodaj priorytetowe (co cykl)\n" +
+          "/queries_remove &lt;tekst&gt; — usuń\n" +
           "/queries_list — lista własnych\n\n" +
           "<b>Powiadomienia:</b>\n" +
           "🔗 Otwórz na Vinted — link do oferty\n" +
-          "⏰ Snooze 1h/6h/24h — przypomnij później",
+          "⏰ Snooze 1h/6h/24h — przypomnij później\n\n" +
+          "<b>⚠️ Wskazówki:</b>\n" +
+          "• ai_limit &gt; 100 = szybko rośnie koszt Gemini\n" +
+          "• notify_threshold &lt; 5 = spam powiadomień\n" +
+          "• min_price &lt; 10 = tonę śmieciowych ofert\n" +
+          "• Kolejka AI ma limit 300 — nadmiar jest odrzucany",
         { parse_mode: "HTML" }
       );
     });
