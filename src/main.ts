@@ -190,73 +190,94 @@ async function runPipeline(): Promise<void> {
         }
       }
 
-      // All underpriced items still go to AI queue for full analysis
-      enqueueToAi(underpriced);
-    }
-
-    // Dequeue from persistent queue (includes items from previous cycles that survived restarts)
-    const MAX_AI_PER_CYCLE = settings.aiLimit;
-    const queued = dequeueFromAi(MAX_AI_PER_CYCLE);
-
-    if (queued.length === 0) {
-      if (newItems.length === 0) logger.info("No new items found this cycle");
-      return;
-    }
-
-    // Check daily AI limit before spending tokens
-    const today = new Date().toISOString().slice(0, 10);
-    if (botState.daily.date !== today) {
-      botState.daily.aiCalls = 0;
-      botState.daily.date = today;
-    }
-    if (botState.daily.aiCalls >= settings.dailyAiLimit) {
-      logger.warn({ dailyCalls: botState.daily.aiCalls, limit: settings.dailyAiLimit }, "🛑 Daily AI limit reached — skipping AI this cycle");
-      // Send one-time alert (not every cycle)
-      if (!botState._dailyLimitAlerted) {
-        botState._dailyLimitAlerted = true;
-        await telegram.sendMessage(`🛑 Dzienny limit AI osiągnięty (${botState.daily.aiCalls}/${settings.dailyAiLimit}).\nBot nadal skanuje oferty, ale AI analiza wstrzymana do jutra.\nZmień limit: /set daily_ai_limit <wartość>`).catch(() => {});
+      // All underpriced items: either rule-based scoring or AI queue
+      if (settings.aiEnabled) {
+        enqueueToAi(underpriced);
       }
-      return;
-    }
-    // Reset alert flag when new day starts
-    if (botState._dailyLimitAlerted && botState.daily.aiCalls === 0) {
-      botState._dailyLimitAlerted = false;
     }
 
-    const remainingInQueue = getAiQueueCount();
-    if (remainingInQueue > 0) {
-      logger.info({ processing: queued.length, remaining: remainingInQueue }, "⏩ AI limit reached, rest stays in persistent queue");
-    }
-    logger.info({ count: queued.length, queued: remainingInQueue }, "🧠 Sending to Gemini...");
-    const toAnalyze: Array<[import("./types.js").RawItem, import("./types.js").PriceSignal]> = queued.map(([item, signal]) => [item, signal]);
-    const analyzed = await aiAnalyst.analyzeAll(toAnalyze);
-
-    // Remove successfully analyzed items from persistent queue
-    for (const [,, dbId] of queued) {
-      stmts.removeFromAiQueue.run({ id: dbId });
-    }
-
-    // 4. DECISION — score and decide
+    // ============================================================
+    // SCORING PATH — rule-based (default) or AI (opt-in)
+    // ============================================================
     let notifiedCount = 0;
-    for (const [item, signal, ai] of analyzed) {
-      const result = decision.decide(item, signal, ai);
+    let analyzedCount = 0;
 
-      // 5. TELEGRAM — notify if above threshold
-      if (result.level !== "ignore") {
-        await telegram.notify(result);
-        notifiedCount++;
+    if (!settings.aiEnabled) {
+      // RULE-BASED PATH — instant scoring, no API calls, no queue
+      if (underpriced.length > 0) {
+        for (const [item, signal] of underpriced) {
+          const result = decision.decideWithRules(item, signal);
+          analyzedCount++;
+          if (result.level !== "ignore") {
+            await telegram.notify(result);
+            notifiedCount++;
+          }
+        }
+        logger.info({ analyzed: underpriced.length, notified: notifiedCount }, "📊 Rule-based scoring done");
       }
+    } else {
+      // AI PATH — enqueue → dequeue → Gemini → decide
+      const MAX_AI_PER_CYCLE = settings.aiLimit;
+      const queued = dequeueFromAi(MAX_AI_PER_CYCLE);
+
+      if (queued.length > 0) {
+        // Check daily AI limit before spending tokens
+        const today = new Date().toISOString().slice(0, 10);
+        if (botState.daily.date !== today) {
+          botState.daily.aiCalls = 0;
+          botState.daily.date = today;
+        }
+        if (botState.daily.aiCalls >= settings.dailyAiLimit) {
+          logger.warn({ dailyCalls: botState.daily.aiCalls, limit: settings.dailyAiLimit }, "🛑 Daily AI limit reached — skipping AI this cycle");
+          if (!botState._dailyLimitAlerted) {
+            botState._dailyLimitAlerted = true;
+            await telegram.sendMessage(`🛑 Dzienny limit AI osiągnięty (${botState.daily.aiCalls}/${settings.dailyAiLimit}).\nBot nadal skanuje oferty, ale AI analiza wstrzymana do jutra.\nZmień limit: /set daily_ai_limit <wartość>`).catch(() => {});
+          }
+        } else {
+          // Reset alert flag when new day starts
+          if (botState._dailyLimitAlerted && botState.daily.aiCalls === 0) {
+            botState._dailyLimitAlerted = false;
+          }
+
+          const remainingInQueue = getAiQueueCount();
+          if (remainingInQueue > 0) {
+            logger.info({ processing: queued.length, remaining: remainingInQueue }, "⏩ AI limit reached, rest stays in persistent queue");
+          }
+          logger.info({ count: queued.length, queued: remainingInQueue }, "🧠 Sending to Gemini...");
+          const toAnalyze: Array<[import("./types.js").RawItem, import("./types.js").PriceSignal]> = queued.map(([item, signal]) => [item, signal]);
+          const analyzed = await aiAnalyst.analyzeAll(toAnalyze);
+
+          // Remove successfully analyzed items from persistent queue
+          for (const [,, dbId] of queued) {
+            stmts.removeFromAiQueue.run({ id: dbId });
+          }
+
+          // DECISION — score and decide
+          for (const [item, signal, ai] of analyzed) {
+            const result = decision.decide(item, signal, ai);
+            analyzedCount++;
+            if (result.level !== "ignore") {
+              await telegram.notify(result);
+              notifiedCount++;
+            }
+          }
+        }
+      }
+    }
+
+    if (newItems.length === 0 && analyzedCount === 0) {
+      logger.info("No new items found this cycle");
     }
 
     // Update cumulative stats
     stats.cycles++;
     stats.scanned += newItems.length;
-    stats.aiAnalyzed += analyzed.length;
+    stats.aiAnalyzed += analyzedCount;
     stats.notified += notifiedCount;
 
-    // Log when items were analyzed but none passed threshold (no Telegram spam)
-    if (notifiedCount === 0 && analyzed.length > 0) {
-      logger.info({ scanned: newItems.length, analyzed: analyzed.length }, "No deals this cycle");
+    // Log when items were analyzed but none passed threshold
+    if (notifiedCount === 0 && analyzedCount > 0) {
+      logger.info({ scanned: newItems.length, analyzed: analyzedCount }, "No deals this cycle");
     }
 
     const elapsed = ((Date.now() - startTime) / 1000).toFixed(1);
@@ -295,11 +316,12 @@ async function main(): Promise<void> {
     intervalMs: config.scanIntervalMs,
     threshold: config.dealThreshold,
     proxies: config.proxyUrls.length,
+    scoring: settings.aiEnabled ? "AI (Gemini)" : "rule-based",
   }, "Configuration loaded");
 
   // Check for items left in persistent AI queue from previous run
   const pendingAi = getAiQueueCount();
-  if (pendingAi > 0) {
+  if (pendingAi > 0 && settings.aiEnabled) {
     logger.info({ pending: pendingAi }, "📋 Found items in persistent AI queue from previous run — will process this cycle");
   }
   botState.aiQueueLength = pendingAi;

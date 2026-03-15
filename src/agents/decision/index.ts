@@ -4,6 +4,7 @@ import { stmts } from "../../database.js";
 import { logger } from "../../logger.js";
 import type { RawItem, PriceSignal, AiAnalysis, Decision } from "../../types.js";
 import { computeScore } from "./scoring.js";
+import { computeRuleScore } from "./rule-scoring.js";
 
 export class DecisionAgent {
   /**
@@ -40,6 +41,43 @@ export class DecisionAgent {
         reasons: result.reasons.slice(0, 3),
       },
       "Decision made"
+    );
+
+    return decision;
+  }
+
+  /**
+   * Rule-based decision — no AI, uses brand/condition/size/seller heuristics.
+   * Produces a synthetic AiAnalysis for Telegram compatibility.
+   */
+  decideWithRules(item: RawItem, pricing: PriceSignal): Decision {
+    const result = computeRuleScore(item, pricing, {
+      lowSamplePenalty: config.lowSamplePenalty,
+      notifyThreshold: settings.notifyThreshold,
+      hotThreshold: settings.hotThreshold,
+      hotMinProfit: settings.hotMinProfit,
+      minProfitToNotify: settings.minProfitToNotify,
+    });
+
+    const decision: Decision = {
+      score: result.score,
+      level: result.level,
+      reasons: result.reasons,
+      item,
+      pricing,
+      ai: result.syntheticAi,
+    };
+
+    this.persist(decision);
+
+    logger.info(
+      {
+        item: item.vintedId,
+        score: result.score,
+        level: result.level,
+        reasons: result.reasons.slice(0, 3),
+      },
+      "Decision made (rule-based)"
     );
 
     return decision;

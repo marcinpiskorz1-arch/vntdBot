@@ -22,7 +22,14 @@ function isDailyLimitReached(): boolean {
 }
 
 export class AiAnalystAgent {
-  private model = getStructuredModel(aiAnalysisSchema);
+  private _model: ReturnType<typeof getStructuredModel> | null = null;
+
+  private get model() {
+    if (!this._model) {
+      this._model = getStructuredModel(aiAnalysisSchema);
+    }
+    return this._model;
+  }
 
   /**
    * Analyze a single item. Only called when isUnderpriced === true.

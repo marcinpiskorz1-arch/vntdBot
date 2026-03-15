@@ -15,8 +15,8 @@ function optionalEnv(name: string, fallback: string): string {
 }
 
 export const config = {
-  // Gemini
-  geminiApiKey: requireEnv("GEMINI_API_KEY"),
+  // Gemini (optional — only needed when ai_enabled = true)
+  geminiApiKey: optionalEnv("GEMINI_API_KEY", ""),
   geminiModel: optionalEnv("GEMINI_MODEL", "gemini-2.5-flash"),
 
   // Telegram
