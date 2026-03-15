@@ -244,10 +244,13 @@ function buildScanLists() {
   }));
 
   const allVinted = [...scanConfigs, ...customConfigs];
-  const allOlx: ScanConfig[] = allVinted.map(({ searchText }) => ({ searchText }));
+
+  // OLX: only generic brand queries (not model-specific) — OLX has less volume, no need for 161 queries
+  const olxBrandQueries = scanConfigs.filter(c => !c.priority);
+  const allOlx: ScanConfig[] = [...olxBrandQueries, ...customConfigs].map(({ searchText }) => ({ searchText }));
 
   const priority = allVinted.filter(c => c.priority);
-  const olxPriority = allOlx.filter((_, i) => allVinted[i]?.priority);
+  const olxPriority: ScanConfig[] = []; // OLX doesn't need priority scanning
 
   // Update botState for /status command
   botState.totalQueries = scanConfigs.length;

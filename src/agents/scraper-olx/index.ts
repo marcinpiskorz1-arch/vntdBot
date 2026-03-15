@@ -62,7 +62,7 @@ export class OlxScraperAgent {
 
         // Jitter between queries — OLX is more aggressive with rate limiting
         if (scanConfigs.length > 1) {
-          await jitter(3000, 7000);
+          await jitter(1000, 3000);
         }
       } catch (err) {
         logger.error({ err, scanConfig, source: "OLX" }, "OLX scan failed for config");
