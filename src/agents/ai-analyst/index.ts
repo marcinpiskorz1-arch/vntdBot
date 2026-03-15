@@ -1,8 +1,25 @@
 import { logger } from "../../logger.js";
 import { settings } from "../../settings.js";
+import { botState } from "../../bot-state.js";
 import type { RawItem, PriceSignal, AiAnalysis } from "../../types.js";
 import { getStructuredModel } from "./gemini-client.js";
 import { aiAnalysisSchema, systemPrompt, buildItemPrompt } from "./prompts.js";
+
+/** Reset daily counter if date changed (midnight rollover) */
+function checkDailyReset(): void {
+  const today = new Date().toISOString().slice(0, 10);
+  if (botState.daily.date !== today) {
+    logger.info({ previousCalls: botState.daily.aiCalls, date: botState.daily.date }, "🔄 Daily AI counter reset (new day)");
+    botState.daily.aiCalls = 0;
+    botState.daily.date = today;
+  }
+}
+
+/** Check if daily AI call limit has been reached */
+function isDailyLimitReached(): boolean {
+  checkDailyReset();
+  return botState.daily.aiCalls >= settings.dailyAiLimit;
+}
 
 export class AiAnalystAgent {
   private model = getStructuredModel(aiAnalysisSchema);
@@ -12,6 +29,20 @@ export class AiAnalystAgent {
    * Returns structured AiAnalysis from Gemini.
    */
   async analyze(item: RawItem, signal: PriceSignal): Promise<AiAnalysis> {
+    // Check daily limit BEFORE making the API call
+    if (isDailyLimitReached()) {
+      logger.warn({ dailyCalls: botState.daily.aiCalls, limit: settings.dailyAiLimit }, "🛑 Daily AI limit reached — skipping analysis");
+      return {
+        resalePotential: 3,
+        conditionConfidence: 3,
+        brandLiquidity: 3,
+        estimatedProfit: 0,
+        suggestedPrice: item.price,
+        riskFlags: ["daily_limit_reached"],
+        reasoning: "Dzienny limit wywołań AI został osiągnięty. Ocena konserwatywna.",
+      };
+    }
+
     const userPrompt = buildItemPrompt(
       item.title,
       item.description,
@@ -39,6 +70,9 @@ export class AiAnalystAgent {
 
       const text = result.response.text();
       const parsed = JSON.parse(text) as AiAnalysis;
+
+      // Track daily API call
+      botState.daily.aiCalls++;
 
       // Clamp scores to 0-10 range
       parsed.resalePotential = clamp(parsed.resalePotential, 0, 10);
@@ -87,6 +121,11 @@ export class AiAnalystAgent {
       // Check if paused mid-batch — stop burning Gemini tokens immediately
       if (settings.paused) {
         logger.info({ processed: results.length, skipped: items.length - results.length }, "⏸️ AI analysis interrupted — bot paused");
+        break;
+      }
+      // Check daily limit mid-batch
+      if (isDailyLimitReached()) {
+        logger.warn({ processed: results.length, skipped: items.length - results.length, dailyCalls: botState.daily.aiCalls }, "🛑 Daily AI limit reached mid-batch — stopping");
         break;
       }
       const analysis = await this.analyze(item, signal);

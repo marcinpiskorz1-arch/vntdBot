@@ -152,3 +152,39 @@ function mapApiItemToRawItem(item: VintedApiItem): RawItem {
       : "",
   };
 }
+
+/**
+ * Check if a Vinted item is still available (not sold/removed).
+ * Makes a HEAD request to the item URL — sold items return 301/302 to a "sold" page or 404.
+ */
+export async function checkItemAvailable(itemUrl: string, session: VintedSession): Promise<boolean> {
+  try {
+    // Use Vinted's item API endpoint if we can extract the ID
+    const idMatch = itemUrl.match(/\/(\d+)-/);
+    if (!idMatch) return true; // Can't parse — assume still available
+
+    const apiUrl = `${config.vintedDomain}/api/v2/items/${idMatch[1]}`;
+    const response = await fetch(apiUrl, {
+      method: "GET",
+      headers: {
+        Accept: "application/json",
+        "User-Agent": session.userAgent,
+        Cookie: cookieHeader(session.cookies),
+      },
+      redirect: "manual",
+    });
+
+    if (!response.ok) return false; // 404/403 = item gone
+
+    const data = await response.json() as any;
+    const item = data?.item;
+    if (!item) return false;
+
+    // is_closed = sold or removed
+    if (item.is_closed || item.status === "sold") return false;
+
+    return true;
+  } catch {
+    return true; // Network error — assume still available
+  }
+}

@@ -33,6 +33,11 @@ export class ScraperAgent {
     return this.session!;
   }
 
+  /** Expose session for external use (e.g., favorites sold checker) */
+  async getSession(): Promise<VintedSession> {
+    return this.ensureSession();
+  }
+
   /**
    * Scan Vinted for items matching the config.
    * Returns only NEW items (not already in DB).

@@ -100,9 +100,33 @@ db.exec(`
     vinted_id   TEXT NOT NULL UNIQUE,
     item_json   TEXT NOT NULL,
     signal_json TEXT NOT NULL,
+    discount_pct REAL NOT NULL DEFAULT 0,
     added_at    TEXT NOT NULL DEFAULT (datetime('now'))
   );
+
+  CREATE TABLE IF NOT EXISTS favorites (
+    id          INTEGER PRIMARY KEY AUTOINCREMENT,
+    vinted_id   TEXT NOT NULL UNIQUE,
+    title       TEXT NOT NULL DEFAULT '',
+    brand       TEXT NOT NULL DEFAULT '',
+    price       REAL NOT NULL DEFAULT 0,
+    url         TEXT NOT NULL DEFAULT '',
+    photo_url   TEXT NOT NULL DEFAULT '',
+    score       REAL NOT NULL DEFAULT 0,
+    added_at    TEXT NOT NULL DEFAULT (datetime('now')),
+    sold_at     TEXT,
+    status      TEXT NOT NULL DEFAULT 'active'
+  );
 `);
+
+// ============================================================
+// Migrations for existing databases
+// ============================================================
+try {
+  db.exec(`ALTER TABLE ai_queue ADD COLUMN discount_pct REAL NOT NULL DEFAULT 0`);
+} catch {
+  // Column already exists — ignore
+}
 
 // ============================================================
 // Prepared statements — reusable across agents
@@ -205,10 +229,10 @@ export const stmts = {
 
   // AI Queue (persistent — survives restarts)
   enqueueAi: db.prepare(
-    `INSERT OR IGNORE INTO ai_queue (vinted_id, item_json, signal_json) VALUES (@vinted_id, @item_json, @signal_json)`
+    `INSERT OR IGNORE INTO ai_queue (vinted_id, item_json, signal_json, discount_pct) VALUES (@vinted_id, @item_json, @signal_json, @discount_pct)`
   ),
   dequeueAi: db.prepare<{ limit: number }>(
-    `SELECT id, item_json, signal_json FROM ai_queue ORDER BY added_at ASC LIMIT @limit`
+    `SELECT id, item_json, signal_json FROM ai_queue ORDER BY discount_pct DESC, added_at ASC LIMIT @limit`
   ),
   removeFromAiQueue: db.prepare<{ id: number }>(
     `DELETE FROM ai_queue WHERE id = @id`
@@ -218,5 +242,39 @@ export const stmts = {
   ),
   countAiQueue: db.prepare(
     `SELECT COUNT(*) as count FROM ai_queue`
+  ),
+
+  // Favorites
+  addFavorite: db.prepare(
+    `INSERT OR IGNORE INTO favorites (vinted_id, title, brand, price, url, photo_url, score)
+     VALUES (@vinted_id, @title, @brand, @price, @url, @photo_url, @score)`
+  ),
+  removeFavorite: db.prepare<{ vinted_id: string }>(
+    `DELETE FROM favorites WHERE vinted_id = @vinted_id`
+  ),
+  getFavorites: db.prepare(
+    `SELECT * FROM favorites WHERE status = 'active' ORDER BY added_at DESC`
+  ),
+  getAllFavorites: db.prepare(
+    `SELECT * FROM favorites ORDER BY added_at DESC`
+  ),
+  markFavoriteSold: db.prepare<{ vinted_id: string }>(
+    `UPDATE favorites SET status = 'sold', sold_at = datetime('now') WHERE vinted_id = @vinted_id`
+  ),
+  getFavoriteByVintedId: db.prepare<{ vinted_id: string }>(
+    `SELECT * FROM favorites WHERE vinted_id = @vinted_id`
+  ),
+  getActiveFavoriteUrls: db.prepare(
+    `SELECT vinted_id, url, title, price, added_at FROM favorites WHERE status = 'active'`
+  ),
+  getFavoriteStats: db.prepare(
+    `SELECT
+       COUNT(*) as total,
+       SUM(CASE WHEN status = 'active' THEN 1 ELSE 0 END) as active,
+       SUM(CASE WHEN status = 'sold' THEN 1 ELSE 0 END) as sold,
+       AVG(CASE WHEN status = 'sold' THEN
+         (julianday(sold_at) - julianday(added_at)) * 24
+       END) as avg_hours_to_sell
+     FROM favorites`
   ),
 };

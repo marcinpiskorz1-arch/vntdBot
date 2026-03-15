@@ -7,6 +7,7 @@ import { botState } from "./bot-state.js";
 import type { ScanConfig } from "./types.js";
 
 import { ScraperAgent } from "./agents/scraper/index.js";
+import { checkItemAvailable } from "./agents/scraper/vinted-api.js";
 import { OlxScraperAgent } from "./agents/scraper-olx/index.js";
 import { PricingAgent } from "./agents/pricing/index.js";
 import { AiAnalystAgent } from "./agents/ai-analyst/index.js";
@@ -193,10 +194,10 @@ const scanConfigs: ScanConfig[] = [
 
   // Collectibles / hobby
   { searchText: "lego technic", priority: true },
-  { searchText: "pokemon karta", priority: true },
-  { searchText: "mtg karta" },
-  { searchText: "funko pop" },
-  { searchText: "warhammer" },
+  { searchText: "lego star wars", priority: true },
+  { searchText: "lego creator", priority: true },
+  { searchText: "lego icons" },
+  { searchText: "lego architecture" },
 
   // Premium accessories
   { searchText: "ray-ban", priority: true },
@@ -288,6 +289,7 @@ function enqueueToAi(items: Array<[import("./types.js").RawItem, import("./types
       vinted_id: item.vintedId,
       item_json: JSON.stringify(item),
       signal_json: JSON.stringify(signal),
+      discount_pct: signal.discountPct,
     });
   }
 }
@@ -352,10 +354,17 @@ async function runPipeline(): Promise<void> {
       const priceFiltered = newItems.filter(i => i.price >= MIN_PRICE);
 
       // Filter: skip children's items
-      const KIDS_KEYWORDS = /\b(dziec|kids?|enfant|copii|barn|kinder|junior|bébé|bebe|niemowl|maluch|dziewczyn.*lat|ch[łl]op.*lat|rozmiar \d{2,3} cm)\b/i;
+      const KIDS_KEYWORDS = /\b(dziec|kids?|enfant|copii|barn|kinder|junior|bébé|bebe|niemowl|maluch|dziewczyn.*lat|ch[łl]op.*lat|rozmiar \d{2,3} cm|boy['s]?|girl['s]?|toddler|infant|newborn|baby|bambini|niño|dla dzieci|bucik|dla ch[łl]opc|dla dziewczyn|child|children)\b/i;
+      const KIDS_SIZES = /\b(rozmiar|size|r\.)?\s*(1[6-9]|2[0-9]|3[0-3])\b/i;
+      const KIDS_CATEGORIES = /\b(Enfants|Dzieci|Kids|Kinder)\b/i;
       const filtered = priceFiltered.filter(i => {
-        const text = `${i.title} ${i.description} ${i.size}`;
-        return !KIDS_KEYWORDS.test(text);
+        const text = `${i.title} ${i.description} ${i.size} ${i.category}`;
+        if (KIDS_KEYWORDS.test(text)) return false;
+        if (KIDS_CATEGORIES.test(i.category)) return false;
+        // Shoe sizes 16-33 are children's — filter only if item looks like footwear
+        const isShoe = /\b(but|shoe|sneaker|boot|sandal|trampk|adidasy|klapk|klapki)\b/i.test(text);
+        if (isShoe && KIDS_SIZES.test(i.size || "")) return false;
+        return true;
       });
 
       // Filter: skip beanies / hats / czapki (low-value accessories)
@@ -404,6 +413,35 @@ async function runPipeline(): Promise<void> {
 
     // Enqueue new underpriced items to persistent AI queue
     if (underpriced.length > 0) {
+      // ⚡ INSTANT ALERTS — ultra-cheap items, no AI needed
+      const INSTANT_DISCOUNT = settings.instantThreshold; // default 70%
+      const INSTANT_MIN_PRICE = 50;
+      const INSTANT_MIN_SAMPLE = 15;
+
+      const instantItems = underpriced.filter(([item, signal]) =>
+        signal.discountPct >= INSTANT_DISCOUNT &&
+        signal.sampleSize >= INSTANT_MIN_SAMPLE &&
+        item.price >= INSTANT_MIN_PRICE
+      );
+
+      if (instantItems.length > 0) {
+        logger.info({ count: instantItems.length, threshold: INSTANT_DISCOUNT }, "⚡ Instant alerts triggered");
+        for (const [item, signal] of instantItems) {
+          await telegram.sendInstantAlert({
+            vintedId: item.vintedId,
+            title: item.title,
+            brand: item.brand,
+            price: item.price,
+            medianPrice: signal.medianPrice,
+            discountPct: signal.discountPct,
+            sampleSize: signal.sampleSize,
+            url: item.url,
+            photoUrl: item.photoUrls?.[0],
+          });
+        }
+      }
+
+      // All underpriced items still go to AI queue for full analysis
       enqueueToAi(underpriced);
     }
 
@@ -414,6 +452,26 @@ async function runPipeline(): Promise<void> {
     if (queued.length === 0) {
       if (newItems.length === 0) logger.info("No new items found this cycle");
       return;
+    }
+
+    // Check daily AI limit before spending tokens
+    const today = new Date().toISOString().slice(0, 10);
+    if (botState.daily.date !== today) {
+      botState.daily.aiCalls = 0;
+      botState.daily.date = today;
+    }
+    if (botState.daily.aiCalls >= settings.dailyAiLimit) {
+      logger.warn({ dailyCalls: botState.daily.aiCalls, limit: settings.dailyAiLimit }, "🛑 Daily AI limit reached — skipping AI this cycle");
+      // Send one-time alert (not every cycle)
+      if (!botState._dailyLimitAlerted) {
+        botState._dailyLimitAlerted = true;
+        await telegram.sendMessage(`🛑 Dzienny limit AI osiągnięty (${botState.daily.aiCalls}/${settings.dailyAiLimit}).\nBot nadal skanuje oferty, ale AI analiza wstrzymana do jutra.\nZmień limit: /set daily_ai_limit <wartość>`).catch(() => {});
+      }
+      return;
+    }
+    // Reset alert flag when new day starts
+    if (botState._dailyLimitAlerted && botState.daily.aiCalls === 0) {
+      botState._dailyLimitAlerted = false;
     }
 
     const remainingInQueue = getAiQueueCount();
@@ -524,6 +582,7 @@ async function main(): Promise<void> {
   let lastHeartbeat = Date.now();
   cron.schedule("0 * * * *", () => {
     const uptime = Math.round((Date.now() - lastHeartbeat) / 60000);
+    const dailyPct = settings.dailyAiLimit > 0 ? Math.round(botState.daily.aiCalls / settings.dailyAiLimit * 100) : 0;
     const msg = [
       `💓 Heartbeat — ${new Date().toLocaleTimeString("pl-PL")}`,
       ``,
@@ -538,7 +597,10 @@ async function main(): Promise<void> {
       `  📩 Powiadomień: ${stats.notified}`,
       `  ❌ Błędów: ${stats.errors}`,
       `  📋 W kolejce AI: ${getAiQueueCount()}`,
-    ].join("\n");
+      ``,
+      `🔒 Limit dzienny AI: ${botState.daily.aiCalls}/${settings.dailyAiLimit} (${dailyPct}%)`,
+      dailyPct >= 80 ? `⚠️ UWAGA: Zbliżasz się do dziennego limitu!` : ``,
+    ].filter(Boolean).join("\n");
     telegram.sendMessage(msg).catch(() => {});
     stmts.insertHeartbeat.run({
       cycles: stats.cycles,
@@ -563,6 +625,43 @@ async function main(): Promise<void> {
       { deletedItems: deletedItems.changes, deletedDecisions: deletedDecisions.changes },
       "🧹 30-day cleanup complete"
     );
+  });
+
+  // Check favorites sold status every 30 minutes
+  cron.schedule("*/30 * * * *", async () => {
+    try {
+      const favorites = stmts.getActiveFavoriteUrls.all() as Array<{
+        vinted_id: string; url: string; title: string; price: number; added_at: string;
+      }>;
+      if (favorites.length === 0) return;
+
+      const session = await scraper.getSession();
+      let soldCount = 0;
+
+      for (const fav of favorites) {
+        const available = await checkItemAvailable(fav.url, session);
+        if (!available) {
+          stmts.markFavoriteSold.run({ vinted_id: fav.vinted_id });
+          soldCount++;
+
+          const hoursAgo = Math.round((Date.now() - new Date(fav.added_at).getTime()) / 3600000);
+          await telegram.sendMessage(
+            `⚡ <b>Ulubione — SPRZEDANE!</b>\n\n` +
+            `${fav.title}\n` +
+            `💰 ${fav.price} PLN\n` +
+            `⏱️ Sprzedane po ${hoursAgo}h od dodania do ulubionych`
+          ).catch(() => {});
+        }
+        // Delay between checks
+        await new Promise(r => setTimeout(r, 1500));
+      }
+
+      if (soldCount > 0) {
+        logger.info({ sold: soldCount, checked: favorites.length }, "❤️ Favorites sold check complete");
+      }
+    } catch (err) {
+      logger.error({ err }, "Failed to check favorites sold status");
+    }
   });
 
   logger.info(`⏰ Scheduled: scan every ~${intervalSec}s + jitter, heartbeat every 5min`);

@@ -23,4 +23,13 @@ export const botState = {
     notified: 0,
     errors: 0,
   },
+
+  // Daily API call counter — resets at midnight, hard-stops AI when limit reached
+  daily: {
+    aiCalls: 0,
+    date: new Date().toISOString().slice(0, 10), // YYYY-MM-DD
+  },
+
+  // One-time alert flag — prevents spamming Telegram every cycle
+  _dailyLimitAlerted: false,
 };
