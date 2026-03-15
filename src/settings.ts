@@ -77,7 +77,7 @@ export const settings = {
     set("ai_enabled", v ? "1" : "0");
   },
   get minProfitToNotify(): number {
-    return getNumber("min_profit", 35);
+    return getNumber("min_profit", 50);
   },
 
   /** Return all current values (for /status display) */
@@ -91,7 +91,7 @@ export const settings = {
       ai_limit: getNumber("ai_limit", 20),
       daily_ai_limit: getNumber("daily_ai_limit", 100),
       instant_threshold: getNumber("instant_threshold", 60),
-      min_profit: getNumber("min_profit", 35),
+      min_profit: getNumber("min_profit", 50),
       ai_enabled: getBool("ai_enabled", false),
     };
   },
