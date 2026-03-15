@@ -1,4 +1,5 @@
 import { logger } from "../../logger.js";
+import { settings } from "../../settings.js";
 import type { RawItem, PriceSignal, AiAnalysis } from "../../types.js";
 import { getStructuredModel } from "./gemini-client.js";
 import { aiAnalysisSchema, systemPrompt, buildItemPrompt } from "./prompts.js";
@@ -83,6 +84,11 @@ export class AiAnalystAgent {
     const results: Array<[RawItem, PriceSignal, AiAnalysis]> = [];
 
     for (const [item, signal] of items) {
+      // Check if paused mid-batch — stop burning Gemini tokens immediately
+      if (settings.paused) {
+        logger.info({ processed: results.length, skipped: items.length - results.length }, "⏸️ AI analysis interrupted — bot paused");
+        break;
+      }
       const analysis = await this.analyze(item, signal);
       results.push([item, signal, analysis]);
       // 0.5s delay between Gemini calls to avoid 429 rate limits

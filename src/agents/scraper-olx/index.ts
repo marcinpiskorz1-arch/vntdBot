@@ -1,4 +1,5 @@
 import { logger } from "../../logger.js";
+import { settings } from "../../settings.js";
 import { stmts } from "../../database.js";
 import type { RawItem, ScanConfig } from "../../types.js";
 import { fetchOlxOffers } from "./olx-api.js";
@@ -18,6 +19,10 @@ export class OlxScraperAgent {
     const allNewItems: RawItem[] = [];
 
     for (const scanConfig of scanConfigs) {
+      if (settings.paused) {
+        logger.info("⏸️ OLX scan interrupted — bot paused");
+        break;
+      }
       try {
         // Fetch page 1 (40 items) — OLX rate-limits harder, so only 1 page
         const items = await fetchOlxOffers(scanConfig, 0, 40);
