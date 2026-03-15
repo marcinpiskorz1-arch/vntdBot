@@ -214,7 +214,7 @@ export class TelegramAgent {
           "/set hot_threshold 9.0 — próg HOT\n" +
           "/set hot_min_profit 50 — min zysk HOT (PLN)\n" +
           "/set min_price 20 — min cena oferty (PLN)\n" +
-          "/set ai_limit 200 — limit AI analiz/cykl\n\n" +
+          "/set ai_limit 100 — limit AI analiz/cykl\n\n" +
           "<b>Zapytania:</b>\n" +
           "/queries — podsumowanie\n" +
           "/queries_add <tekst> — dodaj\n" +

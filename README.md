@@ -48,7 +48,8 @@ Autonomous deal-hunting bot that continuously monitors **Vinted** and **OLX.pl**
              ▼
 ┌──────────────────────────────────────────────────────┐
 │  4. AI ANALYST AGENT (Gemini 2.5 Flash)              │
-│     • Polish resale expert persona                   │
+│     • Polish resale expert persona (text-only, no    │
+│       photos — optimized for low token cost)         │
 │     • Structured output: resalePotential,            │
 │       conditionConfidence, brandLiquidity,            │
 │       estimatedProfit, riskFlags, reasoning           │
@@ -158,7 +159,7 @@ SQLite with WAL mode. Tables:
 | `hot_threshold` | 9.0 | Minimum score for a "hot" deal alert |
 | `hot_min_profit` | 50 | Minimum estimated profit (PLN) for "hot" level |
 | `min_price` | 20 | Filter out items below this price (PLN) |
-| `ai_limit` | 200 | Max AI analyses per cycle |
+| `ai_limit` | 100 | Max AI analyses per cycle |
 
 ## Project Structure
 

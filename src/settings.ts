@@ -62,7 +62,7 @@ export const settings = {
     return getNumber("min_price", 20);
   },
   get aiLimit(): number {
-    return getNumber("ai_limit", 200);
+    return getNumber("ai_limit", 100);
   },
 
   /** Return all current values (for /status display) */
@@ -73,7 +73,7 @@ export const settings = {
       hot_threshold: getNumber("hot_threshold", config.hotThreshold),
       hot_min_profit: getNumber("hot_min_profit", config.hotMinProfit),
       min_price: getNumber("min_price", 20),
-      ai_limit: getNumber("ai_limit", 200),
+      ai_limit: getNumber("ai_limit", 100),
     };
   },
 

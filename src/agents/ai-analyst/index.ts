@@ -22,19 +22,10 @@ export class AiAnalystAgent {
       signal.sampleSize
     );
 
-    // Build content parts — text + optional images
-    const parts: Array<{ text: string } | { inlineData: { mimeType: string; data: string } }> = [
+    // Build content parts — text only (no photos to save Gemini tokens/cost)
+    const parts: Array<{ text: string }> = [
       { text: userPrompt },
     ];
-
-    // Add up to 3 photos as image URLs (Gemini can fetch URLs directly)
-    // For vision, we pass image URLs in the prompt text instead
-    const photoUrls = item.photoUrls.slice(0, 3);
-    if (photoUrls.length > 0) {
-      parts[0] = {
-        text: userPrompt + "\n\nZDJĘCIA:\n" + photoUrls.map((url, i) => `${i + 1}. ${url}`).join("\n"),
-      };
-    }
 
     try {
       const result = await this.model.generateContent({
