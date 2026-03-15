@@ -274,7 +274,16 @@ const stats = botState.stats;
 
 /** Enqueue items to persistent AI queue (survives restarts) */
 function enqueueToAi(items: Array<[import("./types.js").RawItem, import("./types.js").PriceSignal]>): void {
-  for (const [item, signal] of items) {
+  // Cap queue size to prevent unbounded growth (old items become stale anyway)
+  const MAX_QUEUE = 300;
+  const currentSize = getAiQueueCount();
+  if (currentSize >= MAX_QUEUE) {
+    logger.warn({ currentSize, dropped: items.length }, "AI queue full, dropping new items");
+    return;
+  }
+  const spaceLeft = MAX_QUEUE - currentSize;
+  const toEnqueue = items.slice(0, spaceLeft);
+  for (const [item, signal] of toEnqueue) {
     stmts.enqueueAi.run({
       vinted_id: item.vintedId,
       item_json: JSON.stringify(item),

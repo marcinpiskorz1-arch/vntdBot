@@ -93,7 +93,7 @@ Custom queries added via Telegram are merged into the scan list each cycle.
 2. **Size matching:** Tries size-specific group first, falls back to brand+category if < 5 samples
 3. **Outlier removal:** IQR method (Q1 − 1.5×IQR … Q3 + 1.5×IQR)
 4. **Reference price:** P25 if < 10 samples, otherwise median
-5. **Underpriced gate:** Item must be ≥ 40% below reference price (`dealThreshold = 0.6`)
+5. **Underpriced gate:** Item must be ≥ 50% below reference price (`dealThreshold = 0.5`)
 6. **Confidence:** `min(sampleSize / 50, 1.0)`
 
 ## Decision Scoring
