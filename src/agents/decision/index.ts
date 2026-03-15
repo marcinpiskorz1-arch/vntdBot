@@ -3,8 +3,7 @@ import { settings } from "../../settings.js";
 import { stmts } from "../../database.js";
 import { logger } from "../../logger.js";
 import type { RawItem, PriceSignal, AiAnalysis, Decision } from "../../types.js";
-
-const { weights, lowSamplePenalty } = config;
+import { computeScore } from "./scoring.js";
 
 export class DecisionAgent {
   /**
@@ -12,95 +11,19 @@ export class DecisionAgent {
    * Combines algorithmic price signal (40%) + Gemini scores (60%).
    */
   decide(item: RawItem, pricing: PriceSignal, ai: AiAnalysis): Decision {
-    // 4-component weighted score
-    let score =
-      weights.priceDiscount * pricing.priceDiscountScore +
-      weights.resalePotential * ai.resalePotential +
-      weights.conditionConfidence * ai.conditionConfidence +
-      weights.brandLiquidity * ai.brandLiquidity;
-
-    const reasons: string[] = [];
-
-    // Low sample penalty
-    if (pricing.sampleSize < 10) {
-      score *= lowSamplePenalty;
-      reasons.push(
-        `⚠️ Mała baza danych (${pricing.sampleSize} próbek) — score × ${lowSamplePenalty}`
-      );
-    }
-
-    // Risk flag penalty: -0.3 per flag (excluding missing_details and inflated_median — handled separately)
-    const penaltyFlags = ai.riskFlags.filter(f => f !== "missing_details" && f !== "inflated_median");
-    if (penaltyFlags.length > 0) {
-      const penalty = penaltyFlags.length * 0.3;
-      score = Math.max(0, score - penalty);
-      reasons.push(`🚩 ${penaltyFlags.length} flag ryzyka: ${penaltyFlags.join(", ")}`);
-    }
-
-    // Inflated median penalty — Gemini detected Vinted median is above retail price
-    if (ai.riskFlags.includes("inflated_median")) {
-      score *= 0.6; // heavy penalty — pricing data is unreliable
-      reasons.push("⚠️ Mediana zawyżona vs cena detaliczna (score ×0.6)");
-    }
-
-    // Shipping bonus / pickup penalty (especially important for OLX)
-    const itemText = `${item.title} ${item.description}`.toLowerCase();
-    const SHIPPING_KEYWORDS = /\b(wysyłk[aę]|paczkomat|inpost|orlen paczk|dpd|poczt[aą]|kurier)\b/i;
-    const PICKUP_KEYWORDS = /\b(tylko odbio|odbi[oó]r osobi|nie wysy[łl]am)\b/i;
-    if (SHIPPING_KEYWORDS.test(itemText)) {
-      score += 0.3;
-      reasons.push("📦 Wysyłka dostępna (+0.3)");
-    }
-    if (PICKUP_KEYWORDS.test(itemText)) {
-      score -= 0.5;
-      reasons.push("🚫 Tylko odbiór osobisty (-0.5)");
-    }
-
-    // Build explainability reasons
-    if (pricing.discountPct > 0) {
-      reasons.push(
-        `💰 ${pricing.discountPct.toFixed(0)}% poniżej ${pricing.sampleSize < 10 ? "P25" : "mediany"} (${pricing.medianPrice} PLN)`
-      );
-    }
-
-    if (ai.resalePotential >= 7) {
-      reasons.push(`📈 Wysoki potencjał odsprzedaży (${ai.resalePotential}/10)`);
-    }
-    if (ai.conditionConfidence >= 7) {
-      reasons.push(`✅ Dobry stan potwierdzon (${ai.conditionConfidence}/10)`);
-    }
-    if (ai.brandLiquidity >= 7) {
-      reasons.push(`🏷️ Marka sprzedaje się szybko (${ai.brandLiquidity}/10)`);
-    }
-    if (ai.estimatedProfit > 0) {
-      reasons.push(`💵 Szacowany zysk: ~${ai.estimatedProfit} PLN`);
-    }
-
-    // Minimum profit gate — not worth the effort below 35 PLN
-    const MIN_PROFIT_TO_NOTIFY = 35;
-
-    // Determine level (read thresholds from dynamic settings)
-    const notifyThreshold = settings.notifyThreshold;
-    const hotThreshold = settings.hotThreshold;
-    const hotMinProfit = settings.hotMinProfit;
-
-    let level: Decision["level"] = "ignore";
-    if (score >= hotThreshold && ai.estimatedProfit >= hotMinProfit) {
-      level = "hot";
-      reasons.unshift("🔥 HOT DEAL — wysoki score + duży zysk");
-    } else if (score >= notifyThreshold && ai.estimatedProfit >= MIN_PROFIT_TO_NOTIFY) {
-      level = "notify";
-    } else if (score >= notifyThreshold && ai.estimatedProfit < MIN_PROFIT_TO_NOTIFY) {
-      reasons.push(`⛔ Zysk za mały (${ai.estimatedProfit} PLN < ${MIN_PROFIT_TO_NOTIFY} PLN)`);
-    }
-
-    // Clamp final score
-    score = Math.round(Math.max(0, Math.min(10, score)) * 10) / 10;
+    const result = computeScore(item, pricing, ai, {
+      weights: config.weights,
+      lowSamplePenalty: config.lowSamplePenalty,
+      notifyThreshold: settings.notifyThreshold,
+      hotThreshold: settings.hotThreshold,
+      hotMinProfit: settings.hotMinProfit,
+      minProfitToNotify: 35,
+    });
 
     const decision: Decision = {
-      score,
-      level,
-      reasons,
+      score: result.score,
+      level: result.level,
+      reasons: result.reasons,
       item,
       pricing,
       ai,
@@ -112,9 +35,9 @@ export class DecisionAgent {
     logger.info(
       {
         item: item.vintedId,
-        score,
-        level,
-        reasons: reasons.slice(0, 3),
+        score: result.score,
+        level: result.level,
+        reasons: result.reasons.slice(0, 3),
       },
       "Decision made"
     );

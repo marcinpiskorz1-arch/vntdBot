@@ -4,6 +4,9 @@ import { stmts } from "./database.js";
 import { logger } from "./logger.js";
 import { settings } from "./settings.js";
 import { botState } from "./bot-state.js";
+import { scanConfigs } from "./data/scan-configs.js";
+import { filterItems } from "./filters.js";
+import { buildHeartbeatMessage } from "./heartbeat.js";
 import type { ScanConfig } from "./types.js";
 
 import { ScraperAgent } from "./agents/scraper/index.js";
@@ -25,222 +28,8 @@ const decision = new DecisionAgent();
 const telegram = new TelegramAgent();
 
 // ============================================================
-// Define what to scan
+// Define what to scan — loaded from src/data/scan-configs.ts
 // ============================================================
-const scanConfigs: ScanConfig[] = [
-  // Sneakersy — marki
-  { searchText: "nike" },
-  { searchText: "jordan" },
-  { searchText: "adidas" },
-  { searchText: "new balance" },
-  { searchText: "under armour" },
-  { searchText: "asics" },
-  { searchText: "vans" },
-  // Jordan — modele (priority: skanowane co cykl)
-  { searchText: "jordan 1", priority: true },
-  { searchText: "jordan 3", priority: true },
-  { searchText: "jordan 4", priority: true },
-  { searchText: "jordan 5", priority: true },
-  { searchText: "jordan 11", priority: true },
-  // New Balance — modele hype
-  { searchText: "new balance 550", priority: true },
-  { searchText: "new balance 574", priority: true },
-  { searchText: "new balance 990", priority: true },
-  { searchText: "new balance 2002r", priority: true },
-  { searchText: "new balance 530", priority: true },
-  // Asics — modele
-  { searchText: "asics gel lyte", priority: true },
-  { searchText: "asics gel kayano", priority: true },
-  // Nike — popularne modele (priority: skanowane co cykl)
-  { searchText: "nike air max", priority: true },
-  { searchText: "nike dunk", priority: true },
-  { searchText: "nike blazer", priority: true },
-  { searchText: "nike metcon", priority: true },
-  { searchText: "nike air force", priority: true },
-  { searchText: "nike vapormax", priority: true },
-  { searchText: "nike pegasus", priority: true },
-  { searchText: "nike acg", priority: true },
-  { searchText: "nike tech fleece", priority: true },
-  { searchText: "nike sb", priority: true },
-  // Adidas — popularne modele
-  { searchText: "adidas samba", priority: true },
-  { searchText: "adidas gazelle", priority: true },
-  { searchText: "adidas superstar", priority: true },
-  { searchText: "adidas stan smith", priority: true },
-  { searchText: "adidas ultraboost", priority: true },
-  { searchText: "adidas nmd", priority: true },
-  { searchText: "adidas yeezy", priority: true },
-  { searchText: "adidas spezial", priority: true },
-  { searchText: "adidas campus", priority: true },
-  { searchText: "adidas forum", priority: true },
-  { searchText: "adidas terrex", priority: true },
-  // Outdoor / góry
-  { searchText: "la sportiva" },
-  { searchText: "salewa" },
-  { searchText: "salomon" },
-  // Salomon — modele hype
-  { searchText: "salomon xt-6", priority: true },
-  { searchText: "salomon speedcross", priority: true },
-  { searchText: "salomon xt-4", priority: true },
-  { searchText: "mammut" },
-  { searchText: "arc'teryx" },
-  // Arc'teryx — modele premium
-  { searchText: "arcteryx alpha", priority: true },
-  { searchText: "arcteryx beta", priority: true },
-  { searchText: "arcteryx atom", priority: true },
-  { searchText: "arcteryx cerium", priority: true },
-  { searchText: "scarpa" },
-  { searchText: "norrøna" },
-  { searchText: "haglöfs" },
-  { searchText: "revolutionrace" },
-  { searchText: "hunter boots" },
-  { searchText: "timberland" },
-  { searchText: "dynafit" },
-  { searchText: "merrell" },
-  { searchText: "peak performance" },
-  { searchText: "rab", categoryIds: [5] },  // only clothing — avoid random matches
-  { searchText: "millet" },
-  { searchText: "meindl" },
-  { searchText: "lowa" },
-  { searchText: "osprey" },
-  // Streetwear / hype
-  { searchText: "the north face" },
-  // TNF — modele z wysokim resale
-  { searchText: "north face nuptse", priority: true },
-  { searchText: "north face 1996", priority: true },
-  { searchText: "north face denali", priority: true },
-  { searchText: "north face duffel", priority: true },
-  { searchText: "patagonia" },
-  // Patagonia — modele
-  { searchText: "patagonia retro-x", priority: true },
-  { searchText: "patagonia nano puff", priority: true },
-  { searchText: "patagonia black hole", priority: true },
-  { searchText: "fjällräven" },
-  { searchText: "stone island" },
-  { searchText: "nervous" },
-  { searchText: "carhartt" },
-  { searchText: "dickies" },
-  { searchText: "supreme" },
-  { searchText: "supreme box logo", priority: true },
-  { searchText: "stüssy" },
-  { searchText: "napapijri" },
-  { searchText: "bape" },
-  { searchText: "ralph lauren" },
-  { searchText: "tommy hilfiger" },
-  // Workwear / vintage
-  { searchText: "levi's" },
-  { searchText: "wrangler" },
-  // Snow / board
-  { searchText: "volcom" },
-  { searchText: "quiksilver" },
-  { searchText: "burton" },
-  { searchText: "dc shoes" },
-  { searchText: "oakley" },
-  { searchText: "helly hansen" },
-  { searchText: "dakine" },
-  // Moto / sport
-  { searchText: "alpinestars" },
-  { searchText: "fox racing", categoryIds: [5] },  // only clothing — avoid animals
-  { searchText: "dainese" },
-  // Inne
-  { searchText: "save the duck" },
-  // Technologie / materiały premium
-  { searchText: "gore-tex" },
-  { searchText: "goretex" },
-  { searchText: "windstopper" },
-  { searchText: "pertex" },
-  { searchText: "primaloft" },
-  { searchText: "cordura" },
-  { searchText: "vibram" },
-  { searchText: "polartec" },
-  // Premium / luxury resell
-  { searchText: "moncler" },
-  { searchText: "canada goose" },
-  { searchText: "off-white" },
-  { searchText: "balenciaga" },
-  { searchText: "burberry" },
-  { searchText: "barbour" },
-  // Tier 2 resell
-  { searchText: "columbia" },
-  { searchText: "converse" },
-  { searchText: "converse chuck 70", priority: true },
-  { searchText: "on running" },
-  { searchText: "on cloudmonster", priority: true },
-  // Skate
-  { searchText: "santa cruz" },
-
-  // ============================================================
-  // High ROI (shipping-friendly) — Electronics + Collectibles + Premium small goods
-  // ============================================================
-
-  // Audio / wearables
-  { searchText: "airpods", priority: true },
-  { searchText: "sony wh-1000xm", priority: true },
-  { searchText: "bose qc", priority: true },
-  { searchText: "jbl" },
-  { searchText: "garmin fenix", priority: true },
-  { searchText: "garmin forerunner", priority: true },
-  { searchText: "apple watch", priority: true },
-  { searchText: "g-shock", priority: true },
-
-  // Small tech / gaming peripherals
-  { searchText: "kindle" },
-  { searchText: "nintendo switch", priority: true },
-  { searchText: "joy-con" },
-  { searchText: "dualshock" },
-  { searchText: "dualsense" },
-  { searchText: "logitech mx master" },
-  { searchText: "keychron" },
-
-  // Collectibles / hobby
-  { searchText: "lego technic", priority: true },
-  { searchText: "lego star wars", priority: true },
-  { searchText: "lego creator", priority: true },
-  { searchText: "lego icons" },
-  { searchText: "lego architecture" },
-
-  // Premium accessories
-  { searchText: "ray-ban", priority: true },
-  { searchText: "michael kors" },
-  { searchText: "seiko", priority: true },
-  { searchText: "casio edifice" },
-  { searchText: "orient zegarek" },
-
-  // Outdoor accessories (małe, wysyłkowe)
-  { searchText: "petzl" },
-  { searchText: "black diamond" },
-  { searchText: "leatherman" },
-  { searchText: "nalgene" },
-  { searchText: "camelbak" },
-
-  // Telefony
-  { searchText: "iphone 13", priority: true },
-  { searchText: "iphone 14", priority: true },
-  { searchText: "iphone 15", priority: true },
-  { searchText: "iphone 16", priority: true },
-  { searchText: "samsung galaxy s23" },
-  { searchText: "samsung galaxy s24", priority: true },
-  { searchText: "google pixel" },
-  { searchText: "xiaomi" },
-
-  // Tablety
-  { searchText: "ipad pro", priority: true },
-  { searchText: "ipad air", priority: true },
-  { searchText: "ipad mini" },
-
-  // Laptopy / komputery
-  { searchText: "macbook pro", priority: true },
-  { searchText: "macbook air", priority: true },
-  { searchText: "thinkpad", priority: true },
-  { searchText: "dell xps" },
-  { searchText: "surface pro" },
-  { searchText: "steam deck", priority: true },
-];
-
-// OLX uses the same scan configs — reuse full brand list
-const olxScanConfigs: ScanConfig[] = scanConfigs
-  // Strip Vinted-specific options (categoryIds/brandIds don't apply to OLX API)
-  .map(({ searchText }) => ({ searchText }));
 
 /** Load custom queries from DB and merge with hardcoded configs */
 function buildScanLists() {
@@ -349,53 +138,12 @@ async function runPipeline(): Promise<void> {
     if (newItems.length > 0) {
       logger.info({ count: newItems.length }, "📦 New items found");
 
-      // Filter: minimum price (dynamic — settable via /set min_price)
-      const MIN_PRICE = settings.minPrice;
-      const priceFiltered = newItems.filter(i => i.price >= MIN_PRICE);
+      // Run all filters (price, kids, hats, condition, pickup)
+      const { passed: shippable, removed: removedCount, breakdown } = filterItems(newItems, settings.minPrice);
 
-      // Filter: skip children's items
-      const KIDS_KEYWORDS = /\b(dziec|kids?|enfant|copii|barn|kinder|junior|bébé|bebe|niemowl|maluch|dziewczyn.*lat|ch[łl]op.*lat|rozmiar \d{2,3} cm|boy['s]?|girl['s]?|toddler|infant|newborn|baby|bambini|niño|dla dzieci|bucik|dla ch[łl]opc|dla dziewczyn|child|children)\b/i;
-      const KIDS_SIZES = /\b(rozmiar|size|r\.)?\s*(1[6-9]|2[0-9]|3[0-3])\b/i;
-      const KIDS_CATEGORIES = /\b(Enfants|Dzieci|Kids|Kinder)\b/i;
-      const filtered = priceFiltered.filter(i => {
-        const text = `${i.title} ${i.description} ${i.size} ${i.category}`;
-        if (KIDS_KEYWORDS.test(text)) return false;
-        if (KIDS_CATEGORIES.test(i.category)) return false;
-        // Shoe sizes 16-33 are children's — filter only if item looks like footwear
-        const isShoe = /\b(but|shoe|sneaker|boot|sandal|trampk|adidasy|klapk|klapki)\b/i.test(text);
-        if (isShoe && KIDS_SIZES.test(i.size || "")) return false;
-        return true;
-      });
-
-      // Filter: skip beanies / hats / czapki (low-value accessories)
-      const BEANIE_KEYWORDS = /\b(beanie|czapk[aię]|bonnet|m[üu]tze|hat|kapelusz|beret)\b/i;
-      const noHats = filtered.filter(i => {
-        const text = `${i.title} ${i.description} ${i.category}`;
-        return !BEANIE_KEYWORDS.test(text);
-      });
-
-      // Filter: skip items in poor condition
-      const BAD_CONDITION = /zadowalaj|satisf|słaby|poor|accep/i;
-      const conditionFiltered = noHats.filter(i => !BAD_CONDITION.test(i.condition));
-
-      // Filter: skip pickup-only items (OLX especially — no way to ship)
-      const PICKUP_ONLY = /\b(tylko odbio|odbi[oó]r osobi|nie wysy[łl]am|osobisty odbio)\b/i;
-      const shippable = conditionFiltered.filter(i => {
-        const text = `${i.title} ${i.description}`;
-        return !PICKUP_ONLY.test(text);
-      });
-
-      if (shippable.length < newItems.length) {
-        const removedCount = newItems.length - shippable.length;
+      if (removedCount > 0) {
         stats.filtered += removedCount;
-        logger.info({
-          removed: removedCount,
-          priceTooLow: newItems.length - priceFiltered.length,
-          kids: priceFiltered.length - filtered.length,
-          hats: filtered.length - noHats.length,
-          badCondition: noHats.length - conditionFiltered.length,
-          pickupOnly: conditionFiltered.length - shippable.length,
-        }, "🚫 Filtered out cheap/kids/hats/bad-condition/pickup-only items");
+        logger.info({ removed: removedCount, ...breakdown }, "🚫 Filtered out cheap/kids/hats/bad-condition/pickup-only items");
       }
 
       if (shippable.length > 0) {
@@ -582,25 +330,8 @@ async function main(): Promise<void> {
   let lastHeartbeat = Date.now();
   cron.schedule("0 * * * *", () => {
     const uptime = Math.round((Date.now() - lastHeartbeat) / 60000);
-    const dailyPct = settings.dailyAiLimit > 0 ? Math.round(botState.daily.aiCalls / settings.dailyAiLimit * 100) : 0;
-    const msg = [
-      `💓 Heartbeat — ${new Date().toLocaleTimeString("pl-PL")}`,
-      ``,
-      settings.paused ? `⏸️ BOT WSTRZYMANY` : `▶️ Aktywny`,
-      ``,
-      `📊 Od ostatniego raportu (${uptime} min):`,
-      `  🔄 Cykli: ${stats.cycles}`,
-      `  🔍 Sprawdzono ofert: ${stats.scanned}`,
-      `  🚫 Odfiltrowano: ${stats.filtered}`,
-      `  💰 Zaniżona cena: ${stats.underpriced}`,
-      `  🧠 Analiza AI: ${stats.aiAnalyzed}`,
-      `  📩 Powiadomień: ${stats.notified}`,
-      `  ❌ Błędów: ${stats.errors}`,
-      `  📋 W kolejce AI: ${getAiQueueCount()}`,
-      ``,
-      `🔒 Limit dzienny AI: ${botState.daily.aiCalls}/${settings.dailyAiLimit} (${dailyPct}%)`,
-      dailyPct >= 80 ? `⚠️ UWAGA: Zbliżasz się do dziennego limitu!` : ``,
-    ].filter(Boolean).join("\n");
+    const aiQueueCount = getAiQueueCount();
+    const msg = buildHeartbeatMessage({ uptime, aiQueueCount });
     telegram.sendMessage(msg).catch(() => {});
     stmts.insertHeartbeat.run({
       cycles: stats.cycles,
