@@ -15,9 +15,9 @@ const queries = [
   "helly hansen", "peak performance", "rab", "millet", "haglöfs",
   "revolutionrace", "norrøna", "dynafit", "save the duck",
   // Streetwear / hype
-  "stone island", "supreme", "stüssy", "carhartt", "dickies",
-  "napapijri", "bape", "ralph lauren", "tommy hilfiger", "moncler",
-  "canada goose", "off-white", "balenciaga", "burberry", "barbour",
+  "supreme", "stüssy", "carhartt", "dickies",
+  "napapijri", "bape", "ralph lauren", "tommy hilfiger",
+  "canada goose", "barbour",
   "columbia", "nervous",
   // Workwear / vintage
   "levi's", "wrangler",
@@ -43,9 +43,9 @@ const queries = [
   // Osprey
   "osprey",
   // Samsung / Xiaomi / Pixel
-  "samsung galaxy s23", "samsung galaxy s24", "google pixel", "xiaomi",
+  "samsung galaxy s23", "samsung galaxy s24", "google pixel",
   // Thinkpad / Dell / Surface
-  "thinkpad", "dell xps", "surface pro",
+  "thinkpad", "dell xps",
   // Santa Cruz
   "santa cruz",
 ];

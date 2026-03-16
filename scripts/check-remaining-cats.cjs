@@ -3,9 +3,9 @@ const db = new Database("data/vintedbot.db", { readonly: true });
 
 const queries = [
   // Remaining ones we need
-  "stone island", "supreme", "stüssy", "carhartt", "dickies",
-  "napapijri", "bape", "ralph lauren", "tommy hilfiger", "moncler",
-  "canada goose", "off-white", "balenciaga", "burberry", "barbour",
+  "supreme", "stüssy", "carhartt", "dickies",
+  "napapijri", "bape", "ralph lauren", "tommy hilfiger",
+  "canada goose", "barbour",
   "columbia", "nervous", "levi's", "wrangler",
   "volcom", "quiksilver", "burton", "oakley", "dakine",
   "alpinestars", "dainese",

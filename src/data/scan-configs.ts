@@ -94,7 +94,6 @@ export const scanConfigs: ScanConfig[] = [
   { searchText: "patagonia nano puff", priority: true },
   { searchText: "patagonia black hole", priority: true },
   { searchText: "fjällräven" },
-  { searchText: "stone island" },
   { searchText: "nervous" },
   { searchText: "carhartt" },
   { searchText: "dickies" },
@@ -132,11 +131,7 @@ export const scanConfigs: ScanConfig[] = [
   { searchText: "vibram" },
   { searchText: "polartec" },
   // Premium / luxury resell
-  { searchText: "moncler" },
   { searchText: "canada goose" },
-  { searchText: "off-white" },
-  { searchText: "balenciaga" },
-  { searchText: "burberry" },
   { searchText: "barbour" },
   // Tier 2 resell
   { searchText: "columbia" },
