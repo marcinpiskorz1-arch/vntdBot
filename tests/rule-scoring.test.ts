@@ -148,7 +148,7 @@ const defaultCfg: RuleScoreConfig = {
 describe("computeRuleScore", () => {
   it("scores a premium brand good-condition item highly", () => {
     const item = mockItem({ brand: "Nike", condition: "Bardzo dobry", size: "43", sellerRating: 4.8, sellerTransactions: 30 });
-    const signal = mockSignal({ priceDiscountScore: 7, discountPct: 70, medianPrice: 300, sampleSize: 40 });
+    const signal = mockSignal({ priceDiscountScore: 7, discountPct: 70, medianPrice: 300, p25Price: 250, sampleSize: 40 });
     const result = computeRuleScore(item, signal, defaultCfg);
     // 0.6*7 + 0.15*8 + 0.15*7 + 0.3*1.0 (size) + 0.5*0.5 (seller) = 4.2 + 1.2 + 1.05 + 0.3 + 0.25 = 7.0
     expect(result.score).toBeGreaterThanOrEqual(6.5);
@@ -158,7 +158,7 @@ describe("computeRuleScore", () => {
 
   it("scores a budget brand low", () => {
     const item = mockItem({ brand: "NoName", condition: "Dobry", size: "36" });
-    const signal = mockSignal({ priceDiscountScore: 5, medianPrice: 100, sampleSize: 30 });
+    const signal = mockSignal({ priceDiscountScore: 5, medianPrice: 100, p25Price: 75, sampleSize: 30 });
     const result = computeRuleScore(item, signal, defaultCfg);
     // 0.6*5 + 0.15*2 + 0.15*5 + 0 + 0 = 3.0 + 0.3 + 0.75 = 4.05
     expect(result.score).toBeLessThan(5);
@@ -167,7 +167,7 @@ describe("computeRuleScore", () => {
 
   it("applies low sample penalty", () => {
     const item = mockItem({ brand: "Nike" });
-    const signal = mockSignal({ priceDiscountScore: 6, sampleSize: 5, medianPrice: 200 });
+    const signal = mockSignal({ priceDiscountScore: 6, sampleSize: 5, medianPrice: 200, p25Price: 150 });
     const noPenalty = computeRuleScore(item, { ...signal, sampleSize: 20 }, defaultCfg);
     const withPenalty = computeRuleScore(item, signal, defaultCfg);
     expect(withPenalty.score).toBeLessThan(noPenalty.score);
@@ -175,21 +175,21 @@ describe("computeRuleScore", () => {
 
   it("adds shipping bonus", () => {
     const item = mockItem({ description: "Wysyłka InPost paczkomat" });
-    const signal = mockSignal({ priceDiscountScore: 6, medianPrice: 200 });
+    const signal = mockSignal({ priceDiscountScore: 6, medianPrice: 200, p25Price: 150 });
     const result = computeRuleScore(item, signal, defaultCfg);
     expect(result.reasons.some(r => r.includes("Wysyłka"))).toBe(true);
   });
 
   it("applies pickup penalty", () => {
     const item = mockItem({ description: "Tylko odbiór osobisty Kraków" });
-    const signal = mockSignal({ priceDiscountScore: 6, medianPrice: 200 });
+    const signal = mockSignal({ priceDiscountScore: 6, medianPrice: 200, p25Price: 150 });
     const result = computeRuleScore(item, signal, defaultCfg);
     expect(result.reasons.some(r => r.includes("odbiór osobisty"))).toBe(true);
   });
 
   it("returns 'hot' for high score + high profit", () => {
     const item = mockItem({ brand: "Nike", condition: "Nowy z metką", size: "43", sellerRating: 4.9, sellerTransactions: 50 });
-    const signal = mockSignal({ priceDiscountScore: 10, discountPct: 80, medianPrice: 500, sampleSize: 50 });
+    const signal = mockSignal({ priceDiscountScore: 10, discountPct: 80, medianPrice: 500, p25Price: 400, sampleSize: 50 });
     const result = computeRuleScore(item, signal, defaultCfg);
     expect(result.level).toBe("hot");
     expect(result.syntheticAi.estimatedProfit).toBeGreaterThanOrEqual(50);
@@ -197,22 +197,22 @@ describe("computeRuleScore", () => {
 
   it("returns 'notify' for moderate score + enough profit", () => {
     const item = mockItem({ brand: "Nike", condition: "Bardzo dobry", size: "42", sellerRating: 4.5, sellerTransactions: 20 });
-    const signal = mockSignal({ priceDiscountScore: 8, discountPct: 60, medianPrice: 250, sampleSize: 30 });
+    const signal = mockSignal({ priceDiscountScore: 8, discountPct: 60, medianPrice: 250, p25Price: 200, sampleSize: 30 });
     const result = computeRuleScore(item, signal, defaultCfg);
     expect(result.level).toBe("notify");
   });
 
   it("returns 'ignore' when profit too small", () => {
     const item = mockItem({ brand: "Nike", price: 80 });
-    const signal = mockSignal({ priceDiscountScore: 7, medianPrice: 100, sampleSize: 30 });
+    const signal = mockSignal({ priceDiscountScore: 7, medianPrice: 100, p25Price: 80, sampleSize: 30 });
     const result = computeRuleScore(item, signal, defaultCfg);
-    // profit = 100 - 80 - 15 - 5 = 0 → too small
+    // profit = 80 - 80 - 15 - 4 = -19 → too small
     expect(result.level).toBe("ignore");
   });
 
   it("clamps score to 0-10 range", () => {
     const item = mockItem({ brand: "Nike", condition: "Nowy z metką", size: "43", sellerRating: 5.0, sellerTransactions: 100 });
-    const signal = mockSignal({ priceDiscountScore: 10, medianPrice: 1000, sampleSize: 100 });
+    const signal = mockSignal({ priceDiscountScore: 10, medianPrice: 1000, p25Price: 800, sampleSize: 100 });
     const result = computeRuleScore(item, signal, defaultCfg);
     expect(result.score).toBeLessThanOrEqual(10);
     expect(result.score).toBeGreaterThanOrEqual(0);
@@ -220,7 +220,7 @@ describe("computeRuleScore", () => {
 
   it("syntheticAi has valid structure", () => {
     const item = mockItem();
-    const signal = mockSignal({ medianPrice: 200 });
+    const signal = mockSignal({ medianPrice: 200, p25Price: 150 });
     const result = computeRuleScore(item, signal, defaultCfg);
     const ai = result.syntheticAi;
     expect(ai.resalePotential).toBeGreaterThanOrEqual(0);

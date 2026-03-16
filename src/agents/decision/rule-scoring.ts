@@ -164,7 +164,7 @@ export function computeRuleScore(
   const condition = getConditionScore(item.condition);
   const sizeBonus = getSizeBonus(item.size);
   const sellerBonus = getSellerBonus(item.sellerRating, item.sellerTransactions);
-  const profit = calculateProfit(item.price, pricing.medianPrice);
+  const profit = calculateProfit(item.price, pricing.p25Price);
 
   // Weighted score: 60% price + 15% brand + 15% condition + small bonuses
   let score =
@@ -194,7 +194,7 @@ export function computeRuleScore(
   // Explainability
   if (pricing.discountPct > 0) {
     reasons.push(
-      `💰 ${pricing.discountPct.toFixed(0)}% poniżej ${pricing.sampleSize < 10 ? "P25" : "mediany"} (${pricing.medianPrice} PLN)`
+      `💰 ${pricing.discountPct.toFixed(0)}% poniżej rynku (P25: ${pricing.p25Price} PLN)`
     );
   }
   if (brand.score >= 7) reasons.push(`🏷️ Marka ${brand.tier} (${brand.score}/10)`);
@@ -223,7 +223,7 @@ export function computeRuleScore(
     conditionConfidence: condition.score,
     brandLiquidity: brand.score,
     estimatedProfit: profit,
-    suggestedPrice: pricing.medianPrice > 0 ? Math.round(pricing.medianPrice * 0.85) : item.price,
+    suggestedPrice: pricing.p25Price > 0 ? Math.round(pricing.p25Price * 0.90) : item.price,
     riskFlags: [],
     reasoning: `Ocena automatyczna: ${item.brand || "?"} (${brand.tier}), stan: ${condition.label}, rozmiar: ${item.size || "?"}`,
   };

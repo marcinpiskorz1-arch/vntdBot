@@ -78,7 +78,7 @@ export function computeScore(
   // Explainability reasons
   if (pricing.discountPct > 0) {
     reasons.push(
-      `💰 ${pricing.discountPct.toFixed(0)}% poniżej ${pricing.sampleSize < 10 ? "P25" : "mediany"} (${pricing.medianPrice} PLN)`
+      `💰 ${pricing.discountPct.toFixed(0)}% poniżej rynku (P25: ${pricing.p25Price} PLN)`
     );
   }
   if (ai.resalePotential >= 7) reasons.push(`📈 Wysoki potencjał odsprzedaży (${ai.resalePotential}/10)`);

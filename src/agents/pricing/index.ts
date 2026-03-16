@@ -32,11 +32,8 @@ export class PricingAgent {
       };
     }
 
-    // Use P25 instead of median when sample is small (< 10)
-    const referencePrice =
-      stats.sampleCount < LOW_SAMPLE_THRESHOLD
-        ? stats.p25Price
-        : stats.medianPrice;
+    // Always use P25 as reference — more realistic for used items
+    const referencePrice = stats.p25Price;
 
     // Discount calculation
     const discountPct =
