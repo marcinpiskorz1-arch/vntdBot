@@ -18,6 +18,10 @@ export class OlxScraperAgent {
     try {
       const items = await fetchOlxOffers(scanConfig, 0, 40);
 
+      if (scanConfig.personal) {
+        for (const item of items) item.personal = true;
+      }
+
       logger.info(
         { query: scanConfig.searchText, count: items.length, source: "OLX" },
         "Fetched items from OLX",

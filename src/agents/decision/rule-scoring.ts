@@ -17,6 +17,7 @@ const MID_BRANDS = new Set([
   "carhartt", "helly hansen", "fjallraven", "timberland", "dr. martens",
   "petzl", "nalgene", "osprey", "deuter", "jack wolfskin", "merrell",
   "brooks", "hoka", "on running", "saucony",
+  "dickies", "superdry", "turbokolor", "dakine", "quiksilver",
 ]);
 
 // ============================================================
@@ -164,7 +165,7 @@ export function computeRuleScore(
   const condition = getConditionScore(item.condition);
   const sizeBonus = getSizeBonus(item.size);
   const sellerBonus = getSellerBonus(item.sellerRating, item.sellerTransactions);
-  const profit = calculateProfit(item.price, pricing.medianPrice);
+  const profit = calculateProfit(item.price, pricing.p25Price);
 
   // Weighted score: 60% price + 15% brand + 15% condition + small bonuses
   let score =
@@ -223,7 +224,7 @@ export function computeRuleScore(
     conditionConfidence: condition.score,
     brandLiquidity: brand.score,
     estimatedProfit: profit,
-    suggestedPrice: pricing.medianPrice > 0 ? Math.round(pricing.medianPrice * 0.90) : item.price,
+    suggestedPrice: pricing.p25Price > 0 ? Math.round(pricing.p25Price * 0.90) : item.price,
     riskFlags: [],
     reasoning: `Ocena automatyczna: ${item.brand || "?"} (${brand.tier}), stan: ${condition.label}, rozmiar: ${item.size || "?"}`,
   };

@@ -436,20 +436,20 @@ export class TelegramAgent {
     title: string;
     brand: string;
     price: number;
-    medianPrice: number;
+    p25Price: number;
     discountPct: number;
     sampleSize: number;
     url: string;
     photoUrl?: string;
   }): Promise<void> {
     const discount = Math.round(opts.discountPct);
-    const profit = Math.round(opts.medianPrice - opts.price);
+    const profit = Math.round(opts.p25Price - opts.price);
 
     const text = [
       `⚡ <b>INSTANT DEAL</b>`,
       ``,
       `<b>${escapeHtml(opts.title)}</b>`,
-      `💰 ${opts.price} PLN (mediana: ${Math.round(opts.medianPrice)} PLN, -${discount}%)`,
+      `💰 ${opts.price} PLN (rynek: ${Math.round(opts.p25Price)} PLN, -${discount}%)`,
       `📈 Szacowany zysk: ~${profit} PLN`,
       `📊 Próbka: ${opts.sampleSize} ofert`,
       `🏷️ ${opts.brand ? escapeHtml(opts.brand) : "—"}`,

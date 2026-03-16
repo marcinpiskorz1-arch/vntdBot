@@ -211,6 +211,9 @@ export const stmts = {
   updateUserAction: db.prepare<{ vinted_id: string; user_action: string }>(
     `UPDATE decisions SET user_action = @user_action WHERE vinted_id = @vinted_id`
   ),
+  isAlreadyNotified: db.prepare<{ vinted_id: string }>(
+    `SELECT 1 FROM decisions WHERE vinted_id = @vinted_id AND notified = 1 LIMIT 1`
+  ),
 
   // Heartbeat stats
   insertHeartbeat: db.prepare(`
@@ -251,21 +254,12 @@ export const stmts = {
     `SELECT search_text, priority, enabled FROM custom_queries ORDER BY added_at`
   ),
 
-  // AI Queue (persistent — survives restarts)
+  // AI Queue (legacy — kept for schema compatibility)
   enqueueAi: db.prepare(
     `INSERT OR IGNORE INTO ai_queue (vinted_id, item_json, signal_json, discount_pct) VALUES (@vinted_id, @item_json, @signal_json, @discount_pct)`
   ),
-  dequeueAi: db.prepare<{ limit: number }>(
-    `SELECT id, item_json, signal_json FROM ai_queue ORDER BY discount_pct DESC, added_at ASC LIMIT @limit`
-  ),
-  removeFromAiQueue: db.prepare<{ id: number }>(
-    `DELETE FROM ai_queue WHERE id = @id`
-  ),
   clearAiQueue: db.prepare(
     `DELETE FROM ai_queue`
-  ),
-  countAiQueue: db.prepare(
-    `SELECT COUNT(*) as count FROM ai_queue`
   ),
 
   // Favorites

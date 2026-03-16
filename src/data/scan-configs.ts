@@ -32,24 +32,22 @@ export const scanConfigs: ScanConfig[] = [
   // Nike — popularne modele (priority: skanowane co cykl)
   { searchText: "nike air max", priority: true },
   { searchText: "nike dunk", priority: true },
+  { searchText: "nike cortez", priority: true },
   { searchText: "nike blazer", priority: true },
   { searchText: "nike metcon", priority: true },
   { searchText: "nike air force", priority: true },
   { searchText: "nike vapormax", priority: true },
   { searchText: "nike pegasus", priority: true },
-  { searchText: "nike acg", priority: true },
   { searchText: "nike tech fleece", priority: true },
   { searchText: "nike sb", priority: true },
   // Adidas — popularne modele
   { searchText: "adidas samba", priority: true },
   { searchText: "adidas gazelle", priority: true },
   { searchText: "adidas superstar", priority: true },
-  { searchText: "adidas stan smith", priority: true },
   { searchText: "adidas ultraboost", priority: true },
   { searchText: "adidas nmd", priority: true },
   { searchText: "adidas yeezy", priority: true },
   { searchText: "adidas spezial", priority: true },
-  { searchText: "adidas campus", priority: true },
   { searchText: "adidas forum", priority: true },
   { searchText: "adidas terrex", priority: true },
   // Outdoor / góry
@@ -121,6 +119,7 @@ export const scanConfigs: ScanConfig[] = [
   { searchText: "dainese" },
   // Inne
   { searchText: "save the duck" },
+  { searchText: "superdry" },
   // Technologie / materiały premium
   { searchText: "gore-tex" },
   { searchText: "goretex" },
@@ -158,12 +157,6 @@ export const scanConfigs: ScanConfig[] = [
 
   // Small tech / gaming peripherals
   { searchText: "kindle", categoryIds: [2194] },
-  { searchText: "nintendo switch", priority: true, categoryIds: [2274] },
-  { searchText: "joy-con", categoryIds: [2280] },
-  { searchText: "dualshock", categoryIds: [2280] },
-  { searchText: "dualsense", categoryIds: [2280] },
-  { searchText: "logitech mx master", categoryIds: [2168] },
-  { searchText: "keychron", categoryIds: [2166] },
 
   // Collectibles / hobby
   { searchText: "lego technic", priority: true, categoryIds: [3088] },
@@ -176,7 +169,7 @@ export const scanConfigs: ScanConfig[] = [
   { searchText: "ray-ban", priority: true, categoryIds: [2736] },
   { searchText: "michael kors" },
   { searchText: "seiko", priority: true, categoryIds: [2845] },
-  { searchText: "casio edifice", categoryIds: [2845] },
+  { searchText: "casio", categoryIds: [2845] },
   { searchText: "orient zegarek", categoryIds: [2845] },
 
   // Outdoor accessories (małe, wysyłkowe)
@@ -194,7 +187,6 @@ export const scanConfigs: ScanConfig[] = [
   { searchText: "samsung galaxy s23", categoryIds: [2310] },
   { searchText: "samsung galaxy s24", priority: true, categoryIds: [2310] },
   { searchText: "google pixel", categoryIds: [4885] },
-  { searchText: "xiaomi", categoryIds: [2314] },
 
   // Tablety
   { searchText: "ipad pro", priority: true, categoryIds: [2192, 2194] },
@@ -206,6 +198,22 @@ export const scanConfigs: ScanConfig[] = [
   { searchText: "macbook air", priority: true, categoryIds: [3102] },
   { searchText: "thinkpad", priority: true, categoryIds: [3108] },
   { searchText: "dell xps", categoryIds: [3104] },
-  { searchText: "surface pro", categoryIds: [3110] },
-  { searchText: "steam deck", priority: true, categoryIds: [2271] },
+
+  // ============================================================
+  // Personal use — "Dla siebie" (relaxed thresholds, no resale restrictions)
+  // Sizes: buty 42.5-43.5 EU, ubrania M/L
+  // ============================================================
+  { searchText: "carhartt", personal: true },
+  { searchText: "dickies", personal: true },
+  { searchText: "turbokolor", personal: true },
+  { searchText: "under armour", personal: true },
+  { searchText: "superdry", personal: true },
+  { searchText: "la sportiva", personal: true },
+  { searchText: "vans", personal: true },
+  { searchText: "asics", personal: true },
+  { searchText: "salewa", personal: true },
+  { searchText: "gore-tex", personal: true },
+  { searchText: "goretex", personal: true },
+  { searchText: "dakine", personal: true },
+  { searchText: "quiksilver", personal: true },
 ];

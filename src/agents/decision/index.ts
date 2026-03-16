@@ -2,61 +2,23 @@ import { config } from "../../config.js";
 import { settings } from "../../settings.js";
 import { stmts } from "../../database.js";
 import { logger } from "../../logger.js";
-import type { RawItem, PriceSignal, AiAnalysis, Decision } from "../../types.js";
-import { computeScore } from "./scoring.js";
-import { computeRuleScore } from "./rule-scoring.js";
+import type { RawItem, PriceSignal, Decision } from "../../types.js";
+import { computeRuleScore, type RuleScoreConfig } from "./rule-scoring.js";
 
 export class DecisionAgent {
   /**
-   * The ONLY place in the system that makes a buy/notify/ignore decision.
-   * Combines algorithmic price signal (40%) + Gemini scores (60%).
-   */
-  decide(item: RawItem, pricing: PriceSignal, ai: AiAnalysis): Decision {
-    const result = computeScore(item, pricing, ai, {
-      weights: config.weights,
-      lowSamplePenalty: config.lowSamplePenalty,
-      notifyThreshold: settings.notifyThreshold,
-      hotThreshold: settings.hotThreshold,
-      hotMinProfit: settings.hotMinProfit,
-      minProfitToNotify: settings.minProfitToNotify,
-    });
-
-    const decision: Decision = {
-      score: result.score,
-      level: result.level,
-      reasons: result.reasons,
-      item,
-      pricing,
-      ai,
-    };
-
-    // Save to DB
-    this.persist(decision);
-
-    logger.info(
-      {
-        item: item.vintedId,
-        score: result.score,
-        level: result.level,
-        reasons: result.reasons.slice(0, 3),
-      },
-      "Decision made"
-    );
-
-    return decision;
-  }
-
-  /**
    * Rule-based decision — no AI, uses brand/condition/size/seller heuristics.
    * Produces a synthetic AiAnalysis for Telegram compatibility.
+   * Optional configOverrides allow personal channel to use relaxed thresholds.
    */
-  decideWithRules(item: RawItem, pricing: PriceSignal): Decision {
+  decideWithRules(item: RawItem, pricing: PriceSignal, configOverrides?: Partial<RuleScoreConfig>): Decision {
     const result = computeRuleScore(item, pricing, {
       lowSamplePenalty: config.lowSamplePenalty,
       notifyThreshold: settings.notifyThreshold,
       hotThreshold: settings.hotThreshold,
       hotMinProfit: settings.hotMinProfit,
       minProfitToNotify: settings.minProfitToNotify,
+      ...configOverrides,
     });
 
     const decision: Decision = {

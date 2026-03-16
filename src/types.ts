@@ -10,6 +10,7 @@ export interface ScanConfig {
   sizes?: string[];
   searchText?: string;
   priority?: boolean; // scanned every cycle (vs every other cycle for standard)
+  personal?: boolean; // personal use — relaxed thresholds, no resale restrictions
 }
 
 /** Scraper → Pricing: surowa oferta z Vinted */
@@ -29,6 +30,7 @@ export interface RawItem {
   sellerTransactions: number;
   listedAt: string;
   url: string;
+  personal?: boolean;
 }
 
 /** Pricing → AI Analyst: sygnał cenowy */
@@ -61,6 +63,7 @@ export interface Decision {
   item: RawItem;
   pricing: PriceSignal;
   ai: AiAnalysis;
+  personal?: boolean;
 }
 
 /** AI photo verification — binary confirm/reject with model identification */

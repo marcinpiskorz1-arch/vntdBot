@@ -13,9 +13,11 @@ export function escapeHtml(s: string): string {
 export function formatNotification(decision: Decision): NotificationPayload {
   const { item, pricing, ai, score, level } = decision;
 
-  const levelEmoji = level === "hot" ? "🔥 HOT DEAL" : "📦 Okazja";
+  const levelEmoji = decision.personal
+    ? "👤 Dla siebie"
+    : level === "hot" ? "🔥 HOT DEAL" : "📦 Okazja";
   const discountStr = pricing.discountPct > 0 ? `-${pricing.discountPct.toFixed(0)}%` : "";
-  const medianStr = pricing.medianPrice > 0 ? `mediana: ${pricing.medianPrice} PLN` : "brak danych";
+  const medianStr = pricing.p25Price > 0 ? `rynek: ${pricing.p25Price} PLN` : "brak danych";
 
   const priceLine = `${item.price} ${item.currency} (${medianStr}, ${discountStr})`;
   const scoreLine = `⭐ ${score.toFixed(1)} / 10 — ${levelEmoji}`;
@@ -28,10 +30,10 @@ export function formatNotification(decision: Decision): NotificationPayload {
   const riskFlagsFiltered = ai.riskFlags.filter(f => f !== "missing_details");
   const breakdown = [
     `📊 Breakdown scoringu:`,
-    `  💰 Cena vs rynek: ${pricing.priceDiscountScore.toFixed(1)}/10 (waga 40%)`,
-    `  📈 Potencjał odsprzedaży: ${ai.resalePotential}/10 (waga 30%)`,
-    `  ✅ Pewność stanu: ${ai.conditionConfidence}/10 (waga 20%)`,
-    `  🏷️ Płynność marki: ${ai.brandLiquidity}/10 (waga 10%)`,
+    `  💰 Cena vs rynek: ${pricing.priceDiscountScore.toFixed(1)}/10 (waga 60%)`,
+    `  🏷️ Marka: ${ai.brandLiquidity}/10 (waga 15%)`,
+    `  ✅ Stan: ${ai.conditionConfidence}/10 (waga 15%)`,
+    `  📏 Rozmiar / 👤 Sprzedawca: bonus`,
     pricing.sampleSize < 10 ? `  ⚠️ Mała baza (${pricing.sampleSize} próbek)` : "",
     riskFlagsFiltered.length > 0 ? `  🚩 Ryzyka: ${riskFlagsFiltered.map(escapeHtml).join(", ")}` : "",
   ]

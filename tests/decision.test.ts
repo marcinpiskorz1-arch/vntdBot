@@ -1,10 +1,12 @@
 import { describe, it, expect } from "vitest";
-import { computeScore, type ScoreConfig } from "../src/agents/decision/scoring.js";
+import {
+  computeRuleScore,
+  type RuleScoreConfig,
+} from "../src/agents/decision/rule-scoring.js";
+import { formatNotification } from "../src/agents/telegram/formatters.js";
 import { mockItem, mockSignal, mockAi } from "./helpers.js";
 
-/** Default config matching production defaults */
-const cfg: ScoreConfig = {
-  weights: { priceDiscount: 0.4, resalePotential: 0.3, conditionConfidence: 0.2, brandLiquidity: 0.1 },
+const cfg: RuleScoreConfig = {
   lowSamplePenalty: 0.9,
   notifyThreshold: 6.0,
   hotThreshold: 9.0,
@@ -12,152 +14,183 @@ const cfg: ScoreConfig = {
   minProfitToNotify: 35,
 };
 
-describe("computeScore — base scoring", () => {
-  it("computes weighted score from 4 components", () => {
-    const result = computeScore(
-      mockItem(),
-      mockSignal({ priceDiscountScore: 8 }),
-      mockAi({ resalePotential: 7, conditionConfidence: 6, brandLiquidity: 5 }),
-      cfg,
-    );
-    // 0.4*8 + 0.3*7 + 0.2*6 + 0.1*5 = 3.2 + 2.1 + 1.2 + 0.5 = 7.0
-    expect(result.score).toBe(7.0);
-  });
+// ============================================================
+// Tests that were previously for computeScore (AI-weighted)
+// are now validating the only scoring path: computeRuleScore
+// ============================================================
 
-  it("clamps score to 0-10", () => {
-    const result = computeScore(
-      mockItem(),
-      mockSignal({ priceDiscountScore: 10 }),
-      mockAi({ resalePotential: 10, conditionConfidence: 10, brandLiquidity: 10 }),
-      cfg,
-    );
-    expect(result.score).toBeLessThanOrEqual(10);
-    expect(result.score).toBeGreaterThanOrEqual(0);
-  });
-});
-
-describe("computeScore — penalties", () => {
-  it("applies low sample penalty when sampleSize < 10", () => {
-    const normal = computeScore(
-      mockItem(),
-      mockSignal({ sampleSize: 30, priceDiscountScore: 5 }),
-      mockAi(),
-      cfg,
-    );
-    const lowSample = computeScore(
-      mockItem(),
-      mockSignal({ sampleSize: 5, priceDiscountScore: 5 }),
-      mockAi(),
-      cfg,
-    );
-    expect(lowSample.score).toBeLessThan(normal.score);
-    expect(lowSample.reasons.some(r => r.includes("Mała baza"))).toBe(true);
-  });
-
-  it("applies risk flag penalty (-0.3 per flag)", () => {
-    const clean = computeScore(mockItem(), mockSignal(), mockAi({ riskFlags: [] }), cfg);
-    const risky = computeScore(
-      mockItem(),
-      mockSignal(),
-      mockAi({ riskFlags: ["fake_branding", "suspicious_price"] }),
-      cfg,
-    );
-    expect(risky.score).toBeLessThan(clean.score);
-  });
-
-  it("ignores missing_details in risk penalty", () => {
-    const withMissing = computeScore(
-      mockItem(),
-      mockSignal(),
-      mockAi({ riskFlags: ["missing_details"] }),
-      cfg,
-    );
-    const clean = computeScore(mockItem(), mockSignal(), mockAi({ riskFlags: [] }), cfg);
-    // missing_details should NOT cause penalty
-    expect(withMissing.score).toBe(clean.score);
-  });
-
-  it("applies inflated_median penalty (score * 0.6)", () => {
-    const normal = computeScore(mockItem(), mockSignal(), mockAi({ riskFlags: [] }), cfg);
-    const inflated = computeScore(
-      mockItem(),
-      mockSignal(),
-      mockAi({ riskFlags: ["inflated_median"] }),
-      cfg,
-    );
-    // inflated score should be ~60% of normal
-    expect(inflated.score).toBeLessThan(normal.score * 0.7);
-  });
-});
-
-describe("computeScore — shipping", () => {
-  it("gives shipping bonus (+0.3)", () => {
-    const withShipping = computeScore(
-      mockItem({ description: "Wysyłka InPost paczkomat" }),
-      mockSignal(),
-      mockAi(),
-      cfg,
-    );
-    const plain = computeScore(mockItem(), mockSignal(), mockAi(), cfg);
-    expect(withShipping.score).toBeGreaterThan(plain.score);
-  });
-
-  it("applies pickup penalty (-0.5)", () => {
-    const signal = mockSignal({ priceDiscountScore: 8 });
-    const ai = mockAi({ resalePotential: 8, conditionConfidence: 8, brandLiquidity: 8 });
-    const pickupOnly = computeScore(
-      mockItem({ description: "Tylko odbiór osobisty" }),
-      signal,
-      ai,
-      cfg,
-    );
-    const plain = computeScore(mockItem(), signal, ai, cfg);
-    expect(pickupOnly.score).toBeLessThan(plain.score);
-  });
-});
-
-describe("computeScore — level determination", () => {
-  it("returns 'hot' for high score + high profit", () => {
-    const result = computeScore(
-      mockItem(),
-      mockSignal({ priceDiscountScore: 10 }),
-      mockAi({ resalePotential: 10, conditionConfidence: 10, brandLiquidity: 10, estimatedProfit: 100 }),
-      cfg,
-    );
+describe("computeRuleScore — decision levels", () => {
+  it("returns 'hot' for high-value premium brand with big profit", () => {
+    const item = mockItem({
+      brand: "Nike",
+      condition: "Nowy z metką",
+      size: "43",
+      sellerRating: 4.9,
+      sellerTransactions: 50,
+    });
+    const signal = mockSignal({
+      priceDiscountScore: 10,
+      discountPct: 80,
+      p25Price: 400,
+      sampleSize: 50,
+    });
+    const result = computeRuleScore(item, signal, cfg);
     expect(result.level).toBe("hot");
     expect(result.reasons[0]).toContain("HOT DEAL");
   });
 
-  it("returns 'notify' for decent score + decent profit", () => {
-    const result = computeScore(
-      mockItem(),
-      mockSignal({ priceDiscountScore: 8 }),
-      mockAi({ resalePotential: 7, conditionConfidence: 6, brandLiquidity: 5, estimatedProfit: 50 }),
-      cfg,
-    );
-    // score = 0.4*8 + 0.3*7 + 0.2*6 + 0.1*5 = 7.0 >= 6.0, profit 50 >= 35
-    expect(result.level).toBe("notify");
-  });
-
-  it("returns 'ignore' for low score", () => {
-    const result = computeScore(
-      mockItem(),
-      mockSignal({ priceDiscountScore: 2 }),
-      mockAi({ resalePotential: 3, conditionConfidence: 2, brandLiquidity: 1, estimatedProfit: 10 }),
-      cfg,
-    );
+  it("returns 'ignore' when profit is too small despite high score", () => {
+    const item = mockItem({ brand: "Nike", price: 80 });
+    const signal = mockSignal({
+      priceDiscountScore: 7,
+      p25Price: 80,
+      sampleSize: 30,
+    });
+    const result = computeRuleScore(item, signal, cfg);
     expect(result.level).toBe("ignore");
   });
 
-  it("returns 'ignore' when score is good but profit too low", () => {
-    const result = computeScore(
+  it("returns 'ignore' when score is low", () => {
+    const item = mockItem({ brand: "NoName", condition: "Dobry", size: "36" });
+    const signal = mockSignal({
+      priceDiscountScore: 3,
+      p25Price: 75,
+      sampleSize: 30,
+    });
+    const result = computeRuleScore(item, signal, cfg);
+    expect(result.level).toBe("ignore");
+  });
+});
+
+describe("computeRuleScore — synthetic AI compatibility", () => {
+  it("produces AiAnalysis with valid structure", () => {
+    const result = computeRuleScore(mockItem(), mockSignal({ p25Price: 200 }), cfg);
+    const ai = result.syntheticAi;
+    expect(ai.resalePotential).toBeGreaterThanOrEqual(0);
+    expect(ai.conditionConfidence).toBeGreaterThanOrEqual(0);
+    expect(ai.brandLiquidity).toBeGreaterThanOrEqual(0);
+    expect(typeof ai.estimatedProfit).toBe("number");
+    expect(typeof ai.suggestedPrice).toBe("number");
+    expect(Array.isArray(ai.riskFlags)).toBe(true);
+    expect(typeof ai.reasoning).toBe("string");
+  });
+
+  it("suggestedPrice uses P25 (not median)", () => {
+    const result = computeRuleScore(
       mockItem(),
-      mockSignal({ priceDiscountScore: 8 }),
-      mockAi({ resalePotential: 7, conditionConfidence: 6, brandLiquidity: 5, estimatedProfit: 20 }),
+      mockSignal({ p25Price: 200, medianPrice: 300 }),
       cfg,
     );
-    // score 7.0 >= 6.0, but profit 20 < 35
-    expect(result.level).toBe("ignore");
-    expect(result.reasons.some(r => r.includes("Zysk za mały"))).toBe(true);
+    // suggestedPrice should be ~180 (P25 * 0.90), not ~270 (median * 0.90)
+    expect(result.syntheticAi.suggestedPrice).toBe(180);
+  });
+
+  it("profit is calculated from P25", () => {
+    // P25=200, price=100, shipping=15, fee=10 → profit=75
+    const result = computeRuleScore(
+      mockItem({ price: 100 }),
+      mockSignal({ p25Price: 200, medianPrice: 300 }),
+      cfg,
+    );
+    expect(result.syntheticAi.estimatedProfit).toBe(75);
+  });
+});
+
+// ============================================================
+// Personal channel — relaxed thresholds
+// ============================================================
+
+const personalCfg: RuleScoreConfig = {
+  lowSamplePenalty: 0.9,
+  notifyThreshold: 4.0,
+  minProfitToNotify: 0,
+  hotThreshold: 9.0,
+  hotMinProfit: 20,
+};
+
+describe("computeRuleScore — personal channel", () => {
+  it("notifies with lower threshold (4.0) for personal items", () => {
+    const item = mockItem({ brand: "Dickies", price: 25, condition: "Bardzo dobry", size: "L" });
+    const signal = mockSignal({
+      priceDiscountScore: 5,
+      p25Price: 60,
+      sampleSize: 10,
+    });
+    const result = computeRuleScore(item, signal, personalCfg);
+    expect(result.score).toBeGreaterThanOrEqual(4.0);
+    expect(result.level).not.toBe("ignore");
+  });
+
+  it("notifies with zero profit when minProfitToNotify is 0", () => {
+    const item = mockItem({ brand: "Quiksilver", price: 30 });
+    const signal = mockSignal({
+      priceDiscountScore: 6,
+      p25Price: 50,
+      sampleSize: 15,
+    });
+    // profit = 50 - 30 - 15 - 2.5 = 2.5 → ≥ 0, should pass with minProfitToNotify=0
+    const result = computeRuleScore(item, signal, personalCfg);
+    expect(result.syntheticAi.estimatedProfit).toBeGreaterThanOrEqual(0);
+    expect(result.level).not.toBe("ignore");
+  });
+
+  it("would be ignored by resale config but passes personal config", () => {
+    const item = mockItem({ brand: "Turbokolor", price: 30, condition: "Bardzo dobry", size: "M" });
+    const signal = mockSignal({
+      priceDiscountScore: 5,
+      p25Price: 50,
+      sampleSize: 20,
+    });
+    const resaleResult = computeRuleScore(item, signal, cfg);
+    const personalResult = computeRuleScore(item, signal, personalCfg);
+    // Resale ignores (threshold 6.0 + minProfit 35), personal may notify (threshold 4.0 + minProfit 0)
+    expect(resaleResult.level).toBe("ignore");
+    expect(personalResult.level).not.toBe("ignore");
+  });
+});
+
+// ============================================================
+// formatNotification — personal label
+// ============================================================
+
+describe("formatNotification — personal label", () => {
+  it("shows '👤 Dla siebie' for personal decisions", () => {
+    const decision = {
+      score: 5.0,
+      level: "notify" as const,
+      reasons: [],
+      item: mockItem(),
+      pricing: mockSignal(),
+      ai: mockAi(),
+      personal: true,
+    };
+    const payload = formatNotification(decision);
+    expect(payload.scoreLine).toContain("👤 Dla siebie");
+  });
+
+  it("shows '📦 Okazja' for resale notify decisions", () => {
+    const decision = {
+      score: 6.5,
+      level: "notify" as const,
+      reasons: [],
+      item: mockItem(),
+      pricing: mockSignal(),
+      ai: mockAi(),
+    };
+    const payload = formatNotification(decision);
+    expect(payload.scoreLine).toContain("📦 Okazja");
+  });
+
+  it("shows '🔥 HOT DEAL' for hot resale decisions", () => {
+    const decision = {
+      score: 9.5,
+      level: "hot" as const,
+      reasons: [],
+      item: mockItem(),
+      pricing: mockSignal(),
+      ai: mockAi(),
+    };
+    const payload = formatNotification(decision);
+    expect(payload.scoreLine).toContain("🔥 HOT DEAL");
   });
 });

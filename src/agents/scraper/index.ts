@@ -50,6 +50,10 @@ export class ScraperAgent {
       const seen = new Set(page1.map(i => i.vintedId));
       const uniquePage2 = page2.filter(i => !seen.has(i.vintedId));
       const items = [...page1, ...uniquePage2];
+
+      if (scanConfig.personal) {
+        for (const item of items) item.personal = true;
+      }
       logger.info(
         { query: scanConfig.searchText || scanConfig.categoryIds, count: items.length },
         "Fetched items from Vinted"

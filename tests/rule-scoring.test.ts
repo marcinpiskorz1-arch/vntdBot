@@ -38,6 +38,21 @@ describe("getBrandTier", () => {
   it("handles partial match: 'The North Face'", () => {
     expect(getBrandTier("The North Face")).toEqual({ score: 8, tier: "premium" });
   });
+  it("returns mid for Dickies", () => {
+    expect(getBrandTier("Dickies")).toEqual({ score: 5, tier: "mid" });
+  });
+  it("returns mid for Superdry", () => {
+    expect(getBrandTier("Superdry")).toEqual({ score: 5, tier: "mid" });
+  });
+  it("returns mid for Turbokolor", () => {
+    expect(getBrandTier("Turbokolor")).toEqual({ score: 5, tier: "mid" });
+  });
+  it("returns mid for Dakine", () => {
+    expect(getBrandTier("Dakine")).toEqual({ score: 5, tier: "mid" });
+  });
+  it("returns mid for Quiksilver", () => {
+    expect(getBrandTier("Quiksilver")).toEqual({ score: 5, tier: "mid" });
+  });
 });
 
 // ============================================================
@@ -206,7 +221,7 @@ describe("computeRuleScore", () => {
     const item = mockItem({ brand: "Nike", price: 80 });
     const signal = mockSignal({ priceDiscountScore: 7, medianPrice: 100, p25Price: 80, sampleSize: 30 });
     const result = computeRuleScore(item, signal, defaultCfg);
-    // profit = calculateProfit(80, 100) = 100 - 80 - 15 - 5 = 0 → too small
+    // profit = calculateProfit(80, 80) = 80 - 80 - 15 - 4 = -19 → too small
     expect(result.level).toBe("ignore");
   });
 

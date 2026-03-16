@@ -116,8 +116,25 @@ async function runPipeline(): Promise<void> {
       if (newItems.length === 0) return;
       totalNewItems += newItems.length;
 
+      // Split personal vs resale items
+      const personalItems = newItems.filter(i => i.personal);
+      const resaleItems = newItems.filter(i => !i.personal);
+
+      // ── RESALE PIPELINE (unchanged thresholds) ──
+      if (resaleItems.length > 0) {
+        await processResaleBatch(resaleItems);
+      }
+
+      // ── PERSONAL PIPELINE (relaxed thresholds) ──
+      if (personalItems.length > 0) {
+        await processPersonalBatch(personalItems);
+      }
+    };
+
+    const processResaleBatch = async (items: import("./types.js").RawItem[]): Promise<void> => {
+
       // FILTER
-      const { passed: shippable, removed: removedCount, breakdown } = filterItems(newItems, settings.minPrice);
+      const { passed: shippable, removed: removedCount, breakdown } = filterItems(items, settings.minPrice);
       if (removedCount > 0) {
         stats.filtered += removedCount;
         logger.info({ removed: removedCount, ...breakdown }, "🚫 Filtered items");
@@ -148,13 +165,14 @@ async function runPipeline(): Promise<void> {
           isBrandTypeWorthNotifying(item.brand, itemType);
       });
       for (const [item, signal] of instantItems) {
+        if (stmts.isAlreadyNotified.get({ vinted_id: item.vintedId })) continue;
         instantIds.add(item.vintedId);
         await telegram.sendInstantAlert({
           vintedId: item.vintedId,
           title: item.title,
           brand: item.brand,
           price: item.price,
-          medianPrice: signal.medianPrice,
+          p25Price: signal.p25Price,
           discountPct: signal.discountPct,
           sampleSize: signal.sampleSize,
           url: item.url,
@@ -173,6 +191,8 @@ async function runPipeline(): Promise<void> {
         const result = decision.decideWithRules(item, signal);
         analyzedCount++;
         if (result.level !== "ignore") {
+          // Skip if already notified (dedup)
+          if (stmts.isAlreadyNotified.get({ vinted_id: item.vintedId })) continue;
           // Items with vague titles + high score → queue for AI photo verification
           if (settings.aiEnabled && needsPhotoVerification(item.title, result.score)) {
             photoVerifyCandidates.push([item, signal, result]);
@@ -180,6 +200,40 @@ async function runPipeline(): Promise<void> {
             await telegram.notify(result);
             notifiedCount++;
           }
+        }
+      }
+    };
+
+    // ── PERSONAL PIPELINE — relaxed thresholds, no brand-type restrictions ──
+    const PERSONAL_MIN_PRICE = 20;
+    const PERSONAL_SCORING_OVERRIDES = {
+      notifyThreshold: 4.0,
+      minProfitToNotify: 0,
+      hotMinProfit: 20,
+    };
+
+    const processPersonalBatch = async (items: import("./types.js").RawItem[]): Promise<void> => {
+      const { passed: shippable, removed: removedCount, breakdown } = filterItems(items, PERSONAL_MIN_PRICE);
+      if (removedCount > 0) {
+        stats.filtered += removedCount;
+        logger.info({ removed: removedCount, ...breakdown, channel: "personal" }, "🚫 Filtered items (personal)");
+      }
+      if (shippable.length === 0) return;
+
+      const evaluated = pricing.evaluateAll(shippable);
+      const underpriced = evaluated.filter(([, signal]) => signal.isUnderpriced);
+      stats.underpriced += underpriced.length;
+      totalUnderpriced += underpriced.length;
+      if (underpriced.length === 0) return;
+
+      for (const [item, signal] of underpriced) {
+        const result = decision.decideWithRules(item, signal, PERSONAL_SCORING_OVERRIDES);
+        result.personal = true;
+        analyzedCount++;
+        if (result.level !== "ignore") {
+          if (stmts.isAlreadyNotified.get({ vinted_id: item.vintedId })) continue;
+          await telegram.notify(result);
+          notifiedCount++;
         }
       }
     };
