@@ -243,17 +243,39 @@ export class TelegramAgent {
     this.bot.command("favorites", async (ctx) => {
       if (!this.isAuthorized(ctx)) return;
       const favs = stmts.getFavorites.all() as Array<{
-        vinted_id: string; title: string; brand: string; price: number; score: number; url: string; added_at: string;
+        vinted_id: string; title: string; brand: string; price: number; score: number; url: string; photo_url: string; added_at: string;
       }>;
       if (favs.length === 0) {
         await ctx.reply("❤️ Brak ulubionych. Kliknij ❤️ przy powiadomieniu żeby dodać.");
         return;
       }
-      const lines = favs.map((f, i) => {
+      await ctx.reply(`❤️ <b>Ulubione (${favs.length})</b>`, { parse_mode: "HTML" });
+      for (const f of favs) {
         const ago = Math.round((Date.now() - new Date(f.added_at).getTime()) / 3600000);
-        return `${i + 1}. <b>${escapeHtml(f.title)}</b>\n   ${escapeHtml(f.brand)} | ${f.price} PLN | ⭐${f.score.toFixed(1)} | ${ago}h temu\n   🔗 ${f.url}`;
-      });
-      await ctx.reply(`❤️ <b>Ulubione (${favs.length})</b>\n\n${lines.join("\n\n")}`, { parse_mode: "HTML" });
+        const text = `<b>${escapeHtml(f.title)}</b>\n${escapeHtml(f.brand)} | ${f.price} PLN | ⭐${f.score.toFixed(1)} | ${ago}h temu`;
+        const keyboard = new InlineKeyboard()
+          .url("🔗 Link", f.url)
+          .text("💔 Usuń", `rmfav:${f.vinted_id}`);
+        try {
+          if (f.photo_url) {
+            await this.bot.api.sendPhoto(this.chatId, f.photo_url, {
+              caption: text,
+              parse_mode: "HTML",
+              reply_markup: keyboard,
+            });
+          } else {
+            await this.bot.api.sendMessage(this.chatId, text, {
+              parse_mode: "HTML",
+              reply_markup: keyboard,
+            });
+          }
+        } catch {
+          await this.bot.api.sendMessage(this.chatId, text, {
+            parse_mode: "HTML",
+            reply_markup: keyboard,
+          });
+        }
+      }
     });
 
     this.bot.command("fav_stats", async (ctx) => {
@@ -363,6 +385,20 @@ export class TelegramAgent {
               await ctx.editMessageReplyMarkup({ reply_markup: { inline_keyboard: newRows } });
             }
           } catch { /* ignore edit errors for old messages */ }
+          break;
+        }
+
+        case "rmfav": {
+          const fav = stmts.getFavoriteByVintedId.get({ vinted_id: vintedId }) as any;
+          if (fav) {
+            stmts.removeFavorite.run({ vinted_id: vintedId });
+            await ctx.answerCallbackQuery("💔 Usunięto z ulubionych");
+            try {
+              await ctx.deleteMessage();
+            } catch { /* ignore if message too old */ }
+          } else {
+            await ctx.answerCallbackQuery("❓ Nie znaleziono w ulubionych");
+          }
           break;
         }
 
