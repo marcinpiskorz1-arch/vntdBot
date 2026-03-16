@@ -251,7 +251,7 @@ export class TelegramAgent {
       }
       const lines = favs.map((f, i) => {
         const ago = Math.round((Date.now() - new Date(f.added_at).getTime()) / 3600000);
-        return `${i + 1}. <b>${escapeHtml(f.title)}</b>\n   ${escapeHtml(f.brand)} | ${f.price} PLN | ⭐${f.score.toFixed(1)} | ${ago}h temu`;
+        return `${i + 1}. <b>${escapeHtml(f.title)}</b>\n   ${escapeHtml(f.brand)} | ${f.price} PLN | ⭐${f.score.toFixed(1)} | ${ago}h temu\n   🔗 ${f.url}`;
       });
       await ctx.reply(`❤️ <b>Ulubione (${favs.length})</b>\n\n${lines.join("\n\n")}`, { parse_mode: "HTML" });
     });

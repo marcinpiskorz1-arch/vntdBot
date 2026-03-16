@@ -2,6 +2,7 @@ import Database from "better-sqlite3";
 import { mkdirSync } from "fs";
 import { dirname } from "path";
 import { config } from "./config.js";
+import { classifyItemType } from "./item-classifier.js";
 
 mkdirSync(dirname(config.dbPath), { recursive: true });
 
@@ -126,6 +127,29 @@ try {
   db.exec(`ALTER TABLE ai_queue ADD COLUMN discount_pct REAL NOT NULL DEFAULT 0`);
 } catch {
   // Column already exists — ignore
+}
+
+// Backfill item type classification for items with empty category
+{
+  const unclassified = db.prepare(
+    `SELECT id, title FROM items WHERE category = '' AND discovered_at >= datetime('now', '-14 days')`
+  ).all() as Array<{ id: number; title: string }>;
+
+  if (unclassified.length > 0) {
+    const updateStmt = db.prepare(`UPDATE items SET category = @category WHERE id = @id`);
+    const backfill = db.transaction((rows: Array<{ id: number; title: string }>) => {
+      let updated = 0;
+      for (const row of rows) {
+        const itemType = classifyItemType(row.title);
+        if (itemType) {
+          updateStmt.run({ id: row.id, category: itemType });
+          updated++;
+        }
+      }
+      return updated;
+    });
+    backfill(unclassified);
+  }
 }
 
 // ============================================================

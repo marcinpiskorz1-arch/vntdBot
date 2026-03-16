@@ -1,6 +1,7 @@
 import { config } from "../../config.js";
 import { logger } from "../../logger.js";
 import type { RawItem, PriceSignal } from "../../types.js";
+import { classifyItemType } from "../../item-classifier.js";
 import { updatePriceStats, getPriceStats, normalizeSizeGroup } from "./price-history.js";
 
 const LOW_SAMPLE_THRESHOLD = 10;
@@ -12,12 +13,14 @@ export class PricingAgent {
    */
   evaluate(item: RawItem): PriceSignal {
     const sizeGroup = normalizeSizeGroup(item.size);
+    // Use item type from classifier when Vinted/OLX category is empty or numeric
+    const itemType = item.category || classifyItemType(item.title);
 
     // First, update stats with this item's price (size-aware, 14-day, IQR-cleaned)
-    updatePriceStats(item.brand, item.category, item.model, sizeGroup);
+    updatePriceStats(item.brand, itemType, item.model, sizeGroup);
 
     // Then get the (now updated) stats
-    const stats = getPriceStats(item.brand, item.category, item.model, sizeGroup);
+    const stats = getPriceStats(item.brand, itemType, item.model, sizeGroup);
 
     if (!stats || stats.sampleCount === 0) {
       // No price history at all — low confidence, let AI decide
@@ -32,8 +35,8 @@ export class PricingAgent {
       };
     }
 
-    // Always use P25 as reference — more realistic for used items
-    const referencePrice = stats.p25Price;
+    // Use median as reference — P25 was too conservative, missing real deals
+    const referencePrice = stats.medianPrice;
 
     // Discount calculation
     const discountPct =

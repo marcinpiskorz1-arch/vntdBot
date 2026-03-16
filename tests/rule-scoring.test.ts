@@ -206,7 +206,7 @@ describe("computeRuleScore", () => {
     const item = mockItem({ brand: "Nike", price: 80 });
     const signal = mockSignal({ priceDiscountScore: 7, medianPrice: 100, p25Price: 80, sampleSize: 30 });
     const result = computeRuleScore(item, signal, defaultCfg);
-    // profit = 80 - 80 - 15 - 4 = -19 → too small
+    // profit = calculateProfit(80, 100) = 100 - 80 - 15 - 5 = 0 → too small
     expect(result.level).toBe("ignore");
   });
 

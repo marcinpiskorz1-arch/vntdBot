@@ -138,7 +138,7 @@ function mapApiItemToRawItem(item: VintedApiItem): RawItem {
     price: amount,
     currency,
     size: item.size_title || "",
-    category: String(item.catalog_id || ""),
+    category: item.catalog_id ? String(item.catalog_id) : "",
     condition: item.status || "",
     description: item.description || "",
     photoUrls: extractPhotoUrls(item.photos),

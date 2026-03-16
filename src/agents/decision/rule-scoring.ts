@@ -119,11 +119,11 @@ export function getSellerBonus(sellerRating: number, sellerTransactions: number)
 }
 
 /** Calculate estimated profit from pure price data (no AI needed) */
-export function calculateProfit(itemPrice: number, medianPrice: number): number {
-  if (medianPrice <= 0) return 0;
+export function calculateProfit(itemPrice: number, referencePrice: number): number {
+  if (referencePrice <= 0) return 0;
   const shippingCost = 15;
-  const vintedFee = medianPrice * 0.05;
-  return Math.round(medianPrice - itemPrice - shippingCost - vintedFee);
+  const vintedFee = referencePrice * 0.05;
+  return Math.round(referencePrice - itemPrice - shippingCost - vintedFee);
 }
 
 // ============================================================
@@ -164,7 +164,7 @@ export function computeRuleScore(
   const condition = getConditionScore(item.condition);
   const sizeBonus = getSizeBonus(item.size);
   const sellerBonus = getSellerBonus(item.sellerRating, item.sellerTransactions);
-  const profit = calculateProfit(item.price, pricing.p25Price);
+  const profit = calculateProfit(item.price, pricing.medianPrice);
 
   // Weighted score: 60% price + 15% brand + 15% condition + small bonuses
   let score =
@@ -223,7 +223,7 @@ export function computeRuleScore(
     conditionConfidence: condition.score,
     brandLiquidity: brand.score,
     estimatedProfit: profit,
-    suggestedPrice: pricing.p25Price > 0 ? Math.round(pricing.p25Price * 0.90) : item.price,
+    suggestedPrice: pricing.medianPrice > 0 ? Math.round(pricing.medianPrice * 0.90) : item.price,
     riskFlags: [],
     reasoning: `Ocena automatyczna: ${item.brand || "?"} (${brand.tier}), stan: ${condition.label}, rozmiar: ${item.size || "?"}`,
   };
