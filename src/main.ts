@@ -17,7 +17,7 @@ import { AiAnalystAgent } from "./agents/ai-analyst/index.js";
 import { DecisionAgent } from "./agents/decision/index.js";
 import { TelegramAgent } from "./agents/telegram/index.js";
 import { escapeHtml } from "./agents/telegram/formatters.js";
-import { needsPhotoVerification } from "./agents/decision/rule-scoring.js";
+import { needsPhotoVerification, getBrandTier } from "./agents/decision/rule-scoring.js";
 
 // ============================================================
 // Initialize agents
@@ -133,11 +133,13 @@ async function runPipeline(): Promise<void> {
       const INSTANT_MIN_PRICE = 50;
       const INSTANT_MIN_SAMPLE = 15;
       const instantIds = new Set<string>();
-      const instantItems = underpriced.filter(([item, signal]) =>
-        signal.discountPct >= INSTANT_DISCOUNT &&
-        signal.sampleSize >= INSTANT_MIN_SAMPLE &&
-        item.price >= INSTANT_MIN_PRICE
-      );
+      const instantItems = underpriced.filter(([item, signal]) => {
+        const tier = getBrandTier(item.brand).tier;
+        return signal.discountPct >= INSTANT_DISCOUNT &&
+          signal.sampleSize >= INSTANT_MIN_SAMPLE &&
+          item.price >= INSTANT_MIN_PRICE &&
+          (tier === "premium" || tier === "mid");
+      });
       for (const [item, signal] of instantItems) {
         instantIds.add(item.vintedId);
         await telegram.sendInstantAlert({
