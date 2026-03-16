@@ -1,13 +1,13 @@
 # VintedBot — Deal Sniper
 
-Autonomous deal-hunting bot that continuously monitors **Vinted** and **OLX.pl** for underpriced items, scores them with a rule-based engine (or optionally Gemini AI), and delivers deal alerts via **Telegram**.
+Autonomous deal-hunting bot that continuously monitors **Vinted** and **OLX.pl** for underpriced items, scores them with a rule-based engine, and delivers deal alerts via **Telegram**. Optionally uses **Gemini AI with photo verification** to filter junk from vague-titled listings.
 
 ## Tech Stack
 
 | Technology | Purpose |
 |---|---|
 | **TypeScript** (ESM, strict) | Core language |
-| **Gemini 2.5 Flash** | AI qualitative analysis (optional, opt-in) |
+| **Gemini 2.5 Flash** | AI photo verification for vague titles (optional, opt-in) |
 | **Grammy** | Telegram bot framework |
 | **Playwright** | Headless Chromium for Vinted session/cookies |
 | **better-sqlite3** | Embedded SQLite database (WAL mode) |
@@ -167,7 +167,7 @@ SQLite with WAL mode. Tables:
 | `heartbeats` | Hourly stats snapshots (cycles, scanned, filtered, notified, errors) |
 | `settings` | Dynamic key-value config (synced to in-memory cache) |
 | `custom_queries` | User-added search queries via Telegram |
-| `ai_queue` | Persistent AI processing queue (priority-sorted, survives restarts) |
+| `ai_queue` | Legacy AI queue table (kept for schema compatibility) |
 | `favorites` | User-starred items with sold-speed tracking |
 
 ## Telegram Commands
@@ -203,11 +203,10 @@ All settings have enforced min/max limits to prevent misconfiguration. Running `
 | `hot_threshold` | 9.0 | 7–10 | Min score for a "hot" deal alert | < 8 = too easy to be HOT |
 | `hot_min_profit` | 50 | 10–500 | Min estimated profit (PLN) for "hot" | < 30 = HOT triggers too cheap |
 | `min_price` | 20 | 5–200 | Filter items below this price (PLN) | < 10 = junk, > 50 = miss cheap deals |
-| `ai_limit` | 20 | 5–50 | Max AI analyses per cycle | > 30 = Gemini cost grows fast |
-| `daily_ai_limit` | 500 | 100–5000 | Max Gemini API calls per day | > 1000 = expensive day |
-| `instant_threshold` | 60 | 40–90 | Min discount % for instant alert (no AI) | < 50 = too many instant alerts |
-| `min_profit` | 35 | 10–200 | Min est. profit (PLN) to notify | < 20 = spam, > 100 = miss deals |
-| `ai_enabled` | 0 | 0–1 | Enable Gemini AI scoring (0=rules, 1=AI) | 1 = requires GEMINI_API_KEY |
+| `daily_ai_limit` | 100 | 50–5000 | Max Gemini photo verifications per day | > 1000 = expensive |
+| `instant_threshold` | 60 | 40–90 | Min discount % for instant alert | < 50 = too many instant alerts |
+| `min_profit` | 50 | 10–200 | Min est. profit (PLN) to notify | < 20 = spam, > 100 = miss deals |
+| `ai_enabled` | 0 | 0–1 | AI photo verify for vague titles (0=off, 1=on) | 1 = requires GEMINI_API_KEY |
 
 ## Project Structure
 
@@ -236,23 +235,23 @@ src/
 │   ├── pricing/               # Statistical price analysis
 │   │   ├── index.ts
 │   │   └── price-history.ts
-│   ├── ai-analyst/            # Gemini qualitative analysis
+│   ├── ai-analyst/            # Gemini photo verification (multimodal)
 │   │   ├── index.ts
 │   │   ├── gemini-client.ts
 │   │   └── prompts.ts
 │   ├── decision/              # Scoring & level determination
 │   │   ├── index.ts
-│   │   ├── scoring.ts         # AI-based scoring function (pure, testable)
-│   │   └── rule-scoring.ts    # Rule-based scoring (brand tiers, condition, size)
+│   │   ├── scoring.ts         # AI-based scoring function (legacy)
+│   │   └── rule-scoring.ts    # Rule-based scoring + photo verification trigger
 │   └── telegram/              # Notifications & remote commands
 │       ├── index.ts
 │       ├── formatters.ts
 │       └── callbacks.ts
 tests/
 ├── helpers.ts                   # Mock factories (mockItem, mockSignal, mockAi)
-├── filters.test.ts              # 28 tests: kids, hats, condition, pickup, integration
-├── decision.test.ts             # 12 tests: AI scoring, penalties, shipping, levels
-└── rule-scoring.test.ts         # 40 tests: brand tiers, condition, size, seller, full scoring
+├── filters.test.ts              # Filter tests: kids, hats, condition, pickup, damaged, junk
+├── decision.test.ts             # AI scoring tests (legacy)
+└── rule-scoring.test.ts         # Rule scoring + photo verification trigger tests
 ```
 
 ## Setup
@@ -284,7 +283,7 @@ npm test            # run all tests once
 npm run test:watch  # watch mode
 ```
 
-80 unit tests covering filters, decision scoring, rule-based scoring, and level determination.
+97 unit tests covering filters, rule-based scoring, photo verification trigger, and decision levels.
 
 ## AI Development Guidelines
 
@@ -299,7 +298,7 @@ See [`.github/copilot-instructions.md`](.github/copilot-instructions.md) for man
 ## Lifecycle
 
 1. **Startup** — Load settings from DB, start Telegram bot, run first pipeline immediately
-2. **Every ~30s** — Pipeline cycle (scrape → filter → price → AI → decide → notify)
+2. **Every ~30s** — Pipeline cycle (scrape → filter → price → score → [AI photo verify] → notify)
 3. **Every hour** — Heartbeat message with 1-hour stats summary
 4. **Every 30 min** — Check favorites sold status (Vinted API)
 5. **Every day at 3 AM** — Cleanup old items/decisions (> 30 days)
@@ -307,8 +306,7 @@ See [`.github/copilot-instructions.md`](.github/copilot-instructions.md) for man
 
 ## Cost Controls
 
-- **Daily AI limit** — Hard cap on Gemini API calls per day (default 500)
-- **Per-cycle AI limit** — Max items analyzed per cycle (default 20)
-- **Queue cap** — Max 100 items in AI queue
-- **No photos to Gemini** — Text-only analysis to minimize token cost
-- **Priority queue** — Biggest discounts analyzed first (best deals get AI time)
+- **Daily AI limit** — Hard cap on Gemini photo verification calls per day (default 100)
+- **Vague-title trigger only** — AI is called only for items with ≤ 3 words in the title (~5–15% of notifiable items)
+- **Photo verification, not full analysis** — Binary confirm/reject is cheaper than full structured analysis
+- **Conservative fallback** — On AI error, item passes through (no deal lost)

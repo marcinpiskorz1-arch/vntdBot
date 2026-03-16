@@ -66,23 +66,22 @@ export class TelegramAgent {
         "📊 <b>Status VintedBot</b>",
         "",
         `${settings.paused ? "⏸️ WSTRZYMANY" : "▶️ Aktywny"}`,
-        `🧮 Scoring: ${s.ai_enabled ? "hybrid (reguły + AI)" : "rule-based"}`,
+        `🧮 Scoring: ${s.ai_enabled ? "reguły + AI photo verify" : "rule-based"}`,
         `⏱️ Uptime: ${hours}h ${mins}m`,
         `🔄 Cykl: #${botState.cycleCount} ${botState.isRunning ? "(w trakcie)" : ""}`,
         "",
         "<b>Ustawienia:</b>  (/set)",
-        `  ai_enabled: ${s.ai_enabled ? "1 (hybrid: reguły + AI)" : "0 (rule-based)"}`,
+        `  ai_enabled: ${s.ai_enabled ? "1 (reguły + AI photo verify)" : "0 (rule-based)"}`,
         `  notify_threshold: ${s.notify_threshold} — min score do powiadomienia`,
         `  hot_threshold: ${s.hot_threshold} — min score dla 🔥 HOT`,
         `  hot_min_profit: ${s.hot_min_profit} PLN — min zysk dla HOT`,
         `  min_price: ${s.min_price} PLN — pomijaj tańsze oferty`,
-        `  instant_threshold: ${s.instant_threshold}% — alert bez AI od tej zniżki`,
+        `  instant_threshold: ${s.instant_threshold}% — instant alert od tej zniżki`,
         `  min_profit: ${s.min_profit} PLN — min zysk żeby powiadomić`,
         ...(s.ai_enabled ? [
-          `  ai_limit: ${s.ai_limit} — max analiz AI / cykl`,
           `  daily_ai_limit: ${s.daily_ai_limit} — twardy limit AI / dzień`,
           "",
-          `<b>Limit dzienny AI:</b> ${botState.daily.aiCalls}/${s.daily_ai_limit} (${Math.round((botState.daily.aiCalls / (s.daily_ai_limit as number || 1)) * 100)}%)`,
+          `<b>AI photo verify:</b> ${botState.daily.aiCalls}/${s.daily_ai_limit} (${Math.round((botState.daily.aiCalls / (s.daily_ai_limit as number || 1)) * 100)}%)`,
         ] : []),
         "",
         "<b>Zapytania:</b>",
@@ -97,7 +96,6 @@ export class TelegramAgent {
         `  🧮 Ocenionych: ${botState.stats.aiAnalyzed}`,
         `  📩 Powiadomień: ${botState.stats.notified}`,
         `  ❌ Błędów: ${botState.stats.errors}`,
-        ...(s.ai_enabled ? [`  📋 Kolejka AI: ${botState.aiQueueLength}`] : []),
       ];
       await ctx.reply(lines.join("\n"), { parse_mode: "HTML" });
     });
@@ -231,10 +229,9 @@ export class TelegramAgent {
           "🔗 Open link — link do oferty\n" +
           "❤️ Ulubione — dodaj/usuń z ulubionych\n\n" +
           "<b>⚠️ Wskazówki:</b>\n" +
-          "• ai_limit &gt; 30 = szybko rośnie koszt Gemini (max 50)\n" +
+          "• ai_enabled = 1 → AI weryfikuje zdjęcia dla niejasnych tytułów\n" +
           "• notify_threshold &lt; 5 = spam powiadomień (zakres 3–9.5)\n" +
           "• min_price &lt; 10 = tonę śmieciowych ofert (zakres 5–200)\n" +
-          "• Kolejka AI ma limit 100 — nadmiar jest odrzucany\n" +
           "• Wpisz /set żeby zobaczyć wszystkie limity",
         { parse_mode: "HTML" }
       );
@@ -457,7 +454,7 @@ export class TelegramAgent {
       `📊 Próbka: ${opts.sampleSize} ofert`,
       `🏷️ ${opts.brand ? escapeHtml(opts.brand) : "—"}`,
       ``,
-      `⚠️ <i>Alert bez AI — zweryfikuj ręcznie!</i>`,
+      `⚠️ <i>Instant alert — zweryfikuj ręcznie!</i>`,
     ].join("\n");
 
     const isFav = !!stmts.getFavoriteByVintedId.get({ vinted_id: opts.vintedId });

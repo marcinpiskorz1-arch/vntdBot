@@ -1,5 +1,73 @@
 import { SchemaType } from "@google/generative-ai";
 
+// ============================================================
+// Photo verification schema + prompt (multimodal — image + text)
+// ============================================================
+
+/** Structured output schema for photo verification — matches PhotoVerification interface */
+export const photoVerificationSchema = {
+  type: SchemaType.OBJECT,
+  properties: {
+    confirmed: {
+      type: SchemaType.BOOLEAN,
+      description:
+        "true = zdjęcie potwierdza że przedmiot jest warty podanej mediany (prawdziwy model/produkt marki premium). false = zdjęcie pokazuje tanie/generyczne/inne niż oczekiwane.",
+    },
+    identifiedModel: {
+      type: SchemaType.STRING,
+      description:
+        "Konkretny model zidentyfikowany ze zdjęcia, np. 'Nike Air Max 90', 'Jordan 1 Low', 'The North Face Nuptse 700'. Jeśli nie da się rozpoznać: 'nierozpoznany'.",
+    },
+    reason: {
+      type: SchemaType.STRING,
+      description:
+        "Krótkie uzasadnienie po polsku (1-2 zdania). Dlaczego potwierdzono/odrzucono.",
+    },
+  },
+  required: ["confirmed", "identifiedModel", "reason"],
+};
+
+/** System prompt for photo verification — focused, binary decision */
+export const verificationSystemPrompt = `Jesteś ekspertem od rozpoznawania produktów markowych ze zdjęć.
+Twoja rola: JEDNA RZECZ — zweryfikuj czy zdjęcie pokazuje przedmiot warty podanej mediany rynkowej.
+
+ZASADY:
+1. Tytuł oferty jest KRÓTKI/NIEJASNY — dlatego patrzysz na ZDJĘCIE.
+2. Zidentyfikuj KONKRETNY model ze zdjęcia (np. "Air Max 90", nie "buty Nike").
+3. confirmed = true TYLKO gdy zdjęcie JASNO pokazuje produkt premium warty mediany.
+4. confirmed = false gdy:
+   - Generyczny/tani przedmiot (basic t-shirt, zwykłe spodnie dresowe, no-name akcesoria)
+   - Nie da się rozpoznać modelu
+   - Podróbka (złe logo, zła czcionka, podejrzane detale)
+   - Przedmiot nie pasuje do marki/kategorii z tytułu
+   - Akcesoria/dodatki zamiast głównego produktu (sznurówki, wkładki, etui)
+5. Bądź SUROWY — lepiej odrzucić niż przepuścić junk.`;
+
+/**
+ * Build user prompt for photo verification of a single item.
+ */
+export function buildVerificationPrompt(
+  title: string,
+  brand: string,
+  price: number,
+  medianPrice: number,
+  condition: string,
+): string {
+  return `Zweryfikuj tę ofertę na podstawie ZDJĘCIA:
+
+TYTUŁ: ${title}
+MARKA: ${brand || "nieznana"}
+CENA: ${price} PLN
+MEDIANA RYNKOWA: ${medianPrice > 0 ? `${medianPrice} PLN` : "brak danych"}
+STAN: ${condition}
+
+Czy zdjęcie potwierdza że to przedmiot warty ~${medianPrice} PLN? Zidentyfikuj model.`;
+}
+
+// ============================================================
+// Full AI analysis schema + prompt (text-only, legacy)
+// ============================================================
+
 /**
  * Structured output schema for Gemini — must match AiAnalysis interface.
  * Uses SchemaType enum from @google/generative-ai (pattern from AiDevsPlayground).

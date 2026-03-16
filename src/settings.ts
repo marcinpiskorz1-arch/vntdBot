@@ -61,14 +61,11 @@ export const settings = {
   get minPrice(): number {
     return getNumber("min_price", 49);
   },
-  get aiLimit(): number {
-    return getNumber("ai_limit", 20);
+  get instantThreshold(): number {
+    return getNumber("instant_threshold", 60);
   },
   get dailyAiLimit(): number {
     return getNumber("daily_ai_limit", 100);
-  },
-  get instantThreshold(): number {
-    return getNumber("instant_threshold", 60);
   },
   get aiEnabled(): boolean {
     return getBool("ai_enabled", false);
@@ -88,7 +85,6 @@ export const settings = {
       hot_threshold: getNumber("hot_threshold", config.hotThreshold),
       hot_min_profit: getNumber("hot_min_profit", config.hotMinProfit),
       min_price: getNumber("min_price", 49),
-      ai_limit: getNumber("ai_limit", 20),
       daily_ai_limit: getNumber("daily_ai_limit", 100),
       instant_threshold: getNumber("instant_threshold", 60),
       min_profit: getNumber("min_profit", 50),
@@ -97,7 +93,7 @@ export const settings = {
   },
 
   /** List of valid setting keys for /set command */
-  VALID_KEYS: ["notify_threshold", "hot_threshold", "hot_min_profit", "min_price", "ai_limit", "daily_ai_limit", "instant_threshold", "min_profit", "ai_enabled"] as const,
+  VALID_KEYS: ["notify_threshold", "hot_threshold", "hot_min_profit", "min_price", "daily_ai_limit", "instant_threshold", "min_profit", "ai_enabled"] as const,
 
   /** Validation rules: min, max, description, warning */
   RULES: {
@@ -105,10 +101,9 @@ export const settings = {
     hot_threshold: { min: 7, max: 10, desc: "Próg score dla HOT deal", warn: "< 8 = za łatwo HOT, powinien być > notify_threshold" },
     hot_min_profit: { min: 10, max: 500, desc: "Min zysk (PLN) dla HOT", warn: "< 30 = HOT za tanio" },
     min_price: { min: 5, max: 200, desc: "Min cena oferty (PLN)", warn: "< 10 = dużo śmieci, > 50 = pominiesz tanie okazje" },
-    ai_limit: { min: 5, max: 50, desc: "Max analiz AI / cykl", warn: "> 30 = szybko rośnie koszt Gemini, kolejka max 100" },
-    daily_ai_limit: { min: 100, max: 5000, desc: "Twardy dzienny limit wywołań AI", warn: "< 200 = mało analiz, > 2000 = drogo (~5-10 PLN/dzień)" },
-    instant_threshold: { min: 40, max: 90, desc: "Min % zniżki do instant alertu (bez AI)", warn: "< 50 = dużo fałszywych, > 80 = prawie nic nie przejdzie" },
+    daily_ai_limit: { min: 50, max: 5000, desc: "Twardy dzienny limit weryfikacji AI", warn: "< 100 = mało weryfikacji, > 1000 = drogo" },
+    instant_threshold: { min: 40, max: 90, desc: "Min % zniżki do instant alertu", warn: "< 50 = dużo fałszywych, > 80 = prawie nic nie przejdzie" },
     min_profit: { min: 10, max: 200, desc: "Min zysk (PLN) żeby powiadomić", warn: "< 20 = powiadomienia za tanio, > 100 = pominiesz dobre deale" },
-    ai_enabled: { min: 0, max: 1, desc: "Hybrid: AI dla wątpliwych (0=tylko reguły, 1=reguły+AI)", warn: "1 = ~50-100 AI/dzień, wymaga GEMINI_API_KEY" },
+    ai_enabled: { min: 0, max: 1, desc: "AI photo verify dla niejasnych tytułów (0=wył., 1=wł.)", warn: "1 = weryfikacja zdjęć dla krótkich tytułów, wymaga GEMINI_API_KEY" },
   } as Record<string, { min: number; max: number; desc: string; warn: string }>,
 };

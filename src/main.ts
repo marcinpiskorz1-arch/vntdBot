@@ -17,7 +17,7 @@ import { AiAnalystAgent } from "./agents/ai-analyst/index.js";
 import { DecisionAgent } from "./agents/decision/index.js";
 import { TelegramAgent } from "./agents/telegram/index.js";
 import { escapeHtml } from "./agents/telegram/formatters.js";
-import { getBrandTier, needsAiReview } from "./agents/decision/rule-scoring.js";
+import { needsPhotoVerification } from "./agents/decision/rule-scoring.js";
 
 // ============================================================
 // Initialize agents
@@ -64,37 +64,6 @@ function buildScanLists() {
 // Alias for brevity — botState.stats is the shared stats object
 const stats = botState.stats;
 
-/** Enqueue items to persistent AI queue (survives restarts) */
-function enqueueToAi(items: Array<[import("./types.js").RawItem, import("./types.js").PriceSignal]>): void {
-  // Cap queue size to prevent unbounded growth (old items become stale anyway)
-  const MAX_QUEUE = 100;
-  const currentSize = getAiQueueCount();
-  if (currentSize >= MAX_QUEUE) {
-    logger.warn({ currentSize, dropped: items.length }, "AI queue full, dropping new items");
-    return;
-  }
-  const spaceLeft = MAX_QUEUE - currentSize;
-  const toEnqueue = items.slice(0, spaceLeft);
-  for (const [item, signal] of toEnqueue) {
-    stmts.enqueueAi.run({
-      vinted_id: item.vintedId,
-      item_json: JSON.stringify(item),
-      signal_json: JSON.stringify(signal),
-      discount_pct: signal.discountPct,
-    });
-  }
-}
-
-/** Dequeue items from persistent AI queue */
-function dequeueFromAi(limit: number): Array<[import("./types.js").RawItem, import("./types.js").PriceSignal, number]> {
-  const rows = stmts.dequeueAi.all({ limit }) as { id: number; item_json: string; signal_json: string }[];
-  return rows.map(r => [JSON.parse(r.item_json), JSON.parse(r.signal_json), r.id]);
-}
-
-function getAiQueueCount(): number {
-  return (stmts.countAiQueue.get() as { count: number }).count;
-}
-
 function resetStats() {
   stats.cycles = 0;
   stats.scanned = 0;
@@ -136,7 +105,7 @@ async function runPipeline(): Promise<void> {
     let totalUnderpriced = 0;
     let notifiedCount = 0;
     let analyzedCount = 0;
-    const aiCandidates: Array<[import("./types.js").RawItem, import("./types.js").PriceSignal]> = [];
+    const photoVerifyCandidates: Array<[import("./types.js").RawItem, import("./types.js").PriceSignal, import("./types.js").Decision]> = [];
 
     // Process items immediately as each scan batch arrives
     const processBatch = async (newItems: import("./types.js").RawItem[]): Promise<void> => {
@@ -190,12 +159,12 @@ async function runPipeline(): Promise<void> {
         const result = decision.decideWithRules(item, signal);
         analyzedCount++;
         if (result.level !== "ignore") {
-          await telegram.notify(result);
-          notifiedCount++;
-        } else if (settings.aiEnabled) {
-          const brandTier = getBrandTier(item.brand).tier;
-          if (needsAiReview(result, signal, brandTier, settings.minProfitToNotify)) {
-            aiCandidates.push([item, signal]);
+          // Items with vague titles + high score → queue for AI photo verification
+          if (settings.aiEnabled && needsPhotoVerification(item.title, result.score)) {
+            photoVerifyCandidates.push([item, signal, result]);
+          } else {
+            await telegram.notify(result);
+            notifiedCount++;
           }
         }
       }
@@ -212,55 +181,26 @@ async function runPipeline(): Promise<void> {
       logger.info({
         analyzed: analyzedCount,
         notified: notifiedCount,
-        aiCandidates: aiCandidates.length,
+        photoVerify: photoVerifyCandidates.length,
       }, "📊 Rule-based scoring done");
     }
 
     // ============================================================
-    // AI review for uncertain items (hybrid mode)
+    // AI photo verification for vague-title items
     // ============================================================
-    if (aiCandidates.length > 0) {
-      enqueueToAi(aiCandidates);
-      logger.info({ count: aiCandidates.length }, "🧠 Uncertain items queued for AI review");
-    }
-
-    if (settings.aiEnabled) {
-      const MAX_AI_PER_CYCLE = settings.aiLimit;
-      const queued = dequeueFromAi(MAX_AI_PER_CYCLE);
-
-      if (queued.length > 0) {
-        const today = new Date().toISOString().slice(0, 10);
-        if (botState.daily.date !== today) {
-          botState.daily.aiCalls = 0;
-          botState.daily.date = today;
-        }
-        if (botState.daily.aiCalls >= settings.dailyAiLimit) {
-          logger.warn({ dailyCalls: botState.daily.aiCalls, limit: settings.dailyAiLimit }, "🛑 Daily AI limit reached");
-          if (!botState._dailyLimitAlerted) {
-            botState._dailyLimitAlerted = true;
-            await telegram.sendMessage(`🛑 Dzienny limit AI osiągnięty (${botState.daily.aiCalls}/${settings.dailyAiLimit}).`).catch(() => {});
-          }
+    if (photoVerifyCandidates.length > 0 && settings.aiEnabled) {
+      logger.info({ count: photoVerifyCandidates.length }, "📸 Verifying vague-title items with AI photo check...");
+      for (const [item, signal, ruleDecision] of photoVerifyCandidates) {
+        const verification = await aiAnalyst.verifyWithPhoto(item, signal);
+        stats.aiAnalyzed++;
+        if (verification.confirmed) {
+          // AI confirmed — enrich reasons and notify
+          ruleDecision.reasons.push(`📸 AI: ${verification.identifiedModel} — ${verification.reason}`);
+          await telegram.notify(ruleDecision);
+          notifiedCount++;
+          logger.info({ item: item.vintedId, model: verification.identifiedModel }, "✅ AI confirmed deal");
         } else {
-          if (botState._dailyLimitAlerted && botState.daily.aiCalls === 0) {
-            botState._dailyLimitAlerted = false;
-          }
-          const remainingInQueue = getAiQueueCount();
-          logger.info({ count: queued.length, queued: remainingInQueue }, "🧠 AI reviewing uncertain items...");
-          const toAnalyze: Array<[import("./types.js").RawItem, import("./types.js").PriceSignal]> = queued.map(([item, signal]) => [item, signal]);
-          const analyzed = await aiAnalyst.analyzeAll(toAnalyze);
-
-          for (const [,, dbId] of queued) {
-            stmts.removeFromAiQueue.run({ id: dbId });
-          }
-
-          for (const [item, signal, ai] of analyzed) {
-            const result = decision.decide(item, signal, ai);
-            analyzedCount++;
-            if (result.level !== "ignore") {
-              await telegram.notify(result);
-              notifiedCount++;
-            }
-          }
+          logger.info({ item: item.vintedId, model: verification.identifiedModel, reason: verification.reason }, "❌ AI rejected — junk");
         }
       }
     }
@@ -298,7 +238,6 @@ async function runPipeline(): Promise<void> {
       .catch(() => {});
   } finally {
     botState.isRunning = false;
-    botState.aiQueueLength = getAiQueueCount();
   }
 }
 
@@ -316,15 +255,8 @@ async function main(): Promise<void> {
     intervalMs: config.scanIntervalMs,
     threshold: config.dealThreshold,
     proxies: config.proxyUrls.length,
-    scoring: settings.aiEnabled ? "hybrid (reguły + AI)" : "rule-based",
+    scoring: settings.aiEnabled ? "reguły + AI photo verify" : "rule-based",
   }, "Configuration loaded");
-
-  // Check for items left in persistent AI queue from previous run
-  const pendingAi = getAiQueueCount();
-  if (pendingAi > 0 && settings.aiEnabled) {
-    logger.info({ pending: pendingAi }, "📋 Found items in persistent AI queue from previous run — will process this cycle");
-  }
-  botState.aiQueueLength = pendingAi;
 
   // Start Telegram bot (listens for commands + button callbacks)
   await telegram.start();
@@ -353,8 +285,7 @@ async function main(): Promise<void> {
   let lastHeartbeat = Date.now();
   cron.schedule("0 * * * *", () => {
     const uptime = Math.round((Date.now() - lastHeartbeat) / 60000);
-    const aiQueueCount = getAiQueueCount();
-    const msg = buildHeartbeatMessage({ uptime, aiQueueCount });
+    const msg = buildHeartbeatMessage({ uptime });
     telegram.sendMessage(msg).catch(() => {});
     stmts.insertHeartbeat.run({
       cycles: stats.cycles,
@@ -364,7 +295,7 @@ async function main(): Promise<void> {
       ai_analyzed: stats.aiAnalyzed,
       notified: stats.notified,
       errors: stats.errors,
-      ai_queue: getAiQueueCount(),
+      ai_queue: 0,
       period_min: uptime,
     });
     resetStats();

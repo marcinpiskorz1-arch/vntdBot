@@ -5,7 +5,6 @@
 export const botState = {
   cycleCount: 0,
   isRunning: false,
-  aiQueueLength: 0,
 
   totalQueries: 0,
   priorityQueries: 0,

@@ -232,26 +232,19 @@ export function computeRuleScore(
 }
 
 // ============================================================
-// AI review detection — which items should go to Gemini
+// Photo verification detection — vague titles need AI with vision
 // ============================================================
 
-const AI_REVIEW_MIN_SCORE = 4.0;
-const AI_REVIEW_MAX_SCORE = 5.9;
+const PHOTO_VERIFY_MIN_SCORE = 6.0;
+const MAX_TITLE_WORDS = 3;
 
-export function needsAiReview(
-  result: { score: number; level: string; ai: AiAnalysis } | RuleScoreResult,
-  pricing: PriceSignal,
-  brandTier: string,
-  minProfit: number,
-): boolean {
-  if (result.level !== "ignore") return false;
-  if (result.score < AI_REVIEW_MIN_SCORE) return false;
-  if (result.score > AI_REVIEW_MAX_SCORE) return false;
-  const profit = "syntheticAi" in result ? result.syntheticAi.estimatedProfit : result.ai.estimatedProfit;
-  if (profit < minProfit) return false;
-
-  const lowSamples = pricing.sampleSize < 10;
-  const unknownBrand = brandTier === "budget" || brandTier === "unknown";
-
-  return lowSamples || unknownBrand;
+/**
+ * Items that scored well but have vague/short titles need AI photo verification.
+ * Only triggers for items ≥ 6 (notify threshold) with < 3 words in the title.
+ * This keeps AI calls very rare but catches junk with generic titles like "Nike", "Jordan buty".
+ */
+export function needsPhotoVerification(title: string, score: number): boolean {
+  if (score < PHOTO_VERIFY_MIN_SCORE) return false;
+  const wordCount = title.trim().split(/\s+/).filter(Boolean).length;
+  return wordCount < MAX_TITLE_WORDS;
 }

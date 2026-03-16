@@ -63,6 +63,13 @@ export interface Decision {
   ai: AiAnalysis;
 }
 
+/** AI photo verification — binary confirm/reject with model identification */
+export interface PhotoVerification {
+  confirmed: boolean;
+  identifiedModel: string;
+  reason: string;
+}
+
 /** Telegram formatting: pre-sformatowany payload */
 export interface NotificationPayload {
   photoUrl: string;

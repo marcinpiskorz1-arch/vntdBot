@@ -8,7 +8,7 @@ import {
   getSellerBonus,
   calculateProfit,
   computeRuleScore,
-  needsAiReview,
+  needsPhotoVerification,
   type RuleScoreConfig,
   type RuleScoreResult,
 } from "../src/agents/decision/rule-scoring.js";
@@ -234,62 +234,46 @@ describe("computeRuleScore", () => {
 });
 
 // ============================================================
-// AI review detection
+// Photo verification detection
 // ============================================================
-describe("needsAiReview", () => {
-  it("returns false when rules already passed (notify)", () => {
-    const result: RuleScoreResult = {
-      score: 7.0, level: "notify", reasons: [],
-      syntheticAi: mockAi({ estimatedProfit: 80 }),
-    };
-    expect(needsAiReview(result, mockSignal({ sampleSize: 5 }), "premium", 50)).toBe(false);
+describe("needsPhotoVerification", () => {
+  it("returns true for short title (1 word) with high score", () => {
+    expect(needsPhotoVerification("Nike", 7.5)).toBe(true);
   });
 
-  it("returns true for borderline score + low samples + profit >= minProfit", () => {
-    const result: RuleScoreResult = {
-      score: 5.0, level: "ignore", reasons: [],
-      syntheticAi: mockAi({ estimatedProfit: 60 }),
-    };
-    expect(needsAiReview(result, mockSignal({ sampleSize: 5 }), "premium", 50)).toBe(true);
+  it("returns true for 2-word title with high score", () => {
+    expect(needsPhotoVerification("Jordan buty", 8.0)).toBe(true);
   });
 
-  it("returns true for borderline score + unknown brand", () => {
-    const result: RuleScoreResult = {
-      score: 4.5, level: "ignore", reasons: [],
-      syntheticAi: mockAi({ estimatedProfit: 55 }),
-    };
-    expect(needsAiReview(result, mockSignal({ sampleSize: 30 }), "budget", 50)).toBe(true);
+  it("returns false for 3-word title (clear enough)", () => {
+    expect(needsPhotoVerification("Adidas nowe skor", 7.0)).toBe(false);
   });
 
-  it("returns false when score too low", () => {
-    const result: RuleScoreResult = {
-      score: 3.0, level: "ignore", reasons: [],
-      syntheticAi: mockAi({ estimatedProfit: 80 }),
-    };
-    expect(needsAiReview(result, mockSignal({ sampleSize: 5 }), "budget", 50)).toBe(false);
+  it("returns false for 4+ word title (clear enough)", () => {
+    expect(needsPhotoVerification("Nike Air Max 90", 8.0)).toBe(false);
   });
 
-  it("returns false when profit below minProfit", () => {
-    const result: RuleScoreResult = {
-      score: 5.0, level: "ignore", reasons: [],
-      syntheticAi: mockAi({ estimatedProfit: 40 }),
-    };
-    expect(needsAiReview(result, mockSignal({ sampleSize: 5 }), "budget", 50)).toBe(false);
+  it("returns false for long descriptive title", () => {
+    expect(needsPhotoVerification("The North Face kurtka puchowa M", 9.0)).toBe(false);
   });
 
-  it("returns false when premium brand + enough samples", () => {
-    const result: RuleScoreResult = {
-      score: 5.0, level: "ignore", reasons: [],
-      syntheticAi: mockAi({ estimatedProfit: 60 }),
-    };
-    expect(needsAiReview(result, mockSignal({ sampleSize: 30 }), "premium", 50)).toBe(false);
+  it("returns false when score below 6", () => {
+    expect(needsPhotoVerification("Nike", 5.9)).toBe(false);
   });
 
-  it("works with Decision-shaped object (ai instead of syntheticAi)", () => {
-    const result = {
-      score: 5.0, level: "ignore" as const, reasons: [],
-      ai: mockAi({ estimatedProfit: 60 }),
-    };
-    expect(needsAiReview(result, mockSignal({ sampleSize: 5 }), "premium", 50)).toBe(true);
+  it("returns true when score is exactly 6", () => {
+    expect(needsPhotoVerification("Nike", 6.0)).toBe(true);
+  });
+
+  it("returns false when score is 0", () => {
+    expect(needsPhotoVerification("Nike", 0)).toBe(false);
+  });
+
+  it("handles empty title", () => {
+    expect(needsPhotoVerification("", 8.0)).toBe(true);
+  });
+
+  it("handles whitespace-padded title", () => {
+    expect(needsPhotoVerification("  Nike  ", 7.5)).toBe(true);
   });
 });

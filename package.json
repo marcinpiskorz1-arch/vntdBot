@@ -1,7 +1,7 @@
 {
   "name": "vinted-bot",
   "version": "0.1.0",
-  "description": "AI-Powered Vinted Deal Sniper — Gemini + Playwright + Telegram",
+  "description": "Vinted/OLX Deal Sniper — Rule-based scoring + AI photo verification + Telegram",
   "type": "module",
   "scripts": {
     "dev": "tsx src/main.ts",

@@ -33,3 +33,16 @@ export function getStructuredModel(responseSchema: Record<string, unknown>) {
     },
   });
 }
+
+/**
+ * Gemini model for multimodal photo verification (image + text → structured JSON).
+ */
+export function getMultimodalModel(responseSchema: Record<string, unknown>) {
+  return getGenAI().getGenerativeModel({
+    model: config.geminiModel,
+    generationConfig: {
+      responseMimeType: "application/json",
+      responseSchema: responseSchema as never,
+    },
+  });
+}

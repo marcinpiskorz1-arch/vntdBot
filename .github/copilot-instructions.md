@@ -125,7 +125,7 @@ export function computeScore(item: RawItem, signal: PriceSignal): ScoreResult {
 - API calls: `try/catch`, log error, increment `botState.stats.errors`, continue pipeline
 - DB operations: prepared statements handle most errors; migrations use `try/catch` pattern
 - Telegram: fallback to text-only if photo fails, never crash the bot
-- AI: return conservative fallback `AiAnalysis` on failure, never block the pipeline
+- AI: return conservative fallback (confirmed=true) on photo verification failure, never block the pipeline
 - **Never** let a single item error crash the entire scan cycle
 
 ## 9. Performance Rules
@@ -149,8 +149,8 @@ src/main.ts              — Pipeline orchestrator (DO NOT put business logic he
 src/config.ts            — Static env config (immutable after startup)
 src/settings.ts          — Dynamic DB-backed settings (changeable at runtime)
 src/database.ts          — Schema, migrations, all prepared statements
-src/types.ts             — Shared interfaces (RawItem, PriceSignal, AiAnalysis, Decision, etc.)
-src/filters.ts           — Pure filter predicates (kids, hats, condition, pickup)
+src/types.ts             — Shared interfaces (RawItem, PriceSignal, AiAnalysis, PhotoVerification, Decision, etc.)
+src/filters.ts           — Pure filter predicates (kids, hats, condition, pickup, damaged)
 src/heartbeat.ts         — Heartbeat message builder (pure function)
 src/data/scan-configs.ts — Hardcoded search queries with optional categoryIds
 src/agents/              — One directory per agent, index.ts + helpers
