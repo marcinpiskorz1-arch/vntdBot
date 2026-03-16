@@ -210,6 +210,7 @@ describe("isNotJunk", () => {
     expect(isNotJunk(mockItem({ title: "iPhone tok szilikon" }))).toBe(false);
     expect(isNotJunk(mockItem({ title: "Huse Samsung Galaxy" }))).toBe(false);
     expect(isNotJunk(mockItem({ title: "Osłona na telefon" }))).toBe(false);
+    expect(isNotJunk(mockItem({ title: "Originalni apple silikonovy kryt iPhone 16 Plus" }))).toBe(false);
   });
 
   it("filters foreign-language clothing junk", () => {

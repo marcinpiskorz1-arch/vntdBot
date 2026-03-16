@@ -10,7 +10,7 @@ const SHOES_PATTERN = /(?:^|[\s,;(\/-])(buty|but[iy]|shoe|shoes|sneaker|sneakers
 
 const JACKET_PATTERN = /(?:^|[\s,;(\/-])(kurtk[aięy]|jacket|jackets|parka|parki|coat|p[łl]aszcz|anorak|windbreaker|wiatr[oó]wk|puchówk|puffer|down jacket|softshell|hardshell|alpha sv|alpha ar|beta lt|beta ar|nuptse|1996|retro-?x|denali|atom lt|atom ar|cerium|nano puff|bundy?|bunda|veste|Jacke|giacca|chaqueta|jas|jacka|takki|doudoune)/i;
 
-const TOP_PATTERN = /(?:^|[\s,;(\/-])(koszulk[aięy]|t-?shirt|tshirt|tee|bluz[aęky]|blouse|hoodie|sweatshirt|bluza|polar|fleece|longsleeve|long sleeve|sweater|sweter|pullover|polo|tank top|kamizelk[aięy]|vest|crop top|crewneck|crew neck|triko|tričko|mikina|maglia|camiseta|camisa|chemise|Hemd|overhemd|tröja|paita|shirt)/i;
+const TOP_PATTERN = /(?:^|[\s,;(\/-])(top[y]?(?:\s|$)|tank(?:\s|$)|koszulk[aięy]|t-?shirt|tshirt|tee(?:\s|$)|bluz[aęky]|blouse|hoodie|sweatshirt|bluza|polar|fleece|longsleeve|long sleeve|sweater|sweter|jumper|pullover|polo|tank top|kamizelk[aięy]|vest|crop top|crewneck|crew neck|triko|tričko|mikina|maglia|camiseta|camisa|chemise|Hemd|overhemd|tröja|paita|shirt)/i;
 
 const PANTS_PATTERN = /(?:^|[\s,;(\/-])(spodnie|spodni|pants|trousers|jeans|dżinsy|shorts|szorty|kr[oó]tkie|legginsy|leggings|jogger|cargo|chinosy|chinos|kalhoty|nohavice|pantalon|Hose|pantaloni|pantalones|broek|byxor|housut)/i;
 
@@ -37,4 +37,43 @@ export function classifyItemType(title: string): ItemType {
   // Top last — many vague titles contain "shirt" in brand model names
   if (TOP_PATTERN.test(title)) return "top";
   return "";
+}
+
+// ============================================================
+// Brand-specific item type restrictions.
+// Only these item types are worth notifying for each brand group.
+// ============================================================
+
+/** Brands where ONLY shoes have real resale value */
+const SHOES_ONLY_BRANDS = new Set([
+  "jordan", "air jordan", "nike sb", "asics", "new balance",
+  "vans", "converse", "on running", "hoka", "saucony", "brooks",
+  "dc shoes", "merrell", "lowa", "meindl", "scarpa", "la sportiva",
+]);
+
+/** Brands where only shoes + jackets + bags have resale value */
+const SHOES_JACKETS_BAGS_BRANDS = new Set([
+  "arc'teryx", "arcteryx", "patagonia", "the north face",
+  "mammut", "salewa", "salomon", "norrøna", "haglöfs",
+  "canada goose", "fjallraven", "fjällräven",
+]);
+
+/**
+ * Check if a brand + item type combination is worth notifying.
+ * Returns true if the item should pass through, false if it should be blocked.
+ * Brands not in any restriction set always pass.
+ */
+export function isBrandTypeWorthNotifying(brand: string, itemType: ItemType): boolean {
+  const b = brand.toLowerCase().trim();
+  if (!b || !itemType) return true; // unknown brand or type — let through
+
+  if (SHOES_ONLY_BRANDS.has(b)) {
+    return itemType === "shoes";
+  }
+
+  if (SHOES_JACKETS_BAGS_BRANDS.has(b)) {
+    return itemType === "shoes" || itemType === "jacket" || itemType === "bag";
+  }
+
+  return true;
 }

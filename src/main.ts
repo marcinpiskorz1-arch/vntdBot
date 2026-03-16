@@ -18,6 +18,10 @@ import { DecisionAgent } from "./agents/decision/index.js";
 import { TelegramAgent } from "./agents/telegram/index.js";
 import { escapeHtml } from "./agents/telegram/formatters.js";
 import { needsPhotoVerification, getBrandTier } from "./agents/decision/rule-scoring.js";
+import { classifyItemType, isBrandTypeWorthNotifying } from "./item-classifier.js";
+
+// Item types that should never trigger instant alerts (low resale value)
+const LOW_VALUE_TYPES = new Set(["top", "pants", "headwear", "accessory"]);
 
 // ============================================================
 // Initialize agents
@@ -135,10 +139,13 @@ async function runPipeline(): Promise<void> {
       const instantIds = new Set<string>();
       const instantItems = underpriced.filter(([item, signal]) => {
         const tier = getBrandTier(item.brand).tier;
+        const itemType = classifyItemType(item.title);
         return signal.discountPct >= INSTANT_DISCOUNT &&
           signal.sampleSize >= INSTANT_MIN_SAMPLE &&
           item.price >= INSTANT_MIN_PRICE &&
-          (tier === "premium" || tier === "mid");
+          (tier === "premium" || tier === "mid") &&
+          !LOW_VALUE_TYPES.has(itemType) &&
+          isBrandTypeWorthNotifying(item.brand, itemType);
       });
       for (const [item, signal] of instantItems) {
         instantIds.add(item.vintedId);
@@ -158,6 +165,11 @@ async function runPipeline(): Promise<void> {
       // RULE-BASED SCORING — skip items already sent as instant alerts
       for (const [item, signal] of underpriced) {
         if (instantIds.has(item.vintedId)) continue;
+
+        // Skip items that don't match brand's worthwhile item types
+        const itemType = classifyItemType(item.title);
+        if (!isBrandTypeWorthNotifying(item.brand, itemType)) continue;
+
         const result = decision.decideWithRules(item, signal);
         analyzedCount++;
         if (result.level !== "ignore") {

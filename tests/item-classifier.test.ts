@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { classifyItemType } from "../src/item-classifier.js";
+import { classifyItemType, isBrandTypeWorthNotifying } from "../src/item-classifier.js";
 
 describe("classifyItemType", () => {
   // ============================================================
@@ -54,6 +54,10 @@ describe("classifyItemType", () => {
     "Salomon polo shirt",
     "Carhartt WIP sweatshirt",
     "Arc'teryx bluzka sportowa",
+    "Top sportowy damski Arc'teryx navy granatowy S sport fitness gym",
+    "Radiation tee jbj",
+    "Arc'teryx Taema Tank",
+    "Vintage Diesel Jumper Crewneck Sweater",
   ])("classifies tops: %s", (title) => {
     expect(classifyItemType(title)).toBe("top");
   });
@@ -95,5 +99,63 @@ describe("classifyItemType", () => {
     "Supreme Logo",
   ])("returns empty for ambiguous: %s", (title) => {
     expect(classifyItemType(title)).toBe("");
+  });
+});
+
+// ============================================================
+// isBrandTypeWorthNotifying
+// ============================================================
+describe("isBrandTypeWorthNotifying", () => {
+  // Shoes-only brands
+  it("allows Jordan shoes", () => {
+    expect(isBrandTypeWorthNotifying("Jordan", "shoes")).toBe(true);
+  });
+  it("blocks Jordan tops", () => {
+    expect(isBrandTypeWorthNotifying("Jordan", "top")).toBe(false);
+  });
+  it("blocks Jordan pants", () => {
+    expect(isBrandTypeWorthNotifying("Jordan", "pants")).toBe(false);
+  });
+  it("blocks Asics tops", () => {
+    expect(isBrandTypeWorthNotifying("Asics", "top")).toBe(false);
+  });
+  it("allows New Balance shoes", () => {
+    expect(isBrandTypeWorthNotifying("New Balance", "shoes")).toBe(true);
+  });
+
+  // Shoes+jackets+bags brands
+  it("allows Arc'teryx jackets", () => {
+    expect(isBrandTypeWorthNotifying("Arc'teryx", "jacket")).toBe(true);
+  });
+  it("allows Arc'teryx shoes", () => {
+    expect(isBrandTypeWorthNotifying("Arc'teryx", "shoes")).toBe(true);
+  });
+  it("blocks Arc'teryx tops", () => {
+    expect(isBrandTypeWorthNotifying("Arc'teryx", "top")).toBe(false);
+  });
+  it("blocks Patagonia pants", () => {
+    expect(isBrandTypeWorthNotifying("Patagonia", "pants")).toBe(false);
+  });
+  it("allows Patagonia bags", () => {
+    expect(isBrandTypeWorthNotifying("Patagonia", "bag")).toBe(true);
+  });
+  it("blocks Salomon tops", () => {
+    expect(isBrandTypeWorthNotifying("Salomon", "top")).toBe(false);
+  });
+
+  // Unrestricted brands
+  it("allows Supreme tops", () => {
+    expect(isBrandTypeWorthNotifying("Supreme", "top")).toBe(true);
+  });
+  it("allows Nike everything", () => {
+    expect(isBrandTypeWorthNotifying("Nike", "top")).toBe(true);
+  });
+
+  // Unknown brand or type → pass through
+  it("allows unknown brand", () => {
+    expect(isBrandTypeWorthNotifying("RandomBrand", "top")).toBe(true);
+  });
+  it("allows empty item type", () => {
+    expect(isBrandTypeWorthNotifying("Arc'teryx", "")).toBe(true);
   });
 });
