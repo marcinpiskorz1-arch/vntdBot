@@ -68,7 +68,7 @@ export const settings = {
     return getNumber("daily_ai_limit", 100);
   },
   get aiEnabled(): boolean {
-    return getBool("ai_enabled", false);
+    return getBool("ai_enabled", true);
   },
   set aiEnabled(v: boolean) {
     set("ai_enabled", v ? "1" : "0");
@@ -88,7 +88,7 @@ export const settings = {
       daily_ai_limit: getNumber("daily_ai_limit", 100),
       instant_threshold: getNumber("instant_threshold", 60),
       min_profit: getNumber("min_profit", 50),
-      ai_enabled: getBool("ai_enabled", false),
+      ai_enabled: getBool("ai_enabled", true),
     };
   },
 

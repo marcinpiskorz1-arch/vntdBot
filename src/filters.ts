@@ -14,7 +14,19 @@ const BAD_CONDITION = /zadowalaj|satisf|słaby|poor|accep|(?<!bardzo )dobr|(?<!v
 const PICKUP_ONLY = /(?:^|\b)(tylko odbio|odbi[oó]r osobi|nie wysy[łl]am|osobisty odbio)/i;
 
 // Accessories & junk — cases, covers, cables, straps, instructions, socks, etc.
-const JUNK_KEYWORDS = /(?:^|[\s,;(\/-])(cases?|etui|covers?|pokrowiec|obudowa|foli[aę]|szkie[łl]ko|tempered|screen protector|h[üu]lle|schutzh[üu]lle|custodia|funda|coque|naklejk[aię]|skin|sticker|wk[łl]adk[aię]|grip|saszetk[aię]|kabel|cabl[eo]|[łl]adowark|charger|adapter|przej[sś]ci[oó]wk|strap|pasek do|band do|watch band|remie[nń]|instrukcj[aię]|manual|booklet|box only|pude[łl]ko|insole|wk[łl]adk[aię] do but|skarpet[kiy]|socks|bielizn|underwear|boxer|brelok|breloczek|keychain|lanyard|smycz|naszywk|patch|sznur[oó]wk|laces|kryt na mobil|belt)/i;
+const JUNK_KEYWORDS = /(?:^|[\s,;(\/-])(cases?|etui|covers?|pokrowiec|obudowa|foli[aę]|szkie[łl]ko|tempered|screen protector|h[üu]lle|schutzh[üu]lle|custodia|funda|coque|naklejk[aię]|skin|sticker|wk[łl]adk[aię]|grip|saszetk[aię]|kabel|cabl[eo]|[łl]adowark|charger|adapter|przej[sś]ci[oó]wk|strap|pasek do|band do|watch band|remie[nń]|instrukcj[aię]|manual|booklet|box only|pude[łl]ko|insole|wk[łl]adk[aię] do but|skarpet[kiy]|socks|bielizn|underwear|boxer|brelok|breloczek|keychain|lanyard|smycz|naszywk|patch|sznur[oó]wk|laces|kryt na mobil|belt|d[eé]kliukas|obal|tok|huse|os[łl]on[aę]|majic[ae]|trik[oó]|majtek|majtk[iy]|kalhotk|krabičk[auy]|krabice|pulóver)/i;
+
+// Women's bags & purses
+const WOMENS_BAG_KEYWORDS = /(?:^|[\s,;(])(torebk[aię]|torebka damska|damska torebka|purse|handbag|clutch|women'?s bag)/i;
+
+// Car/vehicle/industrial parts — not resellable on Vinted profitably
+const VEHICLE_PARTS_KEYWORDS = /(?:^|[\s,;(])(halogen|tarcza hamulcow|klocki hamulcow|dekiel|pokrywa silnik|komputer .{0,20}(audi|bmw|vw|opel|ford|fiat|renault|peugeot|mercedes|volvo|toyota|honda|hyundai|kia|skoda|seat|citroen)|cz[ęe][sś]ci (samochod|motocykl|auto)|alternator|rozrusznik|siedzenie .{0,30}(traktor|kosiark|ci[aą]gnik|w[oó]zek wid[łl]owy)|cz[ęe][sś][cć] (do|samochodow)|lampa (przednia|tylna)|zderzak|b[łl]otnik|lusterko .{0,15}(boczne|zewn)|maska (silnika|samochod)|felg[aię]|opona|hamulce|sprz[ęe]g[łl]o|amortyzator|wahacz|zwrotnica|ło[żz]ysko|tuleja|uszczelk[aięy])/i;
+
+// Single/broken/defective items — only one earphone, exchange for working, etc.
+const SINGLE_BROKEN_KEYWORDS = /(?:^|[\s,;(])(1x s[łl]uchawk|jedna s[łl]uchawk|jedno s[łl]uchawk|single (earphone|earbud|airpod)|jeden (airpod|s[łl]uchawk)|lev[áa] sl[úu]ch[aá]|prav[áa] sl[úu]ch[aá]|left (airpod|earbud)|right (airpod|earbud)|only (one|left|right)|wymian[aę] uszkodzon|wymiana .{0,20}na (dobr|sprawn|now)|exchange .{0,15}(defective|broken|damaged)|defektivn|pokryw[aę] (ba|osło)|osłon[aę]|jedną? sztuk)/i;
+
+// Tools, industrial equipment, random hardware junk
+const HARDWARE_JUNK = /(?:^|[\s,;(])(magnes z wy[łl][aą]cznikiem|lina jutow|sznur|[łl]a[nń]cuch|zestaw do ci[eę]ci|no[żz]yce do|wiertark|szlifierk|spawark|kompresor|podno[sś]nik|klucz udarow|pi[łl]a |pi[łl]ark|kosiark[aię]|dmuchaw|odkurzacz przemy|agregat|pami[ęe][cć] ram|ddr[345]|dimm|sodimm|ram .{0,10}\d+\s*gb|joy-?con|joycon)/i;
 
 /** Keep items above minimum price */
 export function isAboveMinPrice(item: RawItem, minPrice: number): boolean {
@@ -50,8 +62,32 @@ export function isShippable(item: RawItem): boolean {
 
 /** Filter out low-value accessories & junk (cases, cables, straps, socks, etc.) */
 export function isNotJunk(item: RawItem): boolean {
-  const text = `${item.title} ${item.category}`;
+  const text = `${item.title} ${item.description} ${item.category}`;
   return !JUNK_KEYWORDS.test(text);
+}
+
+/** Filter out women's bags & purses */
+export function isNotWomensBag(item: RawItem): boolean {
+  const text = `${item.title} ${item.description} ${item.category}`;
+  return !WOMENS_BAG_KEYWORDS.test(text);
+}
+
+/** Filter out car/vehicle/industrial parts */
+export function isNotVehiclePart(item: RawItem): boolean {
+  const text = `${item.title} ${item.description} ${item.category}`;
+  return !VEHICLE_PARTS_KEYWORDS.test(text);
+}
+
+/** Filter out single/broken/defective items (one AirPod, exchange for working, etc.) */
+export function isNotSingleOrBroken(item: RawItem): boolean {
+  const text = `${item.title} ${item.description}`;
+  return !SINGLE_BROKEN_KEYWORDS.test(text);
+}
+
+/** Filter out tools, industrial equipment, RAM, joycons, random hardware */
+export function isNotHardwareJunk(item: RawItem): boolean {
+  const text = `${item.title} ${item.description}`;
+  return !HARDWARE_JUNK.test(text);
 }
 
 export interface FilterResult {
@@ -63,6 +99,10 @@ export interface FilterResult {
     hats: number;
     badCondition: number;
     junk: number;
+    womensBags: number;
+    vehicleParts: number;
+    singleBroken: number;
+    hardwareJunk: number;
     pickupOnly: number;
   };
 }
@@ -74,7 +114,11 @@ export function filterItems(items: RawItem[], minPrice: number): FilterResult {
   const noHats = noKids.filter(isNotHat);
   const goodCondition = noHats.filter(isGoodCondition);
   const noJunk = goodCondition.filter(isNotJunk);
-  const shippable = noJunk.filter(isShippable);
+  const noWomensBags = noJunk.filter(isNotWomensBag);
+  const noVehicleParts = noWomensBags.filter(isNotVehiclePart);
+  const noSingleBroken = noVehicleParts.filter(isNotSingleOrBroken);
+  const noHardwareJunk = noSingleBroken.filter(isNotHardwareJunk);
+  const shippable = noHardwareJunk.filter(isShippable);
 
   return {
     passed: shippable,
@@ -85,7 +129,11 @@ export function filterItems(items: RawItem[], minPrice: number): FilterResult {
       hats: noKids.length - noHats.length,
       badCondition: noHats.length - goodCondition.length,
       junk: goodCondition.length - noJunk.length,
-      pickupOnly: noJunk.length - shippable.length,
+      womensBags: noJunk.length - noWomensBags.length,
+      vehicleParts: noWomensBags.length - noVehicleParts.length,
+      singleBroken: noVehicleParts.length - noSingleBroken.length,
+      hardwareJunk: noSingleBroken.length - noHardwareJunk.length,
+      pickupOnly: noHardwareJunk.length - shippable.length,
     },
   };
 }

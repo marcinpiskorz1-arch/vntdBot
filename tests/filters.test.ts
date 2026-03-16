@@ -6,6 +6,10 @@ import {
   isGoodCondition,
   isShippable,
   isNotJunk,
+  isNotWomensBag,
+  isNotVehiclePart,
+  isNotSingleOrBroken,
+  isNotHardwareJunk,
   filterItems,
 } from "../src/filters.js";
 import { mockItem } from "./helpers.js";
@@ -200,6 +204,28 @@ describe("isNotJunk", () => {
     expect(isNotJunk(mockItem({ title: "Off white belt" }))).toBe(false);
   });
 
+  it("filters foreign-language cases and accessories", () => {
+    expect(isNotJunk(mockItem({ title: "iPhone 14 dékliukas" }))).toBe(false);
+    expect(isNotJunk(mockItem({ title: "Samsung obal silikonový" }))).toBe(false);
+    expect(isNotJunk(mockItem({ title: "iPhone tok szilikon" }))).toBe(false);
+    expect(isNotJunk(mockItem({ title: "Huse Samsung Galaxy" }))).toBe(false);
+    expect(isNotJunk(mockItem({ title: "Osłona na telefon" }))).toBe(false);
+  });
+
+  it("filters foreign-language clothing junk", () => {
+    expect(isNotJunk(mockItem({ title: "Adidas majica" }))).toBe(false);
+    expect(isNotJunk(mockItem({ title: "Nike trikó" }))).toBe(false);
+    expect(isNotJunk(mockItem({ title: "Nike majtki damskie" }))).toBe(false);
+    expect(isNotJunk(mockItem({ title: "Adidas pulóver" }))).toBe(false);
+    expect(isNotJunk(mockItem({ title: "Krabička na AirPods" }))).toBe(false);
+  });
+
+  it("filters junk keywords found in description", () => {
+    expect(isNotJunk(mockItem({ title: "DJI Mavic Mini", description: "Pokrowiec na drona DJI" }))).toBe(false);
+    expect(isNotJunk(mockItem({ title: "Apple Watch", description: "Tylko pasek do zegarka" }))).toBe(false);
+    expect(isNotJunk(mockItem({ title: "Nintendo Switch", description: "Etui ochronne" }))).toBe(false);
+  });
+
   it("keeps actual products", () => {
     expect(isNotJunk(mockItem({ title: "Nintendo Switch OLED" }))).toBe(true);
     expect(isNotJunk(mockItem({ title: "iPhone 15 Pro 256GB" }))).toBe(true);
@@ -208,6 +234,113 @@ describe("isNotJunk", () => {
     expect(isNotJunk(mockItem({ title: "G-Shock GA-2100" }))).toBe(true);
     expect(isNotJunk(mockItem({ title: "LEGO Technic 42143" }))).toBe(true);
     expect(isNotJunk(mockItem({ title: "Levi's 501 jeansy" }))).toBe(true);
+  });
+});
+
+// ============================================================
+// isNotWomensBag
+// ============================================================
+describe("isNotWomensBag", () => {
+  it("filters women's bags and purses", () => {
+    expect(isNotWomensBag(mockItem({ title: "Torebka damska skórzana" }))).toBe(false);
+    expect(isNotWomensBag(mockItem({ title: "Damska torebka Guess" }))).toBe(false);
+    expect(isNotWomensBag(mockItem({ title: "Vintage leather purse" }))).toBe(false);
+    expect(isNotWomensBag(mockItem({ title: "Coach handbag brown" }))).toBe(false);
+    expect(isNotWomensBag(mockItem({ title: "Clutch wieczorowy złoty" }))).toBe(false);
+    expect(isNotWomensBag(mockItem({ title: "Women's bag Nike" }))).toBe(false);
+  });
+
+  it("filters women's bags in description", () => {
+    expect(isNotWomensBag(mockItem({ title: "Nike bag", description: "Torebka damska" }))).toBe(false);
+  });
+
+  it("keeps backpacks and normal bags", () => {
+    expect(isNotWomensBag(mockItem({ title: "Nike plecak sportowy" }))).toBe(true);
+    expect(isNotWomensBag(mockItem({ title: "North Face duffel bag" }))).toBe(true);
+    expect(isNotWomensBag(mockItem({ title: "Supreme shoulder bag" }))).toBe(true);
+  });
+});
+
+// ============================================================
+// isNotVehiclePart
+// ============================================================
+describe("isNotVehiclePart", () => {
+  it("filters car parts", () => {
+    expect(isNotVehiclePart(mockItem({ title: "Halogen Hyundai i10" }))).toBe(false);
+    expect(isNotVehiclePart(mockItem({ title: "Tarcza hamulcowa Kawasaki" }))).toBe(false);
+    expect(isNotVehiclePart(mockItem({ title: "Komputer pokładowy Audi A3" }))).toBe(false);
+    expect(isNotVehiclePart(mockItem({ title: "Dekiel felgi BMW" }))).toBe(false);
+    expect(isNotVehiclePart(mockItem({ title: "Alternator Ford Focus" }))).toBe(false);
+    expect(isNotVehiclePart(mockItem({ title: "Rozrusznik Opel Astra" }))).toBe(false);
+  });
+
+  it("filters tractor/mower seats", () => {
+    expect(isNotVehiclePart(mockItem({ title: "Siedzenie traktorka ogrodowego" }))).toBe(false);
+    expect(isNotVehiclePart(mockItem({ title: "Siedzenie do kosiarki" }))).toBe(false);
+  });
+
+  it("filters vehicle parts in description", () => {
+    expect(isNotVehiclePart(mockItem({ title: "Lampa LED", description: "Lampa przednia do Opla" }))).toBe(false);
+  });
+
+  it("keeps actual products", () => {
+    expect(isNotVehiclePart(mockItem({ title: "Nike Air Max 90" }))).toBe(true);
+    expect(isNotVehiclePart(mockItem({ title: "Canon EOS R5" }))).toBe(true);
+    expect(isNotVehiclePart(mockItem({ title: "PlayStation 5" }))).toBe(true);
+  });
+});
+
+// ============================================================
+// isNotSingleOrBroken
+// ============================================================
+describe("isNotSingleOrBroken", () => {
+  it("filters single earphones/AirPods", () => {
+    expect(isNotSingleOrBroken(mockItem({ title: "1x słuchawka AirPod Pro" }))).toBe(false);
+    expect(isNotSingleOrBroken(mockItem({ title: "Jedna słuchawka AirPod" }))).toBe(false);
+    expect(isNotSingleOrBroken(mockItem({ title: "Single AirPod left" }))).toBe(false);
+    expect(isNotSingleOrBroken(mockItem({ title: "Left AirPod Pro" }))).toBe(false);
+    expect(isNotSingleOrBroken(mockItem({ title: "Right earbud Samsung" }))).toBe(false);
+  });
+
+  it("filters exchange-for-working items", () => {
+    expect(isNotSingleOrBroken(mockItem({ title: "AirPods Pro", description: "Wymiana uszkodzonej na dobrą" }))).toBe(false);
+    expect(isNotSingleOrBroken(mockItem({ title: "Galaxy Buds", description: "Exchange defective for working" }))).toBe(false);
+  });
+
+  it("keeps normal paired items", () => {
+    expect(isNotSingleOrBroken(mockItem({ title: "AirPods Pro 2 komplet" }))).toBe(true);
+    expect(isNotSingleOrBroken(mockItem({ title: "Sony WH-1000XM5" }))).toBe(true);
+    expect(isNotSingleOrBroken(mockItem({ title: "Samsung Galaxy Buds2 Pro" }))).toBe(true);
+  });
+});
+
+// ============================================================
+// isNotHardwareJunk
+// ============================================================
+describe("isNotHardwareJunk", () => {
+  it("filters RAM modules", () => {
+    expect(isNotHardwareJunk(mockItem({ title: "Pamięć RAM DDR3 8GB" }))).toBe(false);
+    expect(isNotHardwareJunk(mockItem({ title: "Kingston DDR4 16GB 3200MHz" }))).toBe(false);
+    expect(isNotHardwareJunk(mockItem({ title: "Corsair DDR5 32GB" }))).toBe(false);
+    expect(isNotHardwareJunk(mockItem({ title: "SODIMM 8GB laptop" }))).toBe(false);
+  });
+
+  it("filters tools and industrial junk", () => {
+    expect(isNotHardwareJunk(mockItem({ title: "Magnes z wyłącznikiem" }))).toBe(false);
+    expect(isNotHardwareJunk(mockItem({ title: "Lina jutowa 10m" }))).toBe(false);
+    expect(isNotHardwareJunk(mockItem({ title: "Zestaw do cięcia kół" }))).toBe(false);
+    expect(isNotHardwareJunk(mockItem({ title: "Nożyce do blachy" }))).toBe(false);
+  });
+
+  it("filters joy-cons listed as hardware", () => {
+    expect(isNotHardwareJunk(mockItem({ title: "Joycon prawy Nintendo" }))).toBe(false);
+    expect(isNotHardwareJunk(mockItem({ title: "Joy-Con lewy" }))).toBe(false);
+  });
+
+  it("keeps actual products", () => {
+    expect(isNotHardwareJunk(mockItem({ title: "Nintendo Switch OLED" }))).toBe(true);
+    expect(isNotHardwareJunk(mockItem({ title: "iPhone 15 Pro Max" }))).toBe(true);
+    expect(isNotHardwareJunk(mockItem({ title: "Nike Air Jordan 1" }))).toBe(true);
   });
 });
 
@@ -229,18 +362,26 @@ describe("filterItems", () => {
       mockItem({ vintedId: "3", title: "Nike beanie" }),            // hat
       mockItem({ vintedId: "4", condition: "poor" }),               // bad condition
       mockItem({ vintedId: "5", title: "iPhone case silicone" }),   // junk
-      mockItem({ vintedId: "6", description: "Nie wysyłam" }),      // pickup only
-      mockItem({ vintedId: "7", price: 100 }),                     // should pass
+      mockItem({ vintedId: "6", title: "Torebka damska Guess" }),   // women's bag
+      mockItem({ vintedId: "7", title: "Halogen Hyundai i10" }),    // vehicle part
+      mockItem({ vintedId: "8", title: "1x słuchawka AirPod" }),    // single/broken
+      mockItem({ vintedId: "9", title: "Pamięć RAM DDR4 16GB" }),   // hardware junk
+      mockItem({ vintedId: "10", description: "Nie wysyłam" }),     // pickup only
+      mockItem({ vintedId: "11", price: 100 }),                     // should pass
     ];
 
     const result = filterItems(items, 49);
     expect(result.passed).toHaveLength(1);
-    expect(result.passed[0].vintedId).toBe("7");
+    expect(result.passed[0].vintedId).toBe("11");
     expect(result.breakdown.priceTooLow).toBe(1);
     expect(result.breakdown.kids).toBe(1);
     expect(result.breakdown.hats).toBe(1);
     expect(result.breakdown.badCondition).toBe(1);
     expect(result.breakdown.junk).toBe(1);
+    expect(result.breakdown.womensBags).toBe(1);
+    expect(result.breakdown.vehicleParts).toBe(1);
+    expect(result.breakdown.singleBroken).toBe(1);
+    expect(result.breakdown.hardwareJunk).toBe(1);
     expect(result.breakdown.pickupOnly).toBe(1);
   });
 
