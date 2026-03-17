@@ -51,6 +51,9 @@ describe("classifyItemType", () => {
     "Carhartt WIP sweatshirt",
     "Radiation tee jbj",
     "Vintage Diesel Jumper Crewneck Sweater",
+    "Bluza Nike Air Max Rozmiar L",
+    "Koszulka Nike Air Force 1",
+    "Nike hoodie Air Max",
   ])("classifies tops: %s", (title) => {
     expect(classifyItemType(title)).toBe("top");
   });

@@ -20,6 +20,10 @@ const HEADWEAR_PATTERN = /(?:^|[\s,;(\/-])(czapk[aięy]|cap|hat|beanie|kapelusz|
 
 const ACCESSORY_PATTERN = /(?:^|[\s,;(\/-])(r[ęe]kawiczk|gloves|szalik|scarf|pasek|belt|portfel|wallet|okulary|sunglasses|gogle|goggles|zegarek|watch|bielizn|underwear|skarpet|socks|gaitr|gaiter|stuptuty|getry)/i;
 
+// Unambiguous top-clothing words that MUST take priority over shoe model names.
+// Prevents "Bluza Nike Air Max" from being classified as shoes.
+const STRONG_TOP_PATTERN = /(?:^|[\s,;(\/-])(bluz[aęky]|koszulk[aięy]|koszul[aęiy]|hoodie|sweatshirt|pullover|crewneck|crew neck|longsleeve|long sleeve|mikina|tričko|triko)/i;
+
 export type ItemType = "shoes" | "jacket" | "top" | "pants" | "bag" | "headwear" | "accessory" | "";
 
 // ============================================================
@@ -67,13 +71,15 @@ export function vintedCategoryToItemType(catalogId: string): ItemType {
  * Pure function, no side effects.
  */
 export function classifyItemType(title: string): ItemType {
+  // Strong top words first — "Bluza Nike Air Max" is a top, not shoes
+  if (STRONG_TOP_PATTERN.test(title)) return "top";
   if (SHOES_PATTERN.test(title)) return "shoes";
   if (JACKET_PATTERN.test(title)) return "jacket";
   if (PANTS_PATTERN.test(title)) return "pants";
   if (BAG_PATTERN.test(title)) return "bag";
   if (HEADWEAR_PATTERN.test(title)) return "headwear";
   if (ACCESSORY_PATTERN.test(title)) return "accessory";
-  // Top last — many vague titles contain "shirt" in brand model names
+  // Weak top last — "shirt" appears in brand model names
   if (TOP_PATTERN.test(title)) return "top";
   return "";
 }
