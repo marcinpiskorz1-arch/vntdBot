@@ -353,7 +353,11 @@ async function main(): Promise<void> {
     const jitter = Math.random() * 15000; // 0-15s random jitter
     const delay = config.scanIntervalMs + jitter;
     setTimeout(async () => {
-      await runPipeline();
+      try {
+        await runPipeline();
+      } catch (err) {
+        logger.error({ err }, "❌ Scheduler: unhandled pipeline error");
+      }
       scheduleNext();
     }, delay);
   };
