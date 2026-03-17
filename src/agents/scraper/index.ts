@@ -51,13 +51,14 @@ export class ScraperAgent {
       const uniquePage2 = page2.filter(i => !seen.has(i.vintedId));
       const items = [...page1, ...uniquePage2];
 
-      // Priority configs get an extra page for deeper coverage
-      if (scanConfig.priority) {
+      // Priority configs get 1 extra page, personal configs get 3 extra pages
+      const extraPages = scanConfig.personal ? 3 : scanConfig.priority ? 1 : 0;
+      for (let p = 3; p <= 2 + extraPages; p++) {
         await jitter(300, 800);
-        const page3 = await fetchCatalogItems(session, scanConfig, 3);
+        const extra = await fetchCatalogItems(session, scanConfig, p);
         const seenAll = new Set(items.map(i => i.vintedId));
-        const uniquePage3 = page3.filter(i => !seenAll.has(i.vintedId));
-        items.push(...uniquePage3);
+        const unique = extra.filter(i => !seenAll.has(i.vintedId));
+        items.push(...unique);
       }
 
       if (scanConfig.personal) {
