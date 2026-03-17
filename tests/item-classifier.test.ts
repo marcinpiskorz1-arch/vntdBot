@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { classifyItemType, isBrandTypeWorthNotifying } from "../src/item-classifier.js";
+import { classifyItemType, isBrandTypeWorthNotifying, vintedCategoryToItemType, resolveItemType } from "../src/item-classifier.js";
 
 describe("classifyItemType", () => {
   // ============================================================
@@ -145,5 +145,86 @@ describe("isBrandTypeWorthNotifying", () => {
   });
   it("allows empty item type", () => {
     expect(isBrandTypeWorthNotifying("The North Face", "")).toBe(true);
+  });
+});
+
+// ============================================================
+// vintedCategoryToItemType — numeric Vinted catalog_id mapping
+// ============================================================
+describe("vintedCategoryToItemType", () => {
+  it.each([
+    ["2684", "shoes"],
+    ["2955", "shoes"],
+    ["2711", "shoes"],
+    ["2961", "shoes"],
+    ["2691", "shoes"],
+    ["2706", "shoes"],
+    ["2695", "shoes"],
+    ["2952", "shoes"],
+    ["2713", "shoes"],
+    ["2954", "shoes"],
+    ["2960", "shoes"],
+    ["2697", "shoes"],
+    ["734", "shoes"],
+  ])("maps %s to shoes", (catId, expected) => {
+    expect(vintedCategoryToItemType(catId)).toBe(expected);
+  });
+
+  it.each([
+    ["2632", "top"],
+    ["2586", "top"],
+    ["2936", "top"],
+  ])("maps %s to top", (catId, expected) => {
+    expect(vintedCategoryToItemType(catId)).toBe(expected);
+  });
+
+  it("maps 1929 to jacket", () => {
+    expect(vintedCategoryToItemType("1929")).toBe("jacket");
+  });
+
+  it("maps 2845 to accessory", () => {
+    expect(vintedCategoryToItemType("2845")).toBe("accessory");
+  });
+
+  it("returns empty for unknown category", () => {
+    expect(vintedCategoryToItemType("9999")).toBe("");
+  });
+
+  it("returns empty for empty string", () => {
+    expect(vintedCategoryToItemType("")).toBe("");
+  });
+});
+
+// ============================================================
+// resolveItemType — title classification with Vinted fallback
+// ============================================================
+describe("resolveItemType", () => {
+  it("uses title classification when title has keywords", () => {
+    expect(resolveItemType("Nike Air Max buty", "2961")).toBe("shoes");
+  });
+
+  it("falls back to Vinted category when title is vague", () => {
+    expect(resolveItemType("Jordan 4 Retro White Oreo R.44", "2955")).toBe("shoes");
+  });
+
+  it("returns shoes from Vinted category for item with no keywords in title", () => {
+    expect(resolveItemType("Nike R.42", "2684")).toBe("shoes");
+  });
+
+  it("returns top from Vinted category for vague title", () => {
+    expect(resolveItemType("adidas Originals M", "2632")).toBe("top");
+  });
+
+  it("returns empty when both title and category are unknown", () => {
+    expect(resolveItemType("Nike", "9999")).toBe("");
+  });
+
+  it("returns empty when title is vague and category is empty", () => {
+    expect(resolveItemType("Supreme Logo", "")).toBe("");
+  });
+
+  it("title classifier takes priority over Vinted category", () => {
+    // Title says jacket but Vinted says shoes — trust the title
+    expect(resolveItemType("The North Face kurtka", "2955")).toBe("jacket");
   });
 });

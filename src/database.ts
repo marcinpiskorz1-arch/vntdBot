@@ -2,7 +2,7 @@ import Database from "better-sqlite3";
 import { mkdirSync } from "fs";
 import { dirname } from "path";
 import { config } from "./config.js";
-import { classifyItemType } from "./item-classifier.js";
+import { classifyItemType, vintedCategoryToItemType } from "./item-classifier.js";
 import { extractModel } from "./model-extractor.js";
 
 mkdirSync(dirname(config.dbPath), { recursive: true });
@@ -180,6 +180,33 @@ try {
 // Purge stale price_history entries from pre-model-aware era
 // These have model != '' but sample_count from brand-level queries (wrong medians)
 db.exec(`DELETE FROM price_history WHERE model != '' AND sample_count > 3000`);
+
+// Migrate items with numeric Vinted category IDs to text-based types
+// and purge price_history entries with numeric categories (they'll be rebuilt)
+{
+  const numericCats = db.prepare(
+    `SELECT id, title, category FROM items WHERE category GLOB '[0-9]*' AND discovered_at >= datetime('now', '-14 days')`
+  ).all() as Array<{ id: number; title: string; category: string }>;
+
+  if (numericCats.length > 0) {
+    const updateStmt = db.prepare(`UPDATE items SET category = @category WHERE id = @id`);
+    const migrate = db.transaction((rows: Array<{ id: number; title: string; category: string }>) => {
+      let updated = 0;
+      for (const row of rows) {
+        const resolved = classifyItemType(row.title) || vintedCategoryToItemType(row.category);
+        if (resolved) {
+          updateStmt.run({ id: row.id, category: resolved });
+          updated++;
+        }
+      }
+      return updated;
+    });
+    migrate(numericCats);
+  }
+
+  // Purge price_history with numeric categories — will be rebuilt from clean data
+  db.exec(`DELETE FROM price_history WHERE category GLOB '[0-9]*'`);
+}
 
 // ============================================================
 // Prepared statements — reusable across agents

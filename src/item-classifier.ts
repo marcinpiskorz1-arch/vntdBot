@@ -6,7 +6,7 @@
 // Order matters — check more specific patterns first, broadest last.
 // Languages: PL EN FR DE IT ES NL CZ SK
 
-const SHOES_PATTERN = /(?:^|[\s,;(\/-])(buty|but[iy]|shoe|shoes|sneaker|sneakers|boot|boots|chukka|trampk[iy]|adidasy|klapk[iy]|sandal|sandały|sanda[łl]|runner|trainers?|loafer|mokasyn|boty|topánk[yia]|scarpe|chaussure|Schuh|zapato|schoen|sapato|sko|kenk[äa]|kengät|cipő|trail|speedcross|supercross|gel[- ]lyte|gel[- ]kayano|air max|air force|dunk|blazer|pegasus|vapormax|samba|gazelle|superstar|ultraboost|campus|forum|spezial|stan smith|chuck 70|cloudmonster|xt-6|xt-4|metcon)/i;
+const SHOES_PATTERN = /(?:^|[\s,;(\/-])(buty|but[iy]|shoe|shoes|sneaker|sneakers|boot|boots|chukka|trampk[iy]|adidasy|klapk[iy]|sandal|sandały|sanda[łl]|runner|trainers?|loafer|mokasyn|boty|topánk[yia]|scarpe|chaussure|Schuh|zapato|schoen|sapato|sko|kenk[äa]|kengät|cipő|speedcross|supercross|gel[- ]lyte|gel[- ]kayano|air max|air force|dunk|blazer|pegasus|vapormax|samba|gazelle|superstar|ultraboost|campus|forum|spezial|stan smith|chuck 70|cloudmonster|xt-6|xt-4|metcon)/i;
 
 const JACKET_PATTERN = /(?:^|[\s,;(\/-])(kurtk[aięy]|jacket|jackets|parka|parki|coat|p[łl]aszcz|anorak|windbreaker|wiatr[oó]wk|puchówk|puffer|down jacket|softshell|hardshell|bundy?|bunda|veste|Jacke|giacca|chaqueta|jas|jacka|takki|doudoune)/i;
 
@@ -21,6 +21,45 @@ const HEADWEAR_PATTERN = /(?:^|[\s,;(\/-])(czapk[aięy]|cap|hat|beanie|kapelusz|
 const ACCESSORY_PATTERN = /(?:^|[\s,;(\/-])(r[ęe]kawiczk|gloves|szalik|scarf|pasek|belt|portfel|wallet|okulary|sunglasses|gogle|goggles|zegarek|watch|bielizn|underwear|skarpet|socks|gaitr|gaiter|stuptuty|getry)/i;
 
 export type ItemType = "shoes" | "jacket" | "top" | "pants" | "bag" | "headwear" | "accessory" | "";
+
+// ============================================================
+// Vinted catalog_id → ItemType mapping.
+// Vinted API returns numeric subcategory IDs; we map them to our types
+// so pricing pools aren't fragmented across dozens of numeric IDs.
+// ============================================================
+
+const VINTED_CATEGORY_MAP: Record<string, ItemType> = {
+  // Shoes — men's, women's, sport, outdoor, sneakers
+  "2684": "shoes", // espadryle/sneakers
+  "2955": "shoes", // buty sportowe (Jordan, Samba, ASICS)
+  "2711": "shoes", // buty męskie (Nike AF1, adidas)
+  "2961": "shoes", // buty sportowe (Air Max, Dunk, Shox)
+  "2691": "shoes", // mokasyny (Nike, Timberland)
+  "2706": "shoes", // buty męskie mokasyny (NB, Nike)
+  "2695": "shoes", // trampki (Converse, adidas, Vans)
+  "2952": "shoes", // damskie sneakersy (Nike, NB, Puma)
+  "2713": "shoes", // męskie sneakersy (Nike, adidas)
+  "2954": "shoes", // buty do biegania (Asics, Nike, Salomon)
+  "2960": "shoes", // buty trekkingowe/outdoor (Salomon, Lowa, TNF)
+  "2697": "shoes", // buty damskie (Nike, Converse, NB)
+  "734":  "shoes", // buty dziecięce (filtered by kids filter separately)
+  // Tops — t-shirts, hoodies, sport jerseys
+  "2632": "top",   // koszulki/t-shirty męskie
+  "2586": "top",   // bluzy/hoodies męskie
+  "2936": "top",   // koszulki sportowe/jerseys
+  // Jackets
+  "1929": "jacket", // odzież narciarska (kurtki)
+  // Accessories — watches, electronics
+  "2845": "accessory", // zegarki
+};
+
+/**
+ * Map Vinted numeric catalog_id to our ItemType.
+ * Returns empty string for unknown/unmapped categories.
+ */
+export function vintedCategoryToItemType(catalogId: string): ItemType {
+  return VINTED_CATEGORY_MAP[catalogId] ?? "";
+}
 
 /**
  * Classify an item into a broad type from its title.
@@ -37,6 +76,14 @@ export function classifyItemType(title: string): ItemType {
   // Top last — many vague titles contain "shirt" in brand model names
   if (TOP_PATTERN.test(title)) return "top";
   return "";
+}
+
+/**
+ * Resolve item type using title keywords first, then Vinted catalog_id fallback.
+ * Use this wherever you need a normalized category — never raw numeric IDs.
+ */
+export function resolveItemType(title: string, vintedCategoryId: string): ItemType {
+  return classifyItemType(title) || vintedCategoryToItemType(vintedCategoryId);
 }
 
 // ============================================================

@@ -2,7 +2,7 @@ import { logger } from "../../logger.js";
 import { settings } from "../../settings.js";
 import { stmts } from "../../database.js";
 import type { RawItem, ScanConfig } from "../../types.js";
-import { classifyItemType } from "../../item-classifier.js";
+import { resolveItemType } from "../../item-classifier.js";
 import { extractModel } from "../../model-extractor.js";
 import { createSession, type VintedSession } from "./session-manager.js";
 import { fetchCatalogItems } from "./vinted-api.js";
@@ -75,15 +75,19 @@ export class ScraperAgent {
 
       // Persist new items to DB
       for (const item of newItems) {
+        // Normalize category: title keywords first, Vinted catalog_id fallback
+        item.category = resolveItemType(item.title, item.category);
+        item.model = item.model || extractModel(item.brand, item.title);
+
         stmts.insertItem.run({
           vinted_id: item.vintedId,
           title: item.title,
           brand: item.brand,
-          model: item.model || extractModel(item.brand, item.title),
+          model: item.model,
           price: item.price,
           currency: item.currency,
           size: item.size || "",
-          category: item.category || classifyItemType(item.title),
+          category: item.category,
           condition: item.condition,
           description: item.description,
           photo_urls: JSON.stringify(item.photoUrls),

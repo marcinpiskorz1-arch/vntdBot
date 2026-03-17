@@ -2,7 +2,7 @@ import { config } from "../../config.js";
 import { settings } from "../../settings.js";
 import { logger } from "../../logger.js";
 import type { RawItem, PriceSignal } from "../../types.js";
-import { classifyItemType } from "../../item-classifier.js";
+import { resolveItemType } from "../../item-classifier.js";
 import { extractModel } from "../../model-extractor.js";
 import { updatePriceStats, getPriceStats, normalizeSizeGroup } from "./price-history.js";
 
@@ -15,8 +15,8 @@ export class PricingAgent {
    */
   evaluate(item: RawItem): PriceSignal {
     const sizeGroup = normalizeSizeGroup(item.size);
-    // Use item type from classifier when Vinted/OLX category is empty or numeric
-    const itemType = item.category || classifyItemType(item.title);
+    // Category already normalized by scraper; resolve again as safety net
+    const itemType = resolveItemType(item.title, item.category);
     const model = item.model || extractModel(item.brand, item.title);
 
     // First, update stats with this item's price (size-aware, 14-day, IQR-cleaned)

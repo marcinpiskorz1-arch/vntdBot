@@ -2,7 +2,7 @@ import { logger } from "../../logger.js";
 import { settings } from "../../settings.js";
 import { stmts } from "../../database.js";
 import type { RawItem, ScanConfig } from "../../types.js";
-import { classifyItemType } from "../../item-classifier.js";
+import { resolveItemType } from "../../item-classifier.js";
 import { fetchOlxOffers } from "./olx-api.js";
 
 /** Random delay between min and max ms */
@@ -29,6 +29,8 @@ export class OlxScraperAgent {
       );
 
       for (const item of newItems) {
+        item.category = resolveItemType(item.title, item.category);
+
         stmts.insertItem.run({
           vinted_id: item.vintedId,
           title: item.title,
@@ -37,7 +39,7 @@ export class OlxScraperAgent {
           price: item.price,
           currency: item.currency,
           size: item.size || "",
-          category: item.category || classifyItemType(item.title),
+          category: item.category,
           condition: item.condition,
           description: item.description,
           photo_urls: JSON.stringify(item.photoUrls),
