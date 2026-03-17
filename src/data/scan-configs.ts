@@ -182,22 +182,19 @@ export const scanConfigs: ScanConfig[] = [
   { searchText: "thinkpad", priority: true, categoryIds: [3108] },
   { searchText: "dell xps", categoryIds: [3104] },
 
-  // ============================================================
-  // Personal use — "Dla siebie" (relaxed thresholds, no resale restrictions)
-  // Sizes: buty 42.5-43.5 EU, ubrania M/L
-  // ============================================================
-  { searchText: "carhartt", personal: true, brandIds: [362] },
-  { searchText: "dickies", personal: true, brandIds: [65] },
-  { searchText: "turbokolor", personal: true },
-  { searchText: "under armour", personal: true, brandIds: [52035] },
-  { searchText: "superdry", personal: true, brandIds: [191] },
-  { searchText: "la sportiva", personal: true, brandIds: [201320] },
-  { searchText: "vans", personal: true, brandIds: [139] },
-  { searchText: "asics", personal: true, brandIds: [1195] },
-  { searchText: "salewa", personal: true, brandIds: [60412] },
-  { searchText: "gore-tex", personal: true },
-  { searchText: "goretex", personal: true },
-  { searchText: "gortex", personal: true },
-  { searchText: "dakine", personal: true, brandIds: [4105] },
-  { searchText: "quiksilver", personal: true, brandIds: [159] },
+  // Streetwear & outdoor brands
+  { searchText: "carhartt", brandIds: [362] },
+  { searchText: "dickies", brandIds: [65] },
+  { searchText: "turbokolor" },
+  { searchText: "under armour", brandIds: [52035] },
+  { searchText: "superdry", brandIds: [191] },
+  { searchText: "la sportiva", brandIds: [201320] },
+  { searchText: "vans", brandIds: [139] },
+  { searchText: "asics", brandIds: [1195] },
+  { searchText: "salewa", brandIds: [60412] },
+  { searchText: "gore-tex" },
+  { searchText: "goretex" },
+  { searchText: "gortex" },
+  { searchText: "dakine", brandIds: [4105] },
+  { searchText: "quiksilver", brandIds: [159] },
 ];

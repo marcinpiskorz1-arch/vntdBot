@@ -116,19 +116,7 @@ async function runPipeline(): Promise<void> {
       if (newItems.length === 0) return;
       totalNewItems += newItems.length;
 
-      // Split personal vs resale items
-      const personalItems = newItems.filter(i => i.personal);
-      const resaleItems = newItems.filter(i => !i.personal);
-
-      // ── RESALE PIPELINE (unchanged thresholds) ──
-      if (resaleItems.length > 0) {
-        await processResaleBatch(resaleItems);
-      }
-
-      // ── PERSONAL PIPELINE (relaxed thresholds) ──
-      if (personalItems.length > 0) {
-        await processPersonalBatch(personalItems);
-      }
+      await processResaleBatch(newItems);
     };
 
     const processResaleBatch = async (items: import("./types.js").RawItem[]): Promise<void> => {
@@ -200,40 +188,6 @@ async function runPipeline(): Promise<void> {
             await telegram.notify(result);
             notifiedCount++;
           }
-        }
-      }
-    };
-
-    // ── PERSONAL PIPELINE — relaxed thresholds, no brand-type restrictions ──
-    const PERSONAL_MIN_PRICE = 20;
-    const PERSONAL_SCORING_OVERRIDES = {
-      notifyThreshold: 4.0,
-      minProfitToNotify: 0,
-      hotMinProfit: 20,
-    };
-
-    const processPersonalBatch = async (items: import("./types.js").RawItem[]): Promise<void> => {
-      const { passed: shippable, removed: removedCount, breakdown } = filterItems(items, PERSONAL_MIN_PRICE);
-      if (removedCount > 0) {
-        stats.filtered += removedCount;
-        logger.info({ removed: removedCount, ...breakdown, channel: "personal" }, "🚫 Filtered items (personal)");
-      }
-      if (shippable.length === 0) return;
-
-      const evaluated = pricing.evaluateAll(shippable);
-      const underpriced = evaluated.filter(([, signal]) => signal.isUnderpriced);
-      stats.underpriced += underpriced.length;
-      totalUnderpriced += underpriced.length;
-      if (underpriced.length === 0) return;
-
-      for (const [item, signal] of underpriced) {
-        const result = decision.decideWithRules(item, signal, PERSONAL_SCORING_OVERRIDES);
-        result.personal = true;
-        analyzedCount++;
-        if (result.level !== "ignore") {
-          if (stmts.isAlreadyNotified.get({ vinted_id: item.vintedId })) continue;
-          await telegram.notify(result);
-          notifiedCount++;
         }
       }
     };

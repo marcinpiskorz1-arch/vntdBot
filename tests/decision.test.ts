@@ -97,78 +97,11 @@ describe("computeRuleScore — synthetic AI compatibility", () => {
 });
 
 // ============================================================
-// Personal channel — relaxed thresholds
+// formatNotification — labels
 // ============================================================
 
-const personalCfg: RuleScoreConfig = {
-  lowSamplePenalty: 0.9,
-  notifyThreshold: 4.0,
-  minProfitToNotify: 0,
-  hotThreshold: 9.0,
-  hotMinProfit: 20,
-};
-
-describe("computeRuleScore — personal channel", () => {
-  it("notifies with lower threshold (4.0) for personal items", () => {
-    const item = mockItem({ brand: "Dickies", price: 25, condition: "Bardzo dobry", size: "L" });
-    const signal = mockSignal({
-      priceDiscountScore: 5,
-      p25Price: 60,
-      sampleSize: 10,
-    });
-    const result = computeRuleScore(item, signal, personalCfg);
-    expect(result.score).toBeGreaterThanOrEqual(4.0);
-    expect(result.level).not.toBe("ignore");
-  });
-
-  it("notifies with zero profit when minProfitToNotify is 0", () => {
-    const item = mockItem({ brand: "Quiksilver", price: 30 });
-    const signal = mockSignal({
-      priceDiscountScore: 6,
-      p25Price: 50,
-      sampleSize: 15,
-    });
-    // profit = 50 - 30 - 15 - 2.5 = 2.5 → ≥ 0, should pass with minProfitToNotify=0
-    const result = computeRuleScore(item, signal, personalCfg);
-    expect(result.syntheticAi.estimatedProfit).toBeGreaterThanOrEqual(0);
-    expect(result.level).not.toBe("ignore");
-  });
-
-  it("would be ignored by resale config but passes personal config", () => {
-    const item = mockItem({ brand: "Turbokolor", price: 30, condition: "Bardzo dobry", size: "M" });
-    const signal = mockSignal({
-      priceDiscountScore: 5,
-      p25Price: 50,
-      sampleSize: 20,
-    });
-    const resaleResult = computeRuleScore(item, signal, cfg);
-    const personalResult = computeRuleScore(item, signal, personalCfg);
-    // Resale ignores (threshold 6.0 + minProfit 35), personal may notify (threshold 4.0 + minProfit 0)
-    expect(resaleResult.level).toBe("ignore");
-    expect(personalResult.level).not.toBe("ignore");
-  });
-});
-
-// ============================================================
-// formatNotification — personal label
-// ============================================================
-
-describe("formatNotification — personal label", () => {
-  it("shows '👤 Dla siebie' for personal decisions", () => {
-    const decision = {
-      score: 5.0,
-      level: "notify" as const,
-      reasons: [],
-      item: mockItem(),
-      pricing: mockSignal(),
-      ai: mockAi(),
-      personal: true,
-    };
-    const payload = formatNotification(decision);
-    expect(payload.scoreLine).toContain("👤 Dla siebie");
-  });
-
-  it("shows '📦 Okazja' for resale notify decisions", () => {
+describe("formatNotification — labels", () => {
+  it("shows '📦 Okazja' for notify decisions", () => {
     const decision = {
       score: 6.5,
       level: "notify" as const,
@@ -181,7 +114,7 @@ describe("formatNotification — personal label", () => {
     expect(payload.scoreLine).toContain("📦 Okazja");
   });
 
-  it("shows '🔥 HOT DEAL' for hot resale decisions", () => {
+  it("shows '🔥 HOT DEAL' for hot decisions", () => {
     const decision = {
       score: 9.5,
       level: "hot" as const,

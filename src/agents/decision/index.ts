@@ -9,7 +9,6 @@ export class DecisionAgent {
   /**
    * Rule-based decision — no AI, uses brand/condition/size/seller heuristics.
    * Produces a synthetic AiAnalysis for Telegram compatibility.
-   * Optional configOverrides allow personal channel to use relaxed thresholds.
    */
   decideWithRules(item: RawItem, pricing: PriceSignal, configOverrides?: Partial<RuleScoreConfig>): Decision {
     const result = computeRuleScore(item, pricing, {
