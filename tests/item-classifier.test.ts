@@ -27,15 +27,11 @@ describe("classifyItemType", () => {
   // Jackets / outerwear
   // ============================================================
   it.each([
-    "Arc'teryx Alpha SV jacket",
     "The North Face Nuptse 700",
-    "Patagonia Nano Puff kurtka",
-    "Arc'teryx Beta AR Gore-Tex",
+    "Mammut Nano Puff kurtka",
     "TNF 1996 Retro Nuptse puffer",
-    "Patagonia Retro-X fleece jacket",
+    "The North Face fleece jacket",
     "North Face Denali fleece",
-    "Arc'teryx Atom LT Hoody",
-    "Arc'teryx Cerium Down Jacket",
     "Canada Goose parka zimowa",
     "Mammut hardshell anorak",
   ])("classifies jackets: %s", (title) => {
@@ -46,17 +42,13 @@ describe("classifyItemType", () => {
   // Tops (shirts, t-shirts, blouses, hoodies, fleece)
   // ============================================================
   it.each([
-    "Arc'teryx shirt koszulka",
-    "Patagonia t-shirt",
+    "Nike t-shirt",
     "Nike hoodie bluza",
     "The North Face longsleeve",
     "Supreme Box Logo tee",
     "Salomon polo shirt",
     "Carhartt WIP sweatshirt",
-    "Arc'teryx bluzka sportowa",
-    "Top sportowy damski Arc'teryx navy granatowy S sport fitness gym",
     "Radiation tee jbj",
-    "Arc'teryx Taema Tank",
     "Vintage Diesel Jumper Crewneck Sweater",
   ])("classifies tops: %s", (title) => {
     expect(classifyItemType(title)).toBe("top");
@@ -66,9 +58,9 @@ describe("classifyItemType", () => {
   // Pants
   // ============================================================
   it.each([
-    "Arc'teryx spodnie trekkingowe",
     "Nike Tech Fleece jogger pants",
-    "Patagonia shorts szorty",
+    "Nike Tech Fleece jogger pants",
+    "Nike shorts szorty",
     "Carhartt cargo trousers",
     "Dickies jeans",
     "Levi's 501 dżinsy",
@@ -80,7 +72,7 @@ describe("classifyItemType", () => {
   // Bags
   // ============================================================
   it.each([
-    "Patagonia Black Hole duffel 55L",
+    "The North Face Base Camp duffel 55L",
     "The North Face plecak",
     "Osprey backpack 40L",
     "Supreme saszetka nerka",
@@ -94,7 +86,6 @@ describe("classifyItemType", () => {
   // ============================================================
   it.each([
     "Nike",
-    "Arc'teryx",
     "Salomon vintage",
     "Supreme Logo",
   ])("returns empty for ambiguous: %s", (title) => {
@@ -124,31 +115,33 @@ describe("isBrandTypeWorthNotifying", () => {
   });
 
   // Shoes+jackets+bags brands
-  it("allows Arc'teryx jackets", () => {
-    expect(isBrandTypeWorthNotifying("Arc'teryx", "jacket")).toBe(true);
+  it("blocks TNF pants", () => {
+    expect(isBrandTypeWorthNotifying("The North Face", "pants")).toBe(false);
   });
-  it("allows Arc'teryx shoes", () => {
-    expect(isBrandTypeWorthNotifying("Arc'teryx", "shoes")).toBe(true);
-  });
-  it("blocks Arc'teryx tops", () => {
-    expect(isBrandTypeWorthNotifying("Arc'teryx", "top")).toBe(false);
-  });
-  it("blocks Patagonia pants", () => {
-    expect(isBrandTypeWorthNotifying("Patagonia", "pants")).toBe(false);
-  });
-  it("allows Patagonia bags", () => {
-    expect(isBrandTypeWorthNotifying("Patagonia", "bag")).toBe(true);
+  it("allows TNF bags", () => {
+    expect(isBrandTypeWorthNotifying("The North Face", "bag")).toBe(true);
   });
   it("blocks Salomon tops", () => {
     expect(isBrandTypeWorthNotifying("Salomon", "top")).toBe(false);
   });
 
   // Unrestricted brands
-  it("allows Supreme tops", () => {
-    expect(isBrandTypeWorthNotifying("Supreme", "top")).toBe(true);
-  });
   it("allows Nike everything", () => {
     expect(isBrandTypeWorthNotifying("Nike", "top")).toBe(true);
+  });
+
+  // Shoes-only brands (including Crocs, Dr. Martens)
+  it("allows Crocs shoes", () => {
+    expect(isBrandTypeWorthNotifying("Crocs", "shoes")).toBe(true);
+  });
+  it("blocks Crocs tops", () => {
+    expect(isBrandTypeWorthNotifying("Crocs", "top")).toBe(false);
+  });
+  it("allows Dr. Martens shoes", () => {
+    expect(isBrandTypeWorthNotifying("Dr. Martens", "shoes")).toBe(true);
+  });
+  it("blocks Dr. Martens tops", () => {
+    expect(isBrandTypeWorthNotifying("Dr. Martens", "top")).toBe(false);
   });
 
   // Unknown brand or type → pass through
@@ -156,6 +149,6 @@ describe("isBrandTypeWorthNotifying", () => {
     expect(isBrandTypeWorthNotifying("RandomBrand", "top")).toBe(true);
   });
   it("allows empty item type", () => {
-    expect(isBrandTypeWorthNotifying("Arc'teryx", "")).toBe(true);
+    expect(isBrandTypeWorthNotifying("The North Face", "")).toBe(true);
   });
 });

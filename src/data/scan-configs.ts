@@ -29,6 +29,8 @@ export const scanConfigs: ScanConfig[] = [
   // Asics — modele
   { searchText: "asics gel lyte", priority: true },
   { searchText: "asics gel kayano", priority: true },
+  // Onitsuka Tiger
+  { searchText: "onitsuka tiger" },
   // Nike — popularne modele (priority: skanowane co cykl)
   { searchText: "nike air max", priority: true },
   { searchText: "nike dunk", priority: true },
@@ -59,12 +61,6 @@ export const scanConfigs: ScanConfig[] = [
   { searchText: "salomon speedcross", priority: true },
   { searchText: "salomon xt-4", priority: true },
   { searchText: "mammut", brandIds: [209084] },
-  { searchText: "arc'teryx", brandIds: [319730] },
-  // Arc'teryx — modele premium
-  { searchText: "arcteryx alpha", priority: true },
-  { searchText: "arcteryx beta", priority: true },
-  { searchText: "arcteryx atom", priority: true },
-  { searchText: "arcteryx cerium", priority: true },
   { searchText: "scarpa" },
   { searchText: "norrøna" },
   { searchText: "haglöfs" },
@@ -86,17 +82,10 @@ export const scanConfigs: ScanConfig[] = [
   { searchText: "north face 1996", priority: true },
   { searchText: "north face denali", priority: true },
   { searchText: "north face duffel", priority: true },
-  { searchText: "patagonia", brandIds: [90804] },
-  // Patagonia — modele
-  { searchText: "patagonia retro-x", priority: true },
-  { searchText: "patagonia nano puff", priority: true },
-  { searchText: "patagonia black hole", priority: true },
   { searchText: "fjällräven" },
   { searchText: "nervous" },
   { searchText: "carhartt", brandIds: [362] },
   { searchText: "dickies", brandIds: [65] },
-  { searchText: "supreme", brandIds: [14969] },
-  { searchText: "supreme box logo", priority: true },
   { searchText: "stüssy" },
   { searchText: "napapijri" },
   { searchText: "bape" },
@@ -110,6 +99,9 @@ export const scanConfigs: ScanConfig[] = [
   { searchText: "quiksilver" },
   { searchText: "burton" },
   { searchText: "dc shoes" },
+  { searchText: "crocs" },
+  { searchText: "ocun" },
+  { searchText: "dr. martens" },
   { searchText: "oakley" },
   { searchText: "helly hansen" },
   { searchText: "dakine" },
@@ -123,6 +115,7 @@ export const scanConfigs: ScanConfig[] = [
   // Technologie / materiały premium
   { searchText: "gore-tex" },
   { searchText: "goretex" },
+  { searchText: "gortex" },
   { searchText: "windstopper" },
   { searchText: "pertex" },
   { searchText: "primaloft" },
@@ -152,14 +145,13 @@ export const scanConfigs: ScanConfig[] = [
   { searchText: "jbl", categoryIds: [1973] },
   { searchText: "garmin fenix", priority: true, categoryIds: [4925] },
   { searchText: "garmin forerunner", priority: true, categoryIds: [4925] },
-  { searchText: "apple watch", priority: true, categoryIds: [4922] },
+  { searchText: "garmin instinct", priority: true, categoryIds: [4925] },
   { searchText: "g-shock", priority: true, categoryIds: [2845] },
 
   // Small tech / gaming peripherals
   { searchText: "kindle", categoryIds: [2194] },
 
   // Collectibles / hobby
-  { searchText: "lego technic", priority: true, categoryIds: [3088] },
   { searchText: "lego star wars", priority: true, categoryIds: [3088] },
   { searchText: "lego creator", priority: true, categoryIds: [3088] },
   { searchText: "lego icons", categoryIds: [3088] },
@@ -169,6 +161,7 @@ export const scanConfigs: ScanConfig[] = [
   { searchText: "ray-ban", priority: true, categoryIds: [2736] },
   { searchText: "michael kors" },
   { searchText: "seiko", priority: true, categoryIds: [2845] },
+  { searchText: "swatch", categoryIds: [2845] },
   { searchText: "casio", categoryIds: [2845] },
   { searchText: "orient zegarek", categoryIds: [2845] },
 
@@ -178,24 +171,14 @@ export const scanConfigs: ScanConfig[] = [
   { searchText: "leatherman" },
   { searchText: "nalgene" },
   { searchText: "camelbak" },
+  { searchText: "shimano" },
 
   // Telefony
-  { searchText: "iphone 13", priority: true, categoryIds: [2298] },
-  { searchText: "iphone 14", priority: true, categoryIds: [2298] },
-  { searchText: "iphone 15", priority: true, categoryIds: [2298] },
-  { searchText: "iphone 16", priority: true, categoryIds: [2298] },
   { searchText: "samsung galaxy s23", categoryIds: [2310] },
   { searchText: "samsung galaxy s24", priority: true, categoryIds: [2310] },
   { searchText: "google pixel", categoryIds: [4885] },
 
-  // Tablety
-  { searchText: "ipad pro", priority: true, categoryIds: [2192, 2194] },
-  { searchText: "ipad air", priority: true, categoryIds: [2192, 2194] },
-  { searchText: "ipad mini", categoryIds: [2192, 2194] },
-
   // Laptopy / komputery
-  { searchText: "macbook pro", priority: true, categoryIds: [3102] },
-  { searchText: "macbook air", priority: true, categoryIds: [3102] },
   { searchText: "thinkpad", priority: true, categoryIds: [3108] },
   { searchText: "dell xps", categoryIds: [3104] },
 
@@ -214,6 +197,7 @@ export const scanConfigs: ScanConfig[] = [
   { searchText: "salewa", personal: true, brandIds: [60412] },
   { searchText: "gore-tex", personal: true },
   { searchText: "goretex", personal: true },
+  { searchText: "gortex", personal: true },
   { searchText: "dakine", personal: true, brandIds: [4105] },
   { searchText: "quiksilver", personal: true, brandIds: [159] },
 ];

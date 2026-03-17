@@ -2,6 +2,7 @@ import { logger } from "../../logger.js";
 import { settings } from "../../settings.js";
 import { stmts } from "../../database.js";
 import type { RawItem, ScanConfig } from "../../types.js";
+import { classifyItemType } from "../../item-classifier.js";
 import { createSession, type VintedSession } from "./session-manager.js";
 import { fetchCatalogItems } from "./vinted-api.js";
 import { ProxyPool } from "./proxy-pool.js";
@@ -84,7 +85,7 @@ export class ScraperAgent {
           price: item.price,
           currency: item.currency,
           size: item.size || "",
-          category: item.category,
+          category: item.category || classifyItemType(item.title),
           condition: item.condition,
           description: item.description,
           photo_urls: JSON.stringify(item.photoUrls),

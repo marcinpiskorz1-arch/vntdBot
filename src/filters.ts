@@ -12,12 +12,15 @@ const SHOE_KEYWORDS = /(?:^|\b)(but[iy]?|shoe|sneaker|boot|sandal|trampk|adidasy
 
 // PL + EN + FR + DE + IT + ES + NL + PT + SE + DK + FI + CZ + SK + LT + LV + EE + HU + RO + HR
 const BEANIE_KEYWORDS = /(?:^|\b)(beanie|czapk[aię]|bonnet|m[üu]tze|hat|kapelusz|beret|berretto|gorro|muts|mössa|hue|pipo|čepice|čiapka|kepurė|cepure|müts|sapka|căciulă|kapa)/i;
-const BAD_CONDITION = /zadowalaj|satisf|słaby|poor|accep|(?<!bardzo )dobr|(?<!very )good/i;
+const BAD_CONDITION = /zadowalaj|satisf|słaby|poor|accep/i;
 const PICKUP_ONLY = /(?:^|\b)(tylko odbio|odbi[oó]r osobi|nie wysy[łl]am|osobisty odbio|nur abholung|selbstabholung|retrait uniquement|solo ritiro|alleen afhalen|apenas levantamento|pouze osobní|len osobný|tik atsiėmimas|csak személyes)/i;
 
 // Accessories & junk — cases, covers, cables, straps, instructions, socks, etc.
 // Languages: PL EN FR DE IT ES NL PT SE DK FI CZ SK LT LV EE HU RO HR
-const JUNK_KEYWORDS = /(?:^|[\s,;(\/-])(cases?|etui|covers?|pokrowiec|obudowa|foli[aę]|szkie[łl]ko|tempered|screen protector|h[üu]lle|schutzh[üu]lle|custodia|funda|coque|hoesje|capa|fodral|suojakuori|[üu]mbris|maciņš|d[eé]kliukas|obal|kryt|tok|hus[aăe]|skal|kryt na mobil|os[łl]on[aę]|naklejk[aię]|skin|sticker|aufkleber|adesivo|pegatina|wk[łl]adk[aię]|grip|saszetk[aię]|kabel|cabl[eo]|câble|Kabel|cavo|laad|[łl]adowark|charger|chargeur|Ladeger[äa]t|caricatore|cargador|oplader|carregador|laddare|laturi|nab[ií]je[čc]ka|[įi]krovikl|adapter|przej[sś]ci[oó]wk|strap|pasek do|pasek .{0,15}(watch|apple|samsung|garmin|fitbit|huawei)|band do|watch band|remie[nń]|reme[sš]ek|bracelet montre|Uhrenband|cinturino|correa reloj|horlogeband|pulseira rel[oó]g|klockarmband|akcesori[aóu]|zestaw akcesor|accessoir|Zubeh[öo]r|accessori[eo]|accesorio|tillbeh[öo]r|tilbeh[øo]r|tarvikkeet|příslušenstv|príslušenstv|priedai|piederumi|tarvikud|kiegész[ií]tő|accesorii|pribor|instrukcj[aię]|manual|booklet|box only|pude[łl]ko|insole|wk[łl]adk[aię] do but|skarpet[kiy]|socks|chaussettes|Socken|calzini|calcetines|sokken|meias|strumpor|sokker|sukat|ponožk[yi]|zokni|[sš]osete|čarape|zeķes|sokid|bielizn|underwear|boxer|sous-v[êe]tement|Unterwäsche|biancheria intima|ropa interior|ondergoed|roupa interior|underkläder|brelok|breloczek|keychain|lanyard|smycz|porte-cl[ée]s|Schl[üu]sselanhänger|portachiavi|llavero|sleutelhanger|nyckelring|naszywk|patch|sznur[oó]wk|laces|lacets|Schn[üu]rsenkel|belt|ceinture|G[üu]rtel|cintura|cintur[oó]n|riem|cinto|b[äa]lte|kork[iy]|stacj[aęi] dokuj|docking station|dock .{0,10}(station|usb|thunderbolt)|majic[ae]|trik[oó]|majtek|majtk[iy]|kalhotk|krabičk[auy]|krabice|pulóver)/i;
+const JUNK_KEYWORDS = /(?:^|[\s,;(\/-])(cases?|etui|covers?|pokrowiec|obudowa|foli[aę]|szkie[łl]ko|tempered|screen protector|h[üu]lle|schutzh[üu]lle|custodia|funda|coque|hoesje|capa|fodral|suojakuori|[üu]mbris|maciņš|d[eé]kliukas|obal|kryt|tok|hus[aăe]|skal|kryt na mobil|os[łl]on[aę]|naklejk[aię]|skin|sticker|aufkleber|adesivo|pegatina|wk[łl]adk[aię]|grip|saszetk[aię]|kabel|cabl[eo]|câble|Kabel|cavo|laad|[łl]adowark|charger|chargeur|Ladeger[äa]t|caricatore|cargador|oplader|carregador|laddare|laturi|nab[ií]je[čc]ka|[įi]krovikl|adapter|przej[sś]ci[oó]wk|strap|pasek do|pasek .{0,15}(watch|apple|samsung|garmin|fitbit|huawei)|band do|watch band|remie[nń]|reme[sš]ek|bracelet montre|Uhrenband|cinturino|correa reloj|horlogeband|pulseira rel[oó]g|klockarmband|akcesori[aóu]|zestaw akcesor|accessoir|Zubeh[öo]r|accessori[eo]|accesorio|tillbeh[öo]r|tilbeh[øo]r|tarvikkeet|příslušenstv|príslušenstv|priedai|piederumi|tarvikud|kiegész[ií]tő|accesorii|pribor|instrukcj[aię]|manual|booklet|box only|pude[łl]ko|insole|wk[łl]adk[aię] do but|skarpet[kiy]|socks|chaussettes|Socken|calzini|calcetines|sokken|meias|strumpor|sokker|sukat|ponožk[yi]|zokni|[sš]osete|čarape|zeķes|sokid|bielizn|underwear|boxer|sous-v[êe]tement|Unterwäsche|biancheria intima|ropa interior|ondergoed|roupa interior|underkläder|brelok|breloczek|keychain|lanyard|smycz|porte-cl[ée]s|Schl[üu]sselanhänger|portachiavi|llavero|sleutelhanger|nyckelring|naszywk|patch|sznur[oó]wk|laces|lacets|Schn[üu]rsenkel|belt|ceinture|G[üu]rtel|cintura|cintur[oó]n|riem|cinto|b[äa]lte|kork[iy]|stacj[aęi] dokuj|docking station|dock .{0,10}(station|usb|thunderbolt)|majic[ae]|trik[oó]|majtek|majtk[iy]|kalhotk|krabičk[auy]|krabice|pulóver|football|pi[łl]ka no[żz]na|adilette|apple tv|magsafe|powerbank|power bank|bateria zewn|baterie externe|maska .{0,10}iphone|maskica|shuffle|usb[- ]?c|base station|airport|leggins[ey]?|leggings|armband|sport\s*band|mokas[iy]n[yów]*|moccasin|klapk[iy]|slides?|base[iy]now[eya]|sukienk[aię]|dress|kleid|vestido|robe|crossbody|nerka|fanny\s*pack|bum\s*bag|telefontok|remote|pilot)/i;
+
+// Brands to always block — all items from these brands are filtered out
+const BLOCKED_BRANDS = new Set(["apple"]);
 
 // Women's bags & purses — PL EN FR DE IT ES NL PT CZ SK HU RO HR
 const WOMENS_BAG_KEYWORDS = /(?:^|[\s,;(])(torebk[aię]|torebka damska|damska torebka|purse|handbag|clutch|women'?s bag|sac [àa] main|Handtasche|Damentasche|borsa donna|bolso de mujer|damestas|bolsa feminina|damväska|dametaske|naisten laukku|dámská kabelka|dámska kabelka|moterišk[aą] rankin|sieviešu soma|naiste kott|női táska|geantă damă|ženska torbica)/i;
@@ -69,6 +72,11 @@ export function isNotJunk(item: RawItem): boolean {
   return !JUNK_KEYWORDS.test(text);
 }
 
+/** Filter out all items from blocked brands */
+export function isNotBlockedBrand(item: RawItem): boolean {
+  return !BLOCKED_BRANDS.has(item.brand.toLowerCase().trim());
+}
+
 /** Filter out women's bags & purses */
 export function isNotWomensBag(item: RawItem): boolean {
   const text = `${item.title} ${item.description} ${item.category}`;
@@ -93,6 +101,37 @@ export function isNotHardwareJunk(item: RawItem): boolean {
   return !HARDWARE_JUNK.test(text);
 }
 
+// Numeric shoe/clothing sizes outside 38-44 range
+const BAD_NUMERIC_SIZE = /^(3[4-7]|4[5-9]|[5-9]\d)\s*([.,]\d)?$/;
+// Extreme letter sizes
+const BAD_LETTER_SIZE = /\b(XXS|XXL|XXXL|XXXXL|2XL|3XL|4XL|2XS)\b/i;
+
+/**
+ * Filter out items with sizes outside the desired range.
+ * Keeps: numeric 38-44 (including half sizes like 42.5), letter S/M/L/XL,
+ * and items with no size or non-standard size strings.
+ * Blocks: numeric <38 or >44, XXS, XXL and above.
+ */
+export function isInSizeRange(item: RawItem): boolean {
+  const size = (item.size || "").trim();
+  if (!size) return true; // no size info — let through
+
+  // Check extreme letter sizes first
+  if (BAD_LETTER_SIZE.test(size)) return false;
+
+  // Extract numeric size (handles "42", "42.5", "42,5", "EU 43", "43 EU")
+  const numMatch = size.match(/(\d{2})(?:[.,]\d)?/);
+  if (numMatch) {
+    const num = parseInt(numMatch[1], 10);
+    // Only filter shoe/clothing range numbers (34-59), ignore e.g. "110 cm"
+    if (num >= 34 && num <= 59) {
+      return num >= 38 && num <= 44;
+    }
+  }
+
+  return true; // non-numeric or out-of-range number — let through
+}
+
 export interface FilterResult {
   passed: RawItem[];
   removed: number;
@@ -102,10 +141,12 @@ export interface FilterResult {
     hats: number;
     badCondition: number;
     junk: number;
+    blockedBrand: number;
     womensBags: number;
     vehicleParts: number;
     singleBroken: number;
     hardwareJunk: number;
+    badSize: number;
     pickupOnly: number;
   };
 }
@@ -117,11 +158,13 @@ export function filterItems(items: RawItem[], minPrice: number): FilterResult {
   const noHats = noKids.filter(isNotHat);
   const goodCondition = noHats.filter(isGoodCondition);
   const noJunk = goodCondition.filter(isNotJunk);
-  const noWomensBags = noJunk.filter(isNotWomensBag);
+  const noBlockedBrands = noJunk.filter(isNotBlockedBrand);
+  const noWomensBags = noBlockedBrands.filter(isNotWomensBag);
   const noVehicleParts = noWomensBags.filter(isNotVehiclePart);
   const noSingleBroken = noVehicleParts.filter(isNotSingleOrBroken);
   const noHardwareJunk = noSingleBroken.filter(isNotHardwareJunk);
-  const shippable = noHardwareJunk.filter(isShippable);
+  const goodSize = noHardwareJunk.filter(isInSizeRange);
+  const shippable = goodSize.filter(isShippable);
 
   return {
     passed: shippable,
@@ -132,11 +175,13 @@ export function filterItems(items: RawItem[], minPrice: number): FilterResult {
       hats: noKids.length - noHats.length,
       badCondition: noHats.length - goodCondition.length,
       junk: goodCondition.length - noJunk.length,
-      womensBags: noJunk.length - noWomensBags.length,
+      blockedBrand: noJunk.length - noBlockedBrands.length,
+      womensBags: noBlockedBrands.length - noWomensBags.length,
       vehicleParts: noWomensBags.length - noVehicleParts.length,
       singleBroken: noVehicleParts.length - noSingleBroken.length,
       hardwareJunk: noSingleBroken.length - noHardwareJunk.length,
-      pickupOnly: noHardwareJunk.length - shippable.length,
+      badSize: noHardwareJunk.length - goodSize.length,
+      pickupOnly: goodSize.length - shippable.length,
     },
   };
 }

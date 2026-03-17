@@ -10,6 +10,7 @@ import {
   isNotVehiclePart,
   isNotSingleOrBroken,
   isNotHardwareJunk,
+  isInSizeRange,
   filterItems,
 } from "../src/filters.js";
 import { mockItem } from "./helpers.js";
@@ -126,9 +127,9 @@ describe("isGoodCondition", () => {
     expect(isGoodCondition(mockItem({ condition: "Nowy z metką" }))).toBe(true);
   });
 
-  it("filters good/dobry condition", () => {
-    expect(isGoodCondition(mockItem({ condition: "Dobry" }))).toBe(false);
-    expect(isGoodCondition(mockItem({ condition: "good" }))).toBe(false);
+  it("keeps good/dobry condition", () => {
+    expect(isGoodCondition(mockItem({ condition: "Dobry" }))).toBe(true);
+    expect(isGoodCondition(mockItem({ condition: "good" }))).toBe(true);
   });
 
   it("filters satisfactory condition", () => {
@@ -225,6 +226,35 @@ describe("isNotJunk", () => {
     expect(isNotJunk(mockItem({ title: "DJI Mavic Mini", description: "Pokrowiec na drona DJI" }))).toBe(false);
     expect(isNotJunk(mockItem({ title: "Apple Watch", description: "Tylko pasek do zegarka" }))).toBe(false);
     expect(isNotJunk(mockItem({ title: "Nintendo Switch", description: "Etui ochronne" }))).toBe(false);
+  });
+
+  it("filters leggings and armbands", () => {
+    expect(isNotJunk(mockItem({ title: "Nike legginsy damskie" }))).toBe(false);
+    expect(isNotJunk(mockItem({ title: "Adidas leggings black" }))).toBe(false);
+    expect(isNotJunk(mockItem({ title: "Armband Nike do biegania" }))).toBe(false);
+  });
+
+  it("filters football items", () => {
+    expect(isNotJunk(mockItem({ title: "Adidas football Tango" }))).toBe(false);
+    expect(isNotJunk(mockItem({ title: "Piłka nożna Nike Strike" }))).toBe(false);
+  });
+
+  it("filters adilette slides", () => {
+    expect(isNotJunk(mockItem({ title: "Adidas Adilette Comfort" }))).toBe(false);
+  });
+
+  it("filters tech junk (apple tv, magsafe, powerbank, base station)", () => {
+    expect(isNotJunk(mockItem({ title: "Apple TV 4K" }))).toBe(false);
+    expect(isNotJunk(mockItem({ title: "MagSafe charger iPhone" }))).toBe(false);
+    expect(isNotJunk(mockItem({ title: "Powerbank 20000mAh" }))).toBe(false);
+    expect(isNotJunk(mockItem({ title: "Power bank Anker" }))).toBe(false);
+    expect(isNotJunk(mockItem({ title: "Bateria zewnętrzna Samsung" }))).toBe(false);
+    expect(isNotJunk(mockItem({ title: "Base station Google" }))).toBe(false);
+    expect(isNotJunk(mockItem({ title: "Maska na iPhone 15" }))).toBe(false);
+    expect(isNotJunk(mockItem({ title: "Maskica za iPhone" }))).toBe(false);
+    expect(isNotJunk(mockItem({ title: "Kabel USB-C" }))).toBe(false);
+    expect(isNotJunk(mockItem({ title: "Apple Airport Express" }))).toBe(false);
+    expect(isNotJunk(mockItem({ title: "iPod Shuffle 4gen" }))).toBe(false);
   });
 
   it("keeps actual products", () => {
@@ -342,6 +372,54 @@ describe("isNotHardwareJunk", () => {
     expect(isNotHardwareJunk(mockItem({ title: "Nintendo Switch OLED" }))).toBe(true);
     expect(isNotHardwareJunk(mockItem({ title: "iPhone 15 Pro Max" }))).toBe(true);
     expect(isNotHardwareJunk(mockItem({ title: "Nike Air Jordan 1" }))).toBe(true);
+  });
+});
+
+// ============================================================
+// isInSizeRange
+// ============================================================
+describe("isInSizeRange", () => {
+  it("keeps sizes 38-44", () => {
+    expect(isInSizeRange(mockItem({ size: "38" }))).toBe(true);
+    expect(isInSizeRange(mockItem({ size: "42" }))).toBe(true);
+    expect(isInSizeRange(mockItem({ size: "42.5" }))).toBe(true);
+    expect(isInSizeRange(mockItem({ size: "44" }))).toBe(true);
+    expect(isInSizeRange(mockItem({ size: "42,5" }))).toBe(true);
+  });
+
+  it("filters sizes below 38", () => {
+    expect(isInSizeRange(mockItem({ size: "34" }))).toBe(false);
+    expect(isInSizeRange(mockItem({ size: "36" }))).toBe(false);
+    expect(isInSizeRange(mockItem({ size: "37" }))).toBe(false);
+  });
+
+  it("filters sizes above 44", () => {
+    expect(isInSizeRange(mockItem({ size: "45" }))).toBe(false);
+    expect(isInSizeRange(mockItem({ size: "46" }))).toBe(false);
+    expect(isInSizeRange(mockItem({ size: "48" }))).toBe(false);
+  });
+
+  it("filters XXS and XXL", () => {
+    expect(isInSizeRange(mockItem({ size: "XXS" }))).toBe(false);
+    expect(isInSizeRange(mockItem({ size: "XXL" }))).toBe(false);
+    expect(isInSizeRange(mockItem({ size: "XXXL" }))).toBe(false);
+    expect(isInSizeRange(mockItem({ size: "2XL" }))).toBe(false);
+  });
+
+  it("keeps S, M, L, XL", () => {
+    expect(isInSizeRange(mockItem({ size: "S" }))).toBe(true);
+    expect(isInSizeRange(mockItem({ size: "M" }))).toBe(true);
+    expect(isInSizeRange(mockItem({ size: "L" }))).toBe(true);
+    expect(isInSizeRange(mockItem({ size: "XL" }))).toBe(true);
+  });
+
+  it("keeps items with no size", () => {
+    expect(isInSizeRange(mockItem({ size: "" }))).toBe(true);
+    expect(isInSizeRange(mockItem({ size: undefined }))).toBe(true);
+  });
+
+  it("keeps non-clothing sizes (e.g. 110 cm)", () => {
+    expect(isInSizeRange(mockItem({ size: "110 cm" }))).toBe(true);
   });
 });
 

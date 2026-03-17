@@ -80,21 +80,6 @@ describe("extractModel — The North Face", () => {
 });
 
 // ============================================================
-// Model extraction — Arc'teryx
-// ============================================================
-describe("extractModel — Arc'teryx", () => {
-  it("extracts Alpha SV", () => {
-    expect(extractModel("Arc'teryx", "Arc'teryx Alpha SV Jacket")).toBe("alpha sv");
-  });
-  it("extracts Beta LT", () => {
-    expect(extractModel("Arc'teryx", "arcteryx Beta LT r. M")).toBe("beta lt");
-  });
-  it("extracts Atom LT", () => {
-    expect(extractModel("Arc'teryx", "Arc'teryx Atom LT Hoody")).toBe("atom lt");
-  });
-});
-
-// ============================================================
 // Model extraction — Salomon
 // ============================================================
 describe("extractModel — Salomon", () => {
@@ -110,12 +95,6 @@ describe("extractModel — Salomon", () => {
 // Model extraction — Apple / Sony / Nintendo
 // ============================================================
 describe("extractModel — Electronics", () => {
-  it("extracts iPhone 15 Pro", () => {
-    expect(extractModel("Apple", "Apple iPhone 15 Pro Max 256GB")).toBe("iphone 15 pro max");
-  });
-  it("extracts AirPods Pro", () => {
-    expect(extractModel("Apple", "Apple AirPods Pro 2")).toBe("airpods pro 2");
-  });
   it("extracts WH-1000XM5", () => {
     expect(extractModel("Sony", "Sony WH-1000XM5 słuchawki")).toBe("wh-1000xm5");
   });

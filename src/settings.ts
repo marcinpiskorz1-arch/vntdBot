@@ -59,7 +59,7 @@ export const settings = {
     return getNumber("hot_min_profit", config.hotMinProfit);
   },
   get minPrice(): number {
-    return getNumber("min_price", 49);
+    return getNumber("min_price", 30);
   },
   get instantThreshold(): number {
     return getNumber("instant_threshold", 60);
@@ -74,7 +74,7 @@ export const settings = {
     set("ai_enabled", v ? "1" : "0");
   },
   get minProfitToNotify(): number {
-    return getNumber("min_profit", 50);
+    return getNumber("min_profit", 35);
   },
 
   /** Return all current values (for /status display) */
@@ -84,10 +84,10 @@ export const settings = {
       notify_threshold: getNumber("notify_threshold", config.notifyThreshold),
       hot_threshold: getNumber("hot_threshold", config.hotThreshold),
       hot_min_profit: getNumber("hot_min_profit", config.hotMinProfit),
-      min_price: getNumber("min_price", 49),
+      min_price: getNumber("min_price", 30),
       daily_ai_limit: getNumber("daily_ai_limit", 100),
       instant_threshold: getNumber("instant_threshold", 60),
-      min_profit: getNumber("min_profit", 50),
+      min_profit: getNumber("min_profit", 35),
       ai_enabled: getBool("ai_enabled", true),
     };
   },

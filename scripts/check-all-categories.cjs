@@ -11,7 +11,7 @@ const queries = [
   // Outdoor buty 
   "la sportiva", "scarpa", "meindl", "lowa", "merrell", "salomon", "hunter boots",
   // Outdoor odziez
-  "arc'teryx", "mammut", "the north face", "patagonia", "fjällräven",
+  "mammut", "the north face", "patagonia", "fjällräven",
   "helly hansen", "peak performance", "rab", "millet", "haglöfs",
   "revolutionrace", "norrøna", "dynafit", "save the duck",
   // Streetwear / hype

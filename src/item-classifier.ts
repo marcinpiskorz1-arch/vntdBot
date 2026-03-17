@@ -8,7 +8,7 @@
 
 const SHOES_PATTERN = /(?:^|[\s,;(\/-])(buty|but[iy]|shoe|shoes|sneaker|sneakers|boot|boots|trampk[iy]|adidasy|klapk[iy]|sandal|sandały|sanda[łl]|runner|trainers?|loafer|mokasyn|boty|topánk[yia]|scarpe|chaussure|Schuh|zapato|schoen|sapato|sko|kenkä|trail|speedcross|supercross|gel[- ]lyte|gel[- ]kayano|air max|air force|dunk|blazer|pegasus|vapormax|samba|gazelle|superstar|ultraboost|campus|forum|spezial|stan smith|chuck 70|cloudmonster|xt-6|xt-4|metcon)/i;
 
-const JACKET_PATTERN = /(?:^|[\s,;(\/-])(kurtk[aięy]|jacket|jackets|parka|parki|coat|p[łl]aszcz|anorak|windbreaker|wiatr[oó]wk|puchówk|puffer|down jacket|softshell|hardshell|alpha sv|alpha ar|beta lt|beta ar|nuptse|1996|retro-?x|denali|atom lt|atom ar|cerium|nano puff|bundy?|bunda|veste|Jacke|giacca|chaqueta|jas|jacka|takki|doudoune)/i;
+const JACKET_PATTERN = /(?:^|[\s,;(\/-])(kurtk[aięy]|jacket|jackets|parka|parki|coat|p[łl]aszcz|anorak|windbreaker|wiatr[oó]wk|puchówk|puffer|down jacket|softshell|hardshell|nuptse|1996|retro-?x|denali|nano puff|bundy?|bunda|veste|Jacke|giacca|chaqueta|jas|jacka|takki|doudoune)/i;
 
 const TOP_PATTERN = /(?:^|[\s,;(\/-])(top[y]?(?:\s|$)|tank(?:\s|$)|koszulk[aięy]|t-?shirt|tshirt|tee(?:\s|$)|bluz[aęky]|blouse|hoodie|sweatshirt|bluza|polar|fleece|longsleeve|long sleeve|sweater|sweter|jumper|pullover|polo|tank top|kamizelk[aięy]|vest|crop top|crewneck|crew neck|triko|tričko|mikina|maglia|camiseta|camisa|chemise|Hemd|overhemd|tröja|paita|shirt)/i;
 
@@ -49,11 +49,12 @@ const SHOES_ONLY_BRANDS = new Set([
   "jordan", "air jordan", "nike sb", "asics", "new balance",
   "vans", "converse", "on running", "hoka", "saucony", "brooks",
   "dc shoes", "merrell", "lowa", "meindl", "scarpa", "la sportiva",
+  "crocs", "dr. martens", "dr martens",
 ]);
 
 /** Brands where only shoes + jackets + bags have resale value */
 const SHOES_JACKETS_BAGS_BRANDS = new Set([
-  "arc'teryx", "arcteryx", "patagonia", "the north face",
+  "the north face",
   "mammut", "salewa", "salomon", "norrøna", "haglöfs",
   "canada goose", "fjallraven", "fjällräven",
 ]);

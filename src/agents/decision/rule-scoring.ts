@@ -5,9 +5,9 @@ import type { RawItem, PriceSignal, AiAnalysis } from "../../types.js";
 // ============================================================
 
 const PREMIUM_BRANDS = new Set([
-  "nike", "jordan", "adidas", "new balance", "the north face", "patagonia",
-  "arc'teryx", "arcteryx", "salomon", "apple", "sony", "nintendo", "lego",
-  "ray-ban", "seiko", "supreme",
+  "nike", "jordan", "adidas", "new balance", "the north face",
+  "salomon", "sony", "nintendo", "lego",
+  "ray-ban", "seiko",
   "gucci", "prada", "yeezy",
 ]);
 
