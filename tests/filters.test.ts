@@ -252,6 +252,12 @@ describe("isNotJunk", () => {
     expect(isNotJunk(mockItem({ title: "Zegarek męski Quartz JK Jordan Keer" }))).toBe(false);
   });
 
+  it("filters socks in all languages including Lithuanian", () => {
+    expect(isNotJunk(mockItem({ title: "Baltos kojinės" }))).toBe(false);
+    expect(isNotJunk(mockItem({ title: "Jordan kojinė balta" }))).toBe(false);
+    expect(isNotJunk(mockItem({ title: "Nike skarpetki 3-pack" }))).toBe(false);
+  });
+
   it("filters tech junk (apple tv, magsafe, powerbank, base station)", () => {
     expect(isNotJunk(mockItem({ title: "Apple TV 4K" }))).toBe(false);
     expect(isNotJunk(mockItem({ title: "MagSafe charger iPhone" }))).toBe(false);
