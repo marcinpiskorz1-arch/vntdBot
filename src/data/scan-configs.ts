@@ -6,14 +6,14 @@ import type { ScanConfig } from "../types.js";
  * Others = scanned every 2nd cycle (full scan).
  */
 export const scanConfigs: ScanConfig[] = [
-  // Sneakersy — marki
-  { searchText: "nike" },
-  { searchText: "jordan" },
-  { searchText: "adidas" },
-  { searchText: "new balance" },
-  { searchText: "under armour" },
-  { searchText: "asics" },
-  { searchText: "vans" },
+  // Sneakersy — marki (brandIds = oficjalna marka Vinted, łapie literówki w tytułach)
+  { searchText: "nike", brandIds: [53] },
+  { searchText: "jordan", brandIds: [2703] },
+  { searchText: "adidas", brandIds: [14] },
+  { searchText: "new balance", brandIds: [1775] },
+  { searchText: "under armour", brandIds: [52035] },
+  { searchText: "asics", brandIds: [1195] },
+  { searchText: "vans", brandIds: [139] },
   // Jordan — modele (priority: skanowane co cykl)
   { searchText: "jordan 1", priority: true },
   { searchText: "jordan 3", priority: true },
@@ -53,13 +53,13 @@ export const scanConfigs: ScanConfig[] = [
   // Outdoor / góry
   { searchText: "la sportiva" },
   { searchText: "salewa" },
-  { searchText: "salomon" },
+  { searchText: "salomon", brandIds: [15457] },
   // Salomon — modele hype
   { searchText: "salomon xt-6", priority: true },
   { searchText: "salomon speedcross", priority: true },
   { searchText: "salomon xt-4", priority: true },
-  { searchText: "mammut" },
-  { searchText: "arc'teryx" },
+  { searchText: "mammut", brandIds: [209084] },
+  { searchText: "arc'teryx", brandIds: [319730] },
   // Arc'teryx — modele premium
   { searchText: "arcteryx alpha", priority: true },
   { searchText: "arcteryx beta", priority: true },
@@ -80,22 +80,22 @@ export const scanConfigs: ScanConfig[] = [
   { searchText: "lowa" },
   { searchText: "osprey" },
   // Streetwear / hype
-  { searchText: "the north face" },
+  { searchText: "the north face", brandIds: [2319] },
   // TNF — modele z wysokim resale
   { searchText: "north face nuptse", priority: true },
   { searchText: "north face 1996", priority: true },
   { searchText: "north face denali", priority: true },
   { searchText: "north face duffel", priority: true },
-  { searchText: "patagonia" },
+  { searchText: "patagonia", brandIds: [90804] },
   // Patagonia — modele
   { searchText: "patagonia retro-x", priority: true },
   { searchText: "patagonia nano puff", priority: true },
   { searchText: "patagonia black hole", priority: true },
   { searchText: "fjällräven" },
   { searchText: "nervous" },
-  { searchText: "carhartt" },
-  { searchText: "dickies" },
-  { searchText: "supreme" },
+  { searchText: "carhartt", brandIds: [362] },
+  { searchText: "dickies", brandIds: [65] },
+  { searchText: "supreme", brandIds: [14969] },
   { searchText: "supreme box logo", priority: true },
   { searchText: "stüssy" },
   { searchText: "napapijri" },
@@ -133,10 +133,10 @@ export const scanConfigs: ScanConfig[] = [
   { searchText: "canada goose" },
   { searchText: "barbour" },
   // Tier 2 resell
-  { searchText: "columbia" },
-  { searchText: "converse" },
+  { searchText: "columbia", brandIds: [17161] },
+  { searchText: "converse", brandIds: [11445] },
   { searchText: "converse chuck 70", priority: true },
-  { searchText: "on running" },
+  { searchText: "on running", brandIds: [267947] },
   { searchText: "on cloudmonster", priority: true },
   // Skate
   { searchText: "santa cruz" },
@@ -203,17 +203,17 @@ export const scanConfigs: ScanConfig[] = [
   // Personal use — "Dla siebie" (relaxed thresholds, no resale restrictions)
   // Sizes: buty 42.5-43.5 EU, ubrania M/L
   // ============================================================
-  { searchText: "carhartt", personal: true },
-  { searchText: "dickies", personal: true },
+  { searchText: "carhartt", personal: true, brandIds: [362] },
+  { searchText: "dickies", personal: true, brandIds: [65] },
   { searchText: "turbokolor", personal: true },
-  { searchText: "under armour", personal: true },
-  { searchText: "superdry", personal: true },
-  { searchText: "la sportiva", personal: true },
-  { searchText: "vans", personal: true },
-  { searchText: "asics", personal: true },
-  { searchText: "salewa", personal: true },
+  { searchText: "under armour", personal: true, brandIds: [52035] },
+  { searchText: "superdry", personal: true, brandIds: [191] },
+  { searchText: "la sportiva", personal: true, brandIds: [201320] },
+  { searchText: "vans", personal: true, brandIds: [139] },
+  { searchText: "asics", personal: true, brandIds: [1195] },
+  { searchText: "salewa", personal: true, brandIds: [60412] },
   { searchText: "gore-tex", personal: true },
   { searchText: "goretex", personal: true },
-  { searchText: "dakine", personal: true },
-  { searchText: "quiksilver", personal: true },
+  { searchText: "dakine", personal: true, brandIds: [4105] },
+  { searchText: "quiksilver", personal: true, brandIds: [159] },
 ];

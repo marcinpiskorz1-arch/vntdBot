@@ -51,6 +51,15 @@ export class ScraperAgent {
       const uniquePage2 = page2.filter(i => !seen.has(i.vintedId));
       const items = [...page1, ...uniquePage2];
 
+      // Priority configs get an extra page for deeper coverage
+      if (scanConfig.priority) {
+        await jitter(300, 800);
+        const page3 = await fetchCatalogItems(session, scanConfig, 3);
+        const seenAll = new Set(items.map(i => i.vintedId));
+        const uniquePage3 = page3.filter(i => !seenAll.has(i.vintedId));
+        items.push(...uniquePage3);
+      }
+
       if (scanConfig.personal) {
         for (const item of items) item.personal = true;
       }
