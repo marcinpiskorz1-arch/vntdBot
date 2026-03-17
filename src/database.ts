@@ -3,6 +3,7 @@ import { mkdirSync } from "fs";
 import { dirname } from "path";
 import { config } from "./config.js";
 import { classifyItemType } from "./item-classifier.js";
+import { extractModel } from "./model-extractor.js";
 
 mkdirSync(dirname(config.dbPath), { recursive: true });
 
@@ -39,6 +40,7 @@ db.exec(`
 
   CREATE INDEX IF NOT EXISTS idx_items_vinted_id ON items(vinted_id);
   CREATE INDEX IF NOT EXISTS idx_items_brand_category ON items(brand, category);
+  CREATE INDEX IF NOT EXISTS idx_items_brand_model_category ON items(brand, model, category);
 
   CREATE TABLE IF NOT EXISTS price_history (
     id            INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -152,6 +154,29 @@ try {
   }
 }
 
+// Backfill model extraction for items with empty model (14-day window)
+{
+  const noModel = db.prepare(
+    `SELECT id, brand, title FROM items WHERE model = '' AND discovered_at >= datetime('now', '-14 days')`
+  ).all() as Array<{ id: number; brand: string; title: string }>;
+
+  if (noModel.length > 0) {
+    const updateStmt = db.prepare(`UPDATE items SET model = @model WHERE id = @id`);
+    const backfill = db.transaction((rows: Array<{ id: number; brand: string; title: string }>) => {
+      let updated = 0;
+      for (const row of rows) {
+        const model = extractModel(row.brand, row.title);
+        if (model) {
+          updateStmt.run({ id: row.id, model });
+          updated++;
+        }
+      }
+      return updated;
+    });
+    backfill(noModel);
+  }
+}
+
 // ============================================================
 // Prepared statements — reusable across agents
 // ============================================================
@@ -177,6 +202,18 @@ export const stmts = {
   ),
 
   // Pricing Agent — 14-day window, with size group
+  getPricesForModelWithSize: db.prepare<{ brand: string; model: string; category: string; size: string }>(
+    `SELECT price FROM items
+     WHERE brand = @brand AND model = @model AND category = @category AND size = @size
+       AND discovered_at >= datetime('now', '-14 days')
+     ORDER BY price`
+  ),
+  getPricesForModel: db.prepare<{ brand: string; model: string; category: string }>(
+    `SELECT price FROM items
+     WHERE brand = @brand AND model = @model AND category = @category
+       AND discovered_at >= datetime('now', '-14 days')
+     ORDER BY price`
+  ),
   getPricesForGroupWithSize: db.prepare<{ brand: string; category: string; size: string }>(
     `SELECT price FROM items
      WHERE brand = @brand AND category = @category AND size = @size

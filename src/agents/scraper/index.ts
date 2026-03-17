@@ -3,6 +3,7 @@ import { settings } from "../../settings.js";
 import { stmts } from "../../database.js";
 import type { RawItem, ScanConfig } from "../../types.js";
 import { classifyItemType } from "../../item-classifier.js";
+import { extractModel } from "../../model-extractor.js";
 import { createSession, type VintedSession } from "./session-manager.js";
 import { fetchCatalogItems } from "./vinted-api.js";
 import { ProxyPool } from "./proxy-pool.js";
@@ -78,7 +79,7 @@ export class ScraperAgent {
           vinted_id: item.vintedId,
           title: item.title,
           brand: item.brand,
-          model: item.model || "",
+          model: item.model || extractModel(item.brand, item.title),
           price: item.price,
           currency: item.currency,
           size: item.size || "",

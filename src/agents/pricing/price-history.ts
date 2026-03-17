@@ -58,11 +58,56 @@ export function normalizeSizeGroup(size: string | undefined): string {
 }
 
 const MIN_SAMPLES_FOR_SIZE = 5;
+const MIN_SAMPLES_FOR_MODEL = 10;
 
 /**
- * Recalculate median/P25 for a brand+category+size group.
+ * Query item prices with a fallback cascade:
+ *   1. model + size (if both provided)
+ *   2. model only (if model provided)
+ *   3. brand + category + size (if size provided)
+ *   4. brand + category (final fallback)
+ *
+ * Returns the prices and which level matched.
+ */
+function queryPricesWithFallback(
+  brand: string,
+  category: string,
+  model: string,
+  sizeGroup: string,
+): { rows: PriceRow[]; usedModel: string; usedSizeGroup: string } {
+  // 1. model + size
+  if (model && sizeGroup) {
+    const rows = stmts.getPricesForModelWithSize.all({ brand, model, category, size: sizeGroup }) as PriceRow[];
+    if (rows.length >= MIN_SAMPLES_FOR_MODEL) {
+      return { rows, usedModel: model, usedSizeGroup: sizeGroup };
+    }
+  }
+
+  // 2. model only (no size filter)
+  if (model) {
+    const rows = stmts.getPricesForModel.all({ brand, model, category }) as PriceRow[];
+    if (rows.length >= MIN_SAMPLES_FOR_MODEL) {
+      return { rows, usedModel: model, usedSizeGroup: "" };
+    }
+  }
+
+  // 3. brand + category + size
+  if (sizeGroup) {
+    const rows = stmts.getPricesForGroupWithSize.all({ brand, category, size: sizeGroup }) as PriceRow[];
+    if (rows.length >= MIN_SAMPLES_FOR_SIZE) {
+      return { rows, usedModel: "", usedSizeGroup: sizeGroup };
+    }
+  }
+
+  // 4. brand + category (final fallback)
+  const rows = stmts.getPricesForGroup.all({ brand, category }) as PriceRow[];
+  return { rows, usedModel: "", usedSizeGroup: "" };
+}
+
+/**
+ * Recalculate median/P25 for a brand+model+category+size group.
  * Uses 14-day window + IQR outlier removal.
- * Falls back to brand+category if size-specific data is too sparse.
+ * Falls back through model → size → brand+category cascade.
  */
 export function updatePriceStats(
   brand: string,
@@ -70,24 +115,9 @@ export function updatePriceStats(
   model = "",
   sizeGroup = ""
 ): { medianPrice: number; p25Price: number; sampleCount: number } {
-  let rows: PriceRow[];
-  let usedSizeGroup = sizeGroup;
-
-  // Try size-specific first
-  if (sizeGroup) {
-    rows = stmts.getPricesForGroupWithSize.all({ brand, category, size: sizeGroup }) as PriceRow[];
-    if (rows.length < MIN_SAMPLES_FOR_SIZE) {
-      // Fallback to brand+category (no size filter)
-      rows = stmts.getPricesForGroup.all({ brand, category }) as PriceRow[];
-      usedSizeGroup = "";
-    }
-  } else {
-    rows = stmts.getPricesForGroup.all({ brand, category }) as PriceRow[];
-  }
+  const { rows, usedModel, usedSizeGroup } = queryPricesWithFallback(brand, category, model, sizeGroup);
 
   const sorted = rows.map((r) => r.price).sort((a, b) => a - b);
-
-  // Remove outliers before computing stats
   const cleaned = removeOutliers(sorted);
 
   const medianPrice = median(cleaned);
@@ -95,7 +125,7 @@ export function updatePriceStats(
 
   stmts.upsertPriceHistory.run({
     brand,
-    model,
+    model: usedModel,
     category,
     size_group: usedSizeGroup,
     median_price: medianPrice,
@@ -105,7 +135,7 @@ export function updatePriceStats(
 
   logger.debug(
     {
-      brand, category, sizeGroup: usedSizeGroup,
+      brand, model: usedModel, category, sizeGroup: usedSizeGroup,
       median: medianPrice, p25: p25Price,
       raw: sorted.length, cleaned: cleaned.length,
     },
@@ -117,7 +147,7 @@ export function updatePriceStats(
 
 /**
  * Get cached price stats from price_history table.
- * Tries size-specific first, falls back to brand+category.
+ * Falls back through model → size → brand+category cascade.
  */
 export function getPriceStats(
   brand: string,
@@ -125,31 +155,43 @@ export function getPriceStats(
   model = "",
   sizeGroup = ""
 ): { medianPrice: number; p25Price: number; sampleCount: number } | null {
-  // Try size-specific first
-  if (sizeGroup) {
+  type PriceHistoryRow = { median_price: number; p25_price: number; sample_count: number } | undefined;
+
+  // 1. model + size
+  if (model && sizeGroup) {
     const row = stmts.getPriceHistory.get({
       brand, model, category, size_group: sizeGroup,
-    }) as { median_price: number; p25_price: number; sample_count: number } | undefined;
-
-    if (row && row.sample_count >= MIN_SAMPLES_FOR_SIZE) {
-      return {
-        medianPrice: row.median_price,
-        p25Price: row.p25_price,
-        sampleCount: row.sample_count,
-      };
+    }) as PriceHistoryRow;
+    if (row && row.sample_count >= MIN_SAMPLES_FOR_MODEL) {
+      return { medianPrice: row.median_price, p25Price: row.p25_price, sampleCount: row.sample_count };
     }
   }
 
-  // Fallback: brand+category without size
+  // 2. model only
+  if (model) {
+    const row = stmts.getPriceHistory.get({
+      brand, model, category, size_group: "",
+    }) as PriceHistoryRow;
+    if (row && row.sample_count >= MIN_SAMPLES_FOR_MODEL) {
+      return { medianPrice: row.median_price, p25Price: row.p25_price, sampleCount: row.sample_count };
+    }
+  }
+
+  // 3. brand + category + size (no model)
+  if (sizeGroup) {
+    const row = stmts.getPriceHistory.get({
+      brand, model: "", category, size_group: sizeGroup,
+    }) as PriceHistoryRow;
+    if (row && row.sample_count >= MIN_SAMPLES_FOR_SIZE) {
+      return { medianPrice: row.median_price, p25Price: row.p25_price, sampleCount: row.sample_count };
+    }
+  }
+
+  // 4. brand + category (final fallback)
   const row = stmts.getPriceHistory.get({
-    brand, model, category, size_group: "",
-  }) as { median_price: number; p25_price: number; sample_count: number } | undefined;
+    brand, model: "", category, size_group: "",
+  }) as PriceHistoryRow;
 
   if (!row) return null;
-
-  return {
-    medianPrice: row.median_price,
-    p25Price: row.p25_price,
-    sampleCount: row.sample_count,
-  };
+  return { medianPrice: row.median_price, p25Price: row.p25_price, sampleCount: row.sample_count };
 }
