@@ -47,7 +47,7 @@ export class ScraperAgent {
   private async scanSingleConfig(session: VintedSession, scanConfig: ScanConfig): Promise<RawItem[]> {
     try {
       const page1 = await fetchCatalogItems(session, scanConfig, 1);
-      await jitter(300, 800);
+      await jitter(800, 1500);
       const page2 = await fetchCatalogItems(session, scanConfig, 2);
       const seen = new Set(page1.map(i => i.vintedId));
       const uniquePage2 = page2.filter(i => !seen.has(i.vintedId));
@@ -56,7 +56,7 @@ export class ScraperAgent {
       // Priority configs get 1 extra page
       const extraPages = scanConfig.priority ? 1 : 0;
       for (let p = 3; p <= 2 + extraPages; p++) {
-        await jitter(300, 800);
+        await jitter(800, 1500);
         const extra = await fetchCatalogItems(session, scanConfig, p);
         const seenAll = new Set(items.map(i => i.vintedId));
         const unique = extra.filter(i => !seenAll.has(i.vintedId));
@@ -106,7 +106,7 @@ export class ScraperAgent {
       return newItems;
     } catch (err) {
       logger.error({ err, scanConfig }, "Scan failed for config");
-      if (err instanceof Error && err.message.includes("401")) {
+      if (err instanceof Error && (err.message.includes("401") || err.message.includes("429"))) {
         this.session = null;
       }
       return [];
@@ -144,9 +144,9 @@ export class ScraperAgent {
         await onBatch(batchItems);
       }
 
-      // Jitter between batches to avoid detection
+      // Jitter between batches to avoid 429 rate limits
       if (i + SCAN_CONCURRENCY < scanConfigs.length) {
-        await jitter(1500, 3000);
+        await jitter(2500, 5000);
       }
     }
 

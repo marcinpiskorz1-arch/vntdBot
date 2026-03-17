@@ -83,18 +83,35 @@ export async function fetchCatalogItems(
     headers["X-CSRF-Token"] = session.csrfToken;
   }
 
-  const response = await fetch(url.toString(), {
-    method: "GET",
-    headers,
-  });
+  // Retry with exponential backoff on 429 rate limits
+  const MAX_RETRIES = 3;
+  let response: Response | null = null;
 
-  if (!response.ok) {
-    const text = await response.text().catch(() => "");
+  for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
+    response = await fetch(url.toString(), {
+      method: "GET",
+      headers,
+    });
+
+    if (response.status !== 429) break;
+
+    if (attempt < MAX_RETRIES) {
+      const backoffMs = (2 ** attempt) * 5000 + Math.random() * 3000; // 5s, 13s, 29s
+      logger.warn(
+        { attempt: attempt + 1, backoffMs: Math.round(backoffMs), url: url.pathname },
+        "429 rate limited — backing off"
+      );
+      await new Promise(r => setTimeout(r, backoffMs));
+    }
+  }
+
+  if (!response!.ok) {
+    const text = await response!.text().catch(() => "");
     logger.error(
-      { status: response.status, url: url.pathname, body: text.slice(0, 500) },
+      { status: response!.status, url: url.pathname, body: text.slice(0, 500) },
       "Vinted API request failed"
     );
-    throw new Error(`Vinted API ${response.status}: ${text.slice(0, 200)}`);
+    throw new Error(`Vinted API ${response!.status}: ${text.slice(0, 200)}`);
   }
 
   const data = (await response.json()) as VintedCatalogResponse;
