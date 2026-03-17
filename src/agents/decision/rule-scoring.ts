@@ -56,7 +56,7 @@ const CONDITION_MAP: Record<string, number> = {
 // ============================================================
 
 const POPULAR_SHOE_SIZES = new Set(["41", "42", "43", "44", "45"]);
-const AVERAGE_SHOE_SIZES = new Set(["39", "40", "46"]);
+const AVERAGE_SHOE_SIZES = new Set(["36", "37", "38", "39", "40", "46"]);
 const POPULAR_CLOTHING = new Set(["M", "L", "XL"]);
 const AVERAGE_CLOTHING = new Set(["S", "XXL"]);
 

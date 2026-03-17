@@ -101,16 +101,16 @@ export function isNotHardwareJunk(item: RawItem): boolean {
   return !HARDWARE_JUNK.test(text);
 }
 
-// Numeric shoe/clothing sizes outside 38-44 range
-const BAD_NUMERIC_SIZE = /^(3[4-7]|4[5-9]|[5-9]\d)\s*([.,]\d)?$/;
+// Numeric shoe/clothing sizes outside 36-46 range
+const BAD_NUMERIC_SIZE = /^(3[0-5]|4[7-9]|[5-9]\d)\s*([.,]\d)?$/;
 // Extreme letter sizes
 const BAD_LETTER_SIZE = /\b(XXS|XXL|XXXL|XXXXL|2XL|3XL|4XL|2XS)\b/i;
 
 /**
  * Filter out items with sizes outside the desired range.
- * Keeps: numeric 38-44 (including half sizes like 42.5), letter S/M/L/XL,
+ * Keeps: numeric 36-46 (including half sizes like 42.5), letter S/M/L/XL,
  * and items with no size or non-standard size strings.
- * Blocks: numeric <38 or >44, XXS, XXL and above.
+ * Blocks: numeric <36 or >46, XXS, XXL and above.
  */
 export function isInSizeRange(item: RawItem): boolean {
   const size = (item.size || "").trim();
@@ -125,9 +125,9 @@ export function isInSizeRange(item: RawItem): boolean {
     const num = parseInt(numMatch[1], 10);
     // Kids clothing sizes in cm (80-170) — always block
     if (num >= 80 && num <= 170) return false;
-    // Shoe/clothing sizes 30-59 — only allow 38-44
+    // Shoe/clothing sizes 30-59 — only allow 36-46
     if (num >= 30 && num <= 59) {
-      return num >= 38 && num <= 45;
+      return num >= 36 && num <= 46;
     }
   }
 

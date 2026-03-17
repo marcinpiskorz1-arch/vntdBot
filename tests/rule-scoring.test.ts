@@ -110,8 +110,8 @@ describe("getSizeBonus", () => {
   it("returns 0.5 for shoe size 40", () => {
     expect(getSizeBonus("40")).toBe(0.5);
   });
-  it("returns 0 for shoe size 36", () => {
-    expect(getSizeBonus("36")).toBe(0);
+  it("returns 0.5 for shoe size 36", () => {
+    expect(getSizeBonus("36")).toBe(0.5);
   });
   it("returns 1.0 for clothing L", () => {
     expect(getSizeBonus("L")).toBe(1.0);

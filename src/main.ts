@@ -157,7 +157,7 @@ async function runPipeline(): Promise<void> {
 
       // ⚡ INSTANT ALERTS
       const INSTANT_DISCOUNT = settings.instantThreshold;
-      const INSTANT_MIN_PRICE = 50;
+      const INSTANT_MIN_PRICE = 30;
       const INSTANT_MIN_SAMPLE = 15;
       const instantIds = new Set<string>();
       const instantItems = underpriced.filter(([item, signal]) => {
@@ -187,7 +187,7 @@ async function runPipeline(): Promise<void> {
       }
 
       // RULE-BASED SCORING — skip items already sent as instant alerts
-      const MIN_PRICE_TO_SCORE = 50;
+      const MIN_PRICE_TO_SCORE = 30;
       for (const [item, signal] of underpriced) {
         if (instantIds.has(item.vintedId)) continue;
 
