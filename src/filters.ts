@@ -5,7 +5,7 @@ import type { RawItem } from "./types.js";
 // ============================================================
 
 // PL kids + EN + FR + DE + IT + ES + NL + PT + SE + DK + FI + CZ + SK + LT + LV + EE + HU + RO + HR
-const KIDS_KEYWORDS = /(?:^|\b)(dziec|kids?|enfant|copii|barn|kinder|junior|bébé|bebe|niemowl|maluch|dziewczyn.*lat|ch[łl]op.*lat|rozmiar \d{2,3} cm|boy['s]?|girl['s]?|toddler|infant|newborn|baby|bambini|niño|criança|dla dzieci|bucik|dla ch[łl]opc|dla dziewczyn|child|children|dět[ií]|detsk[éý]|vaik[uų]|bērn[iu]|laste|gyerek|gyermek|copil|dječj[ia])/i;
+const KIDS_KEYWORDS = /(?:^|\b)(dziec|kids?|enfant|copii|barn|kinder|junior|bébé|bebe|niemowl|maluch|dziewczyn.*lat|ch[łl]op.*lat|rozmiar \d{2,3} cm|boy['s]?|girl['s]?|toddler|infant|newborn|baby|bambini|niño|criança|dla dzieci|bucik|dla ch[łl]opc|dla dziewczyn|child|children|dět[ií]|detsk[éý]|vaik[uų]|bērn[iu]|laste|gyerek|gyermek|copil|dječj[ia]|fi[úu]\b|lány\b|l[aá]ny[oö]k)/i;
 const KIDS_SIZES = /\b(rozmiar|size|r\.)?\s*(1[6-9]|2[0-9]|3[0-3])\b/i;
 const KIDS_CATEGORIES = /\b(Enfants|Dzieci|Kids|Kinder|Bambini|Niños|Kinderen|Crianças|Barn|Børn|Lapset|Děti|Deti|Vaikai|Bērni|Lapsed|Gyerekek|Copii|Djeca)\b/i;
 const SHOE_KEYWORDS = /(?:^|\b)(but[iy]?|shoe|sneaker|boot|sandal|trampk|adidasy|klapk|klapki|chaussure|Schuh|scarpa|zapato|schoen|sapato|sko|kenkä|boty|topánk|batai|kurpes|kingad|cipő|pantofi|cipele)/i;
@@ -17,7 +17,7 @@ const PICKUP_ONLY = /(?:^|\b)(tylko odbio|odbi[oó]r osobi|nie wysy[łl]am|osobi
 
 // Accessories & junk — cases, covers, cables, straps, instructions, socks, etc.
 // Languages: PL EN FR DE IT ES NL PT SE DK FI CZ SK LT LV EE HU RO HR
-const JUNK_KEYWORDS = /(?:^|[\s,;(\/-])(cases?|etui|covers?|pokrowiec|obudowa|foli[aę]|szkie[łl]ko|tempered|screen protector|h[üu]lle|schutzh[üu]lle|custodia|funda|coque|hoesje|capa|fodral|suojakuori|[üu]mbris|maciņš|d[eé]kliukas|obal|kryt|tok|hus[aăe]|skal|kryt na mobil|os[łl]on[aę]|naklejk[aię]|skin|sticker|aufkleber|adesivo|pegatina|wk[łl]adk[aię]|grip|saszetk[aię]|kabel|cabl[eo]|câble|Kabel|cavo|laad|[łl]adowark|charger|chargeur|Ladeger[äa]t|caricatore|cargador|oplader|carregador|laddare|laturi|nab[ií]je[čc]ka|[įi]krovikl|adapter|przej[sś]ci[oó]wk|strap|pasek do|pasek .{0,15}(watch|apple|samsung|garmin|fitbit|huawei)|band do|watch band|remie[nń]|reme[sš]ek|bracelet montre|Uhrenband|cinturino|correa reloj|horlogeband|pulseira rel[oó]g|klockarmband|akcesori[aóu]|zestaw akcesor|accessoir|Zubeh[öo]r|accessori[eo]|accesorio|tillbeh[öo]r|tilbeh[øo]r|tarvikkeet|příslušenstv|príslušenstv|priedai|piederumi|tarvikud|kiegész[ií]tő|accesorii|pribor|instrukcj[aię]|manual|booklet|box only|pude[łl]ko|insole|wk[łl]adk[aię] do but|skarpet[kiy]|socks|chaussettes|Socken|calzini|calcetines|sokken|meias|strumpor|sokker|sukat|ponožk[yi]|zokni|[sš]osete|čarape|zeķes|sokid|bielizn|underwear|boxer|sous-v[êe]tement|Unterwäsche|biancheria intima|ropa interior|ondergoed|roupa interior|underkläder|brelok|breloczek|keychain|lanyard|smycz|porte-cl[ée]s|Schl[üu]sselanhänger|portachiavi|llavero|sleutelhanger|nyckelring|naszywk|patch|sznur[oó]wk|laces|lacets|Schn[üu]rsenkel|belt|ceinture|G[üu]rtel|cintura|cintur[oó]n|riem|cinto|b[äa]lte|kork[iy]|stacj[aęi] dokuj|docking station|dock .{0,10}(station|usb|thunderbolt)|majic[ae]|trik[oó]|majtek|majtk[iy]|kalhotk|krabičk[auy]|krabice|pulóver|football|pi[łl]ka no[żz]na|adilette|apple tv|magsafe|powerbank|power bank|bateria zewn|baterie externe|maska .{0,10}iphone|maskica|shuffle|usb[- ]?c|base station|airport|leggins[ey]?|leggings|armband|sport\s*band|mokas[iy]n[yów]*|moccasin|klapk[iy]|slides?|base[iy]now[eya]|sukienk[aię]|dress|kleid|vestido|robe|crossbody|nerka|fanny\s*pack|bum\s*bag|telefontok|remote|pilot)/i;
+const JUNK_KEYWORDS = /(?:^|[\s,;(\/-])(cases?|etui|covers?|pokrowiec|obudowa|foli[aę]|szkie[łl]ko|tempered|screen protector|h[üu]lle|schutzh[üu]lle|custodia|funda|coque|hoesje|capa|fodral|suojakuori|[üu]mbris|maciņš|d[eé]kliukas|obal|kryt|tok|hus[aăe]|skal|kryt na mobil|os[łl]on[aę]|naklejk[aię]|skin|sticker|aufkleber|adesivo|pegatina|wk[łl]adk[aię]|grip|saszetk[aię]|kabel|cabl[eo]|câble|Kabel|cavo|laad|[łl]adowark|charger|chargeur|Ladeger[äa]t|caricatore|cargador|oplader|carregador|laddare|laturi|nab[ií]je[čc]ka|[įi]krovikl|adapter|przej[sś]ci[oó]wk|strap|pasek do|pasek .{0,15}(watch|apple|samsung|garmin|fitbit|huawei)|band do|watch band|remie[nń]|reme[sš]ek|bracelet montre|Uhrenband|cinturino|correa reloj|horlogeband|pulseira rel[oó]g|klockarmband|akcesori[aóu]|zestaw akcesor|accessoir|Zubeh[öo]r|accessori[eo]|accesorio|tillbeh[öo]r|tilbeh[øo]r|tarvikkeet|příslušenstv|príslušenstv|priedai|piederumi|tarvikud|kiegész[ií]tő|accesorii|pribor|instrukcj[aię]|manual|booklet|box only|pude[łl]ko|insole|wk[łl]adk[aię] do but|skarpet[kiy]|socks|chaussettes|Socken|calzini|calcetines|sokken|meias|strumpor|sokker|sukat|ponožk[yi]|zokni|[sš]osete|čarape|zeķes|sokid|bielizn|underwear|boxer|sous-v[êe]tement|Unterwäsche|biancheria intima|ropa interior|ondergoed|roupa interior|underkläder|brelok|breloczek|keychain|lanyard|smycz|porte-cl[ée]s|Schl[üu]sselanhänger|portachiavi|llavero|sleutelhanger|nyckelring|naszywk|patch|sznur[oó]wk|laces|lacets|Schn[üu]rsenkel|belt|ceinture|G[üu]rtel|cintura|cintur[oó]n|riem|cinto|b[äa]lte|kork[iy]|stacj[aęi] dokuj|docking station|dock .{0,10}(station|usb|thunderbolt)|majic[ae]|trik[oó]|majtek|majtk[iy]|kalhotk|krabičk[auy]|krabice|pulóver|football|pi[łl]k[aię] no[żz]n[aeąęyj]*|pi[łl]karsk|no[żz]n[aeąęyj]|adilette|apple tv|magsafe|powerbank|power bank|bateria zewn|baterie externe|maska .{0,10}iphone|maskica|shuffle|usb[- ]?c|base station|airport|leggins[ey]?|leggings|armband|sport\s*band|mokas[iy]n[yów]*|moccasin|klapk[iy]|slides?|base[iy]now[eya]|sukienk[aię]|dress|kleid|vestido|robe|crossbody|nerka|fanny\s*pack|bum\s*bag|telefontok|remote|pilot|cip[őo]f[űu]z[őo]|portfel|wallet|p[ée]nzt[áa]rca|geldb[öo]rse|portefeuille|portafoglio|cartera|portemonnee|carteira|pl[åa]nbok|lommebok|kopack[yý]|kopa[čc]k[yý]|korki|football boots?|crampon|Stollenschuh|tacchetti|tacos|hundjacka|hundmantel|for dogs?|f[öo]r hund|dla ps[aóu]|dla pies|dog coat|dog jacket|pet clothes|djurkl[äa]der|kisállat|pro psa|pre psa|šunims|suņ)/i;
 
 // Brands to always block — all items from these brands are filtered out
 const BLOCKED_BRANDS = new Set(["apple"]);
@@ -120,12 +120,14 @@ export function isInSizeRange(item: RawItem): boolean {
   if (BAD_LETTER_SIZE.test(size)) return false;
 
   // Extract numeric size (handles "42", "42.5", "42,5", "EU 43", "43 EU")
-  const numMatch = size.match(/(\d{2})(?:[.,]\d)?/);
+  const numMatch = size.match(/(\d{2,3})(?:[.,]\d)?/);
   if (numMatch) {
     const num = parseInt(numMatch[1], 10);
-    // Only filter shoe/clothing range numbers (34-59), ignore e.g. "110 cm"
-    if (num >= 34 && num <= 59) {
-      return num >= 38 && num <= 44;
+    // Kids clothing sizes in cm (80-170) — always block
+    if (num >= 80 && num <= 170) return false;
+    // Shoe/clothing sizes 30-59 — only allow 38-44
+    if (num >= 30 && num <= 59) {
+      return num >= 38 && num <= 45;
     }
   }
 

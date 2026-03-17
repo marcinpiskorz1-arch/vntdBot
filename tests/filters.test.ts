@@ -237,6 +237,10 @@ describe("isNotJunk", () => {
   it("filters football items", () => {
     expect(isNotJunk(mockItem({ title: "Adidas football Tango" }))).toBe(false);
     expect(isNotJunk(mockItem({ title: "Piłka nożna Nike Strike" }))).toBe(false);
+    expect(isNotJunk(mockItem({ title: "Buty do piłki nożnej męskie" }))).toBe(false);
+    expect(isNotJunk(mockItem({ title: "Krásné kopacky Adidas" }))).toBe(false);
+    expect(isNotJunk(mockItem({ title: "Korki Nike Mercurial" }))).toBe(false);
+    expect(isNotJunk(mockItem({ title: "Buty piłkarskie Adidas, czarno-czerwone" }))).toBe(false);
   });
 
   it("filters adilette slides", () => {
@@ -379,22 +383,23 @@ describe("isNotHardwareJunk", () => {
 // isInSizeRange
 // ============================================================
 describe("isInSizeRange", () => {
-  it("keeps sizes 38-44", () => {
+  it("keeps sizes 38-45", () => {
     expect(isInSizeRange(mockItem({ size: "38" }))).toBe(true);
     expect(isInSizeRange(mockItem({ size: "42" }))).toBe(true);
     expect(isInSizeRange(mockItem({ size: "42.5" }))).toBe(true);
     expect(isInSizeRange(mockItem({ size: "44" }))).toBe(true);
+    expect(isInSizeRange(mockItem({ size: "45" }))).toBe(true);
     expect(isInSizeRange(mockItem({ size: "42,5" }))).toBe(true);
   });
 
   it("filters sizes below 38", () => {
+    expect(isInSizeRange(mockItem({ size: "32" }))).toBe(false);
     expect(isInSizeRange(mockItem({ size: "34" }))).toBe(false);
     expect(isInSizeRange(mockItem({ size: "36" }))).toBe(false);
     expect(isInSizeRange(mockItem({ size: "37" }))).toBe(false);
   });
 
-  it("filters sizes above 44", () => {
-    expect(isInSizeRange(mockItem({ size: "45" }))).toBe(false);
+  it("filters sizes above 45", () => {
     expect(isInSizeRange(mockItem({ size: "46" }))).toBe(false);
     expect(isInSizeRange(mockItem({ size: "48" }))).toBe(false);
   });
@@ -418,8 +423,11 @@ describe("isInSizeRange", () => {
     expect(isInSizeRange(mockItem({ size: undefined }))).toBe(true);
   });
 
-  it("keeps non-clothing sizes (e.g. 110 cm)", () => {
-    expect(isInSizeRange(mockItem({ size: "110 cm" }))).toBe(true);
+  it("filters kids clothing sizes (80-170 cm)", () => {
+    expect(isInSizeRange(mockItem({ size: "110" }))).toBe(false);
+    expect(isInSizeRange(mockItem({ size: "146" }))).toBe(false);
+    expect(isInSizeRange(mockItem({ size: "164" }))).toBe(false);
+    expect(isInSizeRange(mockItem({ size: "86" }))).toBe(false);
   });
 });
 

@@ -47,11 +47,26 @@ function buildScanLists() {
 
   const allVinted = [...scanConfigs, ...customConfigs];
 
-  // OLX: all queries (no category filter — OLX API handles relevance via search text)
-  const allOlx: ScanConfig[] = [...scanConfigs, ...customConfigs].map(({ searchText }) => ({ searchText }));
+  // OLX: text-only queries, deduplicated (same searchText may appear multiple
+  // times in Vinted configs with different categoryIds)
+  const olxSeen = new Set<string>();
+  const allOlx: ScanConfig[] = [];
+  for (const { searchText } of [...scanConfigs, ...customConfigs]) {
+    if (searchText && !olxSeen.has(searchText)) {
+      olxSeen.add(searchText);
+      allOlx.push({ searchText });
+    }
+  }
 
   const priority = allVinted.filter(c => c.priority);
-  const olxPriority: ScanConfig[] = scanConfigs.filter(c => c.priority).map(({ searchText }) => ({ searchText }));
+  const olxPrioritySeen = new Set<string>();
+  const olxPriority: ScanConfig[] = [];
+  for (const { searchText } of scanConfigs.filter(c => c.priority)) {
+    if (searchText && !olxPrioritySeen.has(searchText)) {
+      olxPrioritySeen.add(searchText);
+      olxPriority.push({ searchText });
+    }
+  }
 
   // Update botState for /status command
   botState.totalQueries = scanConfigs.length;

@@ -6,7 +6,7 @@
 // Order matters — check more specific patterns first, broadest last.
 // Languages: PL EN FR DE IT ES NL CZ SK
 
-const SHOES_PATTERN = /(?:^|[\s,;(\/-])(buty|but[iy]|shoe|shoes|sneaker|sneakers|boot|boots|trampk[iy]|adidasy|klapk[iy]|sandal|sandały|sanda[łl]|runner|trainers?|loafer|mokasyn|boty|topánk[yia]|scarpe|chaussure|Schuh|zapato|schoen|sapato|sko|kenkä|trail|speedcross|supercross|gel[- ]lyte|gel[- ]kayano|air max|air force|dunk|blazer|pegasus|vapormax|samba|gazelle|superstar|ultraboost|campus|forum|spezial|stan smith|chuck 70|cloudmonster|xt-6|xt-4|metcon)/i;
+const SHOES_PATTERN = /(?:^|[\s,;(\/-])(buty|but[iy]|shoe|shoes|sneaker|sneakers|boot|boots|chukka|trampk[iy]|adidasy|klapk[iy]|sandal|sandały|sanda[łl]|runner|trainers?|loafer|mokasyn|boty|topánk[yia]|scarpe|chaussure|Schuh|zapato|schoen|sapato|sko|kenk[äa]|kengät|cipő|trail|speedcross|supercross|gel[- ]lyte|gel[- ]kayano|air max|air force|dunk|blazer|pegasus|vapormax|samba|gazelle|superstar|ultraboost|campus|forum|spezial|stan smith|chuck 70|cloudmonster|xt-6|xt-4|metcon)/i;
 
 const JACKET_PATTERN = /(?:^|[\s,;(\/-])(kurtk[aięy]|jacket|jackets|parka|parki|coat|p[łl]aszcz|anorak|windbreaker|wiatr[oó]wk|puchówk|puffer|down jacket|softshell|hardshell|nuptse|1996|retro-?x|denali|nano puff|bundy?|bunda|veste|Jacke|giacca|chaqueta|jas|jacka|takki|doudoune)/i;
 
@@ -49,7 +49,7 @@ const SHOES_ONLY_BRANDS = new Set([
   "jordan", "air jordan", "nike sb", "asics", "new balance",
   "vans", "converse", "on running", "hoka", "saucony", "brooks",
   "dc shoes", "merrell", "lowa", "meindl", "scarpa", "la sportiva",
-  "crocs", "dr. martens", "dr martens",
+  "crocs",
 ]);
 
 /** Brands where only shoes + jackets + bags have resale value */

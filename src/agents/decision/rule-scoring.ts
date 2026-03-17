@@ -14,7 +14,7 @@ const PREMIUM_BRANDS = new Set([
 const MID_BRANDS = new Set([
   "under armour", "asics", "vans", "puma", "reebok", "converse", "columbia",
   "jbl", "garmin", "samsung", "kindle", "mammut", "salewa", "la sportiva",
-  "carhartt", "helly hansen", "fjallraven", "timberland", "dr. martens",
+  "carhartt", "helly hansen", "fjallraven",
   "petzl", "nalgene", "osprey", "deuter", "jack wolfskin", "merrell",
   "brooks", "hoka", "on running", "saucony",
   "dickies", "superdry", "turbokolor", "dakine", "quiksilver",

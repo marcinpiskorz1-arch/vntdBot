@@ -19,6 +19,7 @@ describe("classifyItemType", () => {
     "Converse Chuck 70",
     "Adidas Ultraboost 22",
     "Nike Metcon 8 training",
+    "Nike Fsb Chukka",
   ])("classifies shoes: %s", (title) => {
     expect(classifyItemType(title)).toBe("shoes");
   });
@@ -130,18 +131,12 @@ describe("isBrandTypeWorthNotifying", () => {
     expect(isBrandTypeWorthNotifying("Nike", "top")).toBe(true);
   });
 
-  // Shoes-only brands (including Crocs, Dr. Martens)
+  // Shoes-only brands (Crocs)
   it("allows Crocs shoes", () => {
     expect(isBrandTypeWorthNotifying("Crocs", "shoes")).toBe(true);
   });
   it("blocks Crocs tops", () => {
     expect(isBrandTypeWorthNotifying("Crocs", "top")).toBe(false);
-  });
-  it("allows Dr. Martens shoes", () => {
-    expect(isBrandTypeWorthNotifying("Dr. Martens", "shoes")).toBe(true);
-  });
-  it("blocks Dr. Martens tops", () => {
-    expect(isBrandTypeWorthNotifying("Dr. Martens", "top")).toBe(false);
   });
 
   // Unknown brand or type → pass through

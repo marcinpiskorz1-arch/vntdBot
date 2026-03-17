@@ -1,19 +1,58 @@
 import type { ScanConfig } from "../types.js";
 
+// ============================================================
+// Vinted catalog category IDs — used to narrow API results
+// ============================================================
+
+/** All shoe sub-categories on Vinted (men + women + sport + outdoor) */
+const SHOES = [2961, 2711, 2952, 2955, 2695, 2713, 2706, 2960, 2945, 2954, 2694, 2682, 2710, 2697, 2951, 2691];
+
+/** Jacket / coat sub-categories */
+const JACKETS = [2616, 2563, 2611, 2937, 2534, 1335];
+
+/** Bags / backpacks */
+const BAGS = [2758];
+
+/** Shoes + jackets + bags combined */
+const SHOES_JACKETS_BAGS = [...SHOES, ...JACKETS, ...BAGS];
+
 /**
  * Hardcoded scan configs — what the bot searches for on Vinted/OLX.
  * `priority: true` = scanned every cycle (hype models).
  * Others = scanned every 2nd cycle (full scan).
+ *
+ * High-volume brands (Nike, Adidas, Jordan, etc.) are split into
+ * shoes-only and jackets+bags queries with categoryIds to reduce
+ * noise from t-shirts/pants/accessories that flood the API results.
  */
 export const scanConfigs: ScanConfig[] = [
-  // Sneakersy — marki (brandIds = oficjalna marka Vinted, łapie literówki w tytułach)
-  { searchText: "nike", brandIds: [53] },
-  { searchText: "jordan", brandIds: [2703] },
-  { searchText: "adidas", brandIds: [14] },
-  { searchText: "new balance", brandIds: [1775] },
-  { searchText: "under armour", brandIds: [52035] },
-  { searchText: "asics", brandIds: [1195] },
-  { searchText: "vans", brandIds: [139] },
+  // ============================================================
+  // High-volume brands — split by category to catch more items
+  // ============================================================
+  // Nike — tylko buty
+  { searchText: "nike", brandIds: [53], categoryIds: SHOES },
+  // Jordan — buty only (Jordan = almost exclusively shoes)
+  { searchText: "jordan", brandIds: [2703], categoryIds: SHOES },
+  // Adidas — buty
+  { searchText: "adidas", brandIds: [14], categoryIds: SHOES },
+  // Adidas — dresy (tracksuit pants)
+  { searchText: "adidas dresy", brandIds: [14] },
+  // New Balance — buty
+  { searchText: "new balance", brandIds: [1775], categoryIds: SHOES },
+  // Under Armour — buty
+  { searchText: "under armour", brandIds: [52035], categoryIds: SHOES },
+  // Asics — buty
+  { searchText: "asics", brandIds: [1195], categoryIds: SHOES },
+  // Vans — buty
+  { searchText: "vans", brandIds: [139], categoryIds: SHOES },
+  // Converse — buty
+  { searchText: "converse", brandIds: [11445], categoryIds: SHOES },
+  // The North Face — kurtki + torby (main resale value)
+  { searchText: "the north face", brandIds: [2319], categoryIds: [...JACKETS, ...BAGS] },
+  // The North Face — buty
+  { searchText: "the north face", brandIds: [2319], categoryIds: SHOES },
+  // Salomon — buty
+  { searchText: "salomon", brandIds: [15457], categoryIds: SHOES },
   // Jordan — modele (priority: skanowane co cykl)
   { searchText: "jordan 1", priority: true },
   { searchText: "jordan 3", priority: true },
@@ -55,18 +94,17 @@ export const scanConfigs: ScanConfig[] = [
   // Outdoor / góry
   { searchText: "la sportiva" },
   { searchText: "salewa" },
-  { searchText: "salomon", brandIds: [15457] },
   // Salomon — modele hype
   { searchText: "salomon xt-6", priority: true },
   { searchText: "salomon speedcross", priority: true },
   { searchText: "salomon xt-4", priority: true },
-  { searchText: "mammut", brandIds: [209084] },
+  { searchText: "mammut", brandIds: [209084], categoryIds: SHOES_JACKETS_BAGS },
   { searchText: "scarpa" },
   { searchText: "norrøna" },
   { searchText: "haglöfs" },
   { searchText: "revolutionrace" },
   { searchText: "hunter boots" },
-  { searchText: "timberland" },
+
   { searchText: "dynafit" },
   { searchText: "merrell" },
   { searchText: "peak performance" },
@@ -76,7 +114,6 @@ export const scanConfigs: ScanConfig[] = [
   { searchText: "lowa" },
   { searchText: "osprey" },
   // Streetwear / hype
-  { searchText: "the north face", brandIds: [2319] },
   // TNF — modele z wysokim resale
   { searchText: "north face nuptse", priority: true },
   { searchText: "north face 1996", priority: true },
@@ -84,7 +121,7 @@ export const scanConfigs: ScanConfig[] = [
   { searchText: "north face duffel", priority: true },
   { searchText: "fjällräven" },
   { searchText: "nervous" },
-  { searchText: "carhartt", brandIds: [362] },
+  { searchText: "carhartt", brandIds: [362], categoryIds: [...JACKETS, ...BAGS, ...SHOES] },
   { searchText: "dickies", brandIds: [65] },
   { searchText: "stüssy" },
   { searchText: "napapijri" },
@@ -101,9 +138,8 @@ export const scanConfigs: ScanConfig[] = [
   { searchText: "dc shoes" },
   { searchText: "crocs" },
   { searchText: "ocun" },
-  { searchText: "dr. martens" },
   { searchText: "oakley" },
-  { searchText: "helly hansen" },
+  { searchText: "helly hansen", categoryIds: [...JACKETS, ...SHOES] },
   { searchText: "dakine" },
   // Moto / sport
   { searchText: "alpinestars" },
@@ -126,10 +162,9 @@ export const scanConfigs: ScanConfig[] = [
   { searchText: "canada goose" },
   { searchText: "barbour" },
   // Tier 2 resell
-  { searchText: "columbia", brandIds: [17161] },
-  { searchText: "converse", brandIds: [11445] },
+  { searchText: "columbia", brandIds: [17161], categoryIds: SHOES_JACKETS_BAGS },
   { searchText: "converse chuck 70", priority: true },
-  { searchText: "on running", brandIds: [267947] },
+  { searchText: "on running", brandIds: [267947], categoryIds: SHOES },
   { searchText: "on cloudmonster", priority: true },
   // Skate
   { searchText: "santa cruz" },
@@ -151,11 +186,7 @@ export const scanConfigs: ScanConfig[] = [
   // Small tech / gaming peripherals
   { searchText: "kindle", categoryIds: [2194] },
 
-  // Collectibles / hobby
-  { searchText: "lego star wars", priority: true, categoryIds: [3088] },
-  { searchText: "lego creator", priority: true, categoryIds: [3088] },
-  { searchText: "lego icons", categoryIds: [3088] },
-  { searchText: "lego architecture", categoryIds: [3088] },
+
 
   // Premium accessories
   { searchText: "ray-ban", priority: true, categoryIds: [2736] },
@@ -182,19 +213,6 @@ export const scanConfigs: ScanConfig[] = [
   { searchText: "thinkpad", priority: true, categoryIds: [3108] },
   { searchText: "dell xps", categoryIds: [3104] },
 
-  // Streetwear & outdoor brands
-  { searchText: "carhartt", brandIds: [362] },
-  { searchText: "dickies", brandIds: [65] },
+  // Streetwear & outdoor brands (extra brandIds for matching)
   { searchText: "turbokolor" },
-  { searchText: "under armour", brandIds: [52035] },
-  { searchText: "superdry", brandIds: [191] },
-  { searchText: "la sportiva", brandIds: [201320] },
-  { searchText: "vans", brandIds: [139] },
-  { searchText: "asics", brandIds: [1195] },
-  { searchText: "salewa", brandIds: [60412] },
-  { searchText: "gore-tex" },
-  { searchText: "goretex" },
-  { searchText: "gortex" },
-  { searchText: "dakine", brandIds: [4105] },
-  { searchText: "quiksilver", brandIds: [159] },
 ];
