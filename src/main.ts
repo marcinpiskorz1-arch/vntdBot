@@ -184,8 +184,12 @@ async function runPipeline(): Promise<void> {
       }
 
       // RULE-BASED SCORING — skip items already sent as instant alerts
+      const MIN_PRICE_TO_SCORE = 50;
       for (const [item, signal] of underpriced) {
         if (instantIds.has(item.vintedId)) continue;
+
+        // Skip very cheap items — likely worn out / junk despite high discount %
+        if (item.price < MIN_PRICE_TO_SCORE) continue;
 
         // Skip items that don't match brand's worthwhile item types
         const itemType = classifyItemType(item.title);

@@ -177,6 +177,10 @@ try {
   }
 }
 
+// Purge stale price_history entries from pre-model-aware era
+// These have model != '' but sample_count from brand-level queries (wrong medians)
+db.exec(`DELETE FROM price_history WHERE model != '' AND sample_count > 3000`);
+
 // ============================================================
 // Prepared statements — reusable across agents
 // ============================================================
