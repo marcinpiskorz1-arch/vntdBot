@@ -258,6 +258,14 @@ describe("isNotJunk", () => {
     expect(isNotJunk(mockItem({ title: "Nike skarpetki 3-pack" }))).toBe(false);
   });
 
+  it("filters sandals, pantofle, flip-flops", () => {
+    expect(isNotJunk(mockItem({ title: "Sandały sportowe Nike" }))).toBe(false);
+    expect(isNotJunk(mockItem({ title: "Pantofle domowe" }))).toBe(false);
+    expect(isNotJunk(mockItem({ title: "Japonki adidas" }))).toBe(false);
+    expect(isNotJunk(mockItem({ title: "Nike flip flop" }))).toBe(false);
+    expect(isNotJunk(mockItem({ title: "sandal sporty" }))).toBe(false);
+  });
+
   it("filters tech junk (apple tv, magsafe, powerbank, base station)", () => {
     expect(isNotJunk(mockItem({ title: "Apple TV 4K" }))).toBe(false);
     expect(isNotJunk(mockItem({ title: "MagSafe charger iPhone" }))).toBe(false);

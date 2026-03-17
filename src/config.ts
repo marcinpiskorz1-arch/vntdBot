@@ -43,7 +43,7 @@ export const config = {
     conditionConfidence: 0.2,
     brandLiquidity: 0.1,
   },
-  notifyThreshold: 6.0,
+  notifyThreshold: 5.5,
   hotThreshold: 9.0,
   hotMinProfit: 50, // PLN
   lowSamplePenalty: 0.90, // applied when sampleSize < 10

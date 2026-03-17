@@ -363,4 +363,13 @@ export const stmts = {
        END) as avg_hours_to_sell
      FROM favorites`
   ),
+
+  // Catch-up: items discovered recently but never evaluated
+  getUndecidedItems: db.prepare<{ hours: number; limit: number }>(
+    `SELECT * FROM items
+     WHERE discovered_at >= datetime('now', '-' || @hours || ' hours')
+       AND vinted_id NOT IN (SELECT vinted_id FROM decisions)
+     ORDER BY discovered_at DESC
+     LIMIT @limit`
+  ),
 };

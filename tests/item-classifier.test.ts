@@ -68,6 +68,9 @@ describe("classifyItemType", () => {
     "Carhartt cargo trousers",
     "Dickies jeans",
     "Levi's 501 dżinsy",
+    "Spodenki koszykarskie Adidas Originals vintage 2003",
+    "Sportowe spodenki męskie",
+    "Spodenki Nike flex XL",
   ])("classifies pants: %s", (title) => {
     expect(classifyItemType(title)).toBe("pants");
   });
@@ -92,6 +95,10 @@ describe("classifyItemType", () => {
     "Nike",
     "Salomon vintage",
     "Supreme Logo",
+    "Sandały sportowe",
+    "Pantofle",
+    "sandal Nike ACG",
+    "Nike klapki",
   ])("returns empty for ambiguous: %s", (title) => {
     expect(classifyItemType(title)).toBe("");
   });
@@ -140,6 +147,14 @@ describe("isBrandTypeWorthNotifying", () => {
   });
   it("blocks Crocs tops", () => {
     expect(isBrandTypeWorthNotifying("Crocs", "top")).toBe(false);
+  });
+
+  // Arc'teryx: shoes+jackets+bags
+  it("allows Arc'teryx jackets", () => {
+    expect(isBrandTypeWorthNotifying("Arc'teryx", "jacket")).toBe(true);
+  });
+  it("blocks Arc'teryx tops", () => {
+    expect(isBrandTypeWorthNotifying("Arc'teryx", "top")).toBe(false);
   });
 
   // Unknown brand or type → pass through

@@ -53,6 +53,18 @@ describe("getBrandTier", () => {
   it("returns mid for Quiksilver", () => {
     expect(getBrandTier("Quiksilver")).toEqual({ score: 5, tier: "mid" });
   });
+  it("returns mid for Onitsuka Tiger", () => {
+    expect(getBrandTier("Onitsuka Tiger")).toEqual({ score: 5, tier: "mid" });
+  });
+  it("returns mid for Barbour", () => {
+    expect(getBrandTier("Barbour")).toEqual({ score: 5, tier: "mid" });
+  });
+  it("returns mid for Arc'teryx", () => {
+    expect(getBrandTier("Arc'teryx")).toEqual({ score: 5, tier: "mid" });
+  });
+  it("returns mid for Peak Performance", () => {
+    expect(getBrandTier("Peak Performance")).toEqual({ score: 5, tier: "mid" });
+  });
 });
 
 // ============================================================

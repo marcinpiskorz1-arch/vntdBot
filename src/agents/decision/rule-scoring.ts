@@ -18,6 +18,9 @@ const MID_BRANDS = new Set([
   "petzl", "nalgene", "osprey", "deuter", "jack wolfskin", "merrell",
   "brooks", "hoka", "on running", "saucony",
   "dickies", "superdry", "turbokolor", "dakine", "quiksilver",
+  "onitsuka tiger", "palladium", "barbour", "norrøna", "haglöfs",
+  "dainese", "arc'teryx", "arcteryx", "peak performance", "dynafit",
+  "canada goose", "fjallraven", "fjällräven",
 ]);
 
 // ============================================================

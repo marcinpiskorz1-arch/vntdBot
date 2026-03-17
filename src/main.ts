@@ -23,6 +23,9 @@ import { isBrandTypeWorthNotifying, resolveItemType } from "./item-classifier.js
 // Item types that should never trigger instant alerts (low resale value)
 const LOW_VALUE_TYPES = new Set(["top", "pants", "headwear", "accessory"]);
 
+// Only these item types are allowed in instant alerts — must be a real product
+const INSTANT_ALLOWED_TYPES = new Set(["shoes", "jacket", "bag"]);
+
 // ============================================================
 // Initialize agents
 // ============================================================
@@ -164,7 +167,7 @@ async function runPipeline(): Promise<void> {
           signal.sampleSize >= INSTANT_MIN_SAMPLE &&
           item.price >= INSTANT_MIN_PRICE &&
           (tier === "premium" || tier === "mid") &&
-          !LOW_VALUE_TYPES.has(itemType) &&
+          INSTANT_ALLOWED_TYPES.has(itemType) &&
           isBrandTypeWorthNotifying(item.brand, itemType);
       });
       for (const [item, signal] of instantItems) {
@@ -248,6 +251,41 @@ async function runPipeline(): Promise<void> {
 
     if (totalNewItems === 0 && analyzedCount === 0) {
       logger.info("No new items found this cycle");
+    }
+
+    // ============================================================
+    // CATCH-UP: evaluate recent items that never got a decision
+    // (e.g. discovered before a restart, or during a crashed cycle)
+    // ============================================================
+    const CATCHUP_HOURS = 6;
+    const CATCHUP_LIMIT = 200;
+    const undecided = stmts.getUndecidedItems.all({ hours: CATCHUP_HOURS, limit: CATCHUP_LIMIT }) as Array<{
+      vinted_id: string; title: string; brand: string; model: string;
+      price: number; currency: string; size: string; category: string;
+      condition: string; description: string; photo_urls: string;
+      seller_rating: number; seller_transactions: number; listed_at: string; url: string;
+    }>;
+    if (undecided.length > 0) {
+      const catchupItems: import("./types.js").RawItem[] = undecided.map(row => ({
+        vintedId: row.vinted_id,
+        title: row.title,
+        brand: row.brand,
+        model: row.model || "",
+        price: row.price,
+        currency: row.currency || "PLN",
+        size: row.size || "",
+        condition: row.condition || "",
+        category: row.category || "",
+        description: row.description || "",
+        url: row.url,
+        photoUrls: row.photo_urls ? JSON.parse(row.photo_urls) : [],
+        sellerRating: row.seller_rating || 0,
+        sellerTransactions: row.seller_transactions || 0,
+        listedAt: row.listed_at || "",
+        discoveredAt: "",
+      }));
+      logger.info({ count: catchupItems.length }, "🔄 Catch-up: evaluating undecided items");
+      await processResaleBatch(catchupItems);
     }
 
     // Update cumulative stats
