@@ -8,7 +8,7 @@
 
 const SHOES_PATTERN = /(?:^|[\s,;(\/-])(buty|but[iy]|shoe|shoes|sneaker|sneakers|boot|boots|chukka|trampk[iy]|adidasy|klapk[iy]|sandal|sandały|sanda[łl]|runner|trainers?|loafer|mokasyn|boty|topánk[yia]|scarpe|chaussure|Schuh|zapato|schoen|sapato|sko|kenk[äa]|kengät|cipő|trail|speedcross|supercross|gel[- ]lyte|gel[- ]kayano|air max|air force|dunk|blazer|pegasus|vapormax|samba|gazelle|superstar|ultraboost|campus|forum|spezial|stan smith|chuck 70|cloudmonster|xt-6|xt-4|metcon)/i;
 
-const JACKET_PATTERN = /(?:^|[\s,;(\/-])(kurtk[aięy]|jacket|jackets|parka|parki|coat|p[łl]aszcz|anorak|windbreaker|wiatr[oó]wk|puchówk|puffer|down jacket|softshell|hardshell|nuptse|1996|retro-?x|denali|nano puff|bundy?|bunda|veste|Jacke|giacca|chaqueta|jas|jacka|takki|doudoune)/i;
+const JACKET_PATTERN = /(?:^|[\s,;(\/-])(kurtk[aięy]|jacket|jackets|parka|parki|coat|p[łl]aszcz|anorak|windbreaker|wiatr[oó]wk|puchówk|puffer|down jacket|softshell|hardshell|bundy?|bunda|veste|Jacke|giacca|chaqueta|jas|jacka|takki|doudoune)/i;
 
 const TOP_PATTERN = /(?:^|[\s,;(\/-])(top[y]?(?:\s|$)|tank(?:\s|$)|koszulk[aięy]|t-?shirt|tshirt|tee(?:\s|$)|bluz[aęky]|blouse|hoodie|sweatshirt|bluza|polar|fleece|longsleeve|long sleeve|sweater|sweter|jumper|pullover|polo|tank top|kamizelk[aięy]|vest|crop top|crewneck|crew neck|triko|tričko|mikina|maglia|camiseta|camisa|chemise|Hemd|overhemd|tröja|paita|shirt)/i;
 

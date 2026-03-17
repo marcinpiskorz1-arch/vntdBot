@@ -175,7 +175,7 @@ async function runPipeline(): Promise<void> {
           title: item.title,
           brand: item.brand,
           price: item.price,
-          p25Price: signal.p25Price,
+          medianPrice: signal.medianPrice,
           discountPct: signal.discountPct,
           sampleSize: signal.sampleSize,
           url: item.url,

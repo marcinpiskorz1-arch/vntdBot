@@ -28,11 +28,10 @@ describe("classifyItemType", () => {
   // Jackets / outerwear
   // ============================================================
   it.each([
-    "The North Face Nuptse 700",
+    "The North Face Nuptse 700 puffer",
     "Mammut Nano Puff kurtka",
     "TNF 1996 Retro Nuptse puffer",
     "The North Face fleece jacket",
-    "North Face Denali fleece",
     "Canada Goose parka zimowa",
     "Mammut hardshell anorak",
   ])("classifies jackets: %s", (title) => {
@@ -48,6 +47,7 @@ describe("classifyItemType", () => {
     "The North Face longsleeve",
     "Supreme Box Logo tee",
     "Salomon polo shirt",
+    "North Face Denali fleece",
     "Carhartt WIP sweatshirt",
     "Radiation tee jbj",
     "Vintage Diesel Jumper Crewneck Sweater",

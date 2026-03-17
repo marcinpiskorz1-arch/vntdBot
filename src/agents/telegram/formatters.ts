@@ -15,7 +15,7 @@ export function formatNotification(decision: Decision): NotificationPayload {
 
   const levelEmoji = level === "hot" ? "🔥 HOT DEAL" : "📦 Okazja";
   const discountStr = pricing.discountPct > 0 ? `-${pricing.discountPct.toFixed(0)}%` : "";
-  const medianStr = pricing.p25Price > 0 ? `rynek: ${pricing.p25Price} PLN` : "brak danych";
+  const medianStr = pricing.medianPrice > 0 ? `rynek: ${pricing.medianPrice} PLN` : "brak danych";
 
   const priceLine = `${item.price} ${item.currency} (${medianStr}, ${discountStr})`;
   const scoreLine = `⭐ ${score.toFixed(1)} / 10 — ${levelEmoji}`;

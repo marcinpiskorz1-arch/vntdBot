@@ -140,6 +140,7 @@ export const scanConfigs: ScanConfig[] = [
   { searchText: "ocun" },
   { searchText: "oakley" },
   { searchText: "helly hansen", categoryIds: [...JACKETS, ...SHOES] },
+  { searchText: "dynafit", categoryIds: [...SHOES, ...JACKETS] },
   { searchText: "dakine" },
   // Moto / sport
   { searchText: "alpinestars" },

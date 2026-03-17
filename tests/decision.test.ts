@@ -44,6 +44,7 @@ describe("computeRuleScore — decision levels", () => {
     const signal = mockSignal({
       priceDiscountScore: 7,
       p25Price: 80,
+      medianPrice: 100,
       sampleSize: 30,
     });
     const result = computeRuleScore(item, signal, cfg);
@@ -75,24 +76,24 @@ describe("computeRuleScore — synthetic AI compatibility", () => {
     expect(typeof ai.reasoning).toBe("string");
   });
 
-  it("suggestedPrice uses P25 (not median)", () => {
+  it("suggestedPrice uses median", () => {
     const result = computeRuleScore(
       mockItem(),
       mockSignal({ p25Price: 200, medianPrice: 300 }),
       cfg,
     );
-    // suggestedPrice should be ~180 (P25 * 0.90), not ~270 (median * 0.90)
-    expect(result.syntheticAi.suggestedPrice).toBe(180);
+    // suggestedPrice should be ~255 (median * 0.85)
+    expect(result.syntheticAi.suggestedPrice).toBe(255);
   });
 
-  it("profit is calculated from P25", () => {
-    // P25=200, price=100, shipping=15, fee=10 → profit=75
+  it("profit is calculated from median", () => {
+    // median=300, price=100, shipping=15, fee=15 → profit=170
     const result = computeRuleScore(
       mockItem({ price: 100 }),
       mockSignal({ p25Price: 200, medianPrice: 300 }),
       cfg,
     );
-    expect(result.syntheticAi.estimatedProfit).toBe(75);
+    expect(result.syntheticAi.estimatedProfit).toBe(170);
   });
 });
 
