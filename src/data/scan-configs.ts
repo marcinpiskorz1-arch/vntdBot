@@ -107,6 +107,7 @@ export const scanConfigs: ScanConfig[] = [
 
   { searchText: "dynafit" },
   { searchText: "merrell" },
+  { searchText: "palladium", categoryIds: [...SHOES] },
   { searchText: "peak performance" },
   { searchText: "rab", categoryIds: [5] },
   { searchText: "millet" },
@@ -141,6 +142,7 @@ export const scanConfigs: ScanConfig[] = [
   { searchText: "oakley" },
   { searchText: "helly hansen", categoryIds: [...JACKETS, ...SHOES] },
   { searchText: "dynafit", categoryIds: [...SHOES, ...JACKETS] },
+  { searchText: "palladium", categoryIds: [...SHOES] },
   { searchText: "dakine" },
   // Moto / sport
   { searchText: "alpinestars" },
