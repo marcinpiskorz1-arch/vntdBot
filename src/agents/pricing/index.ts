@@ -1,4 +1,5 @@
 import { config } from "../../config.js";
+import { settings } from "../../settings.js";
 import { logger } from "../../logger.js";
 import type { RawItem, PriceSignal } from "../../types.js";
 import { classifyItemType } from "../../item-classifier.js";
@@ -46,7 +47,7 @@ export class PricingAgent {
         ? ((1 - item.price / referencePrice) * 100)
         : 0;
 
-    const isUnderpriced = discountPct >= (1 - config.dealThreshold) * 100;
+    const isUnderpriced = discountPct >= (1 - settings.dealThreshold) * 100;
 
     // Confidence: 0-1, based on sample size (saturates at ~50 samples)
     const confidence = Math.min(1, stats.sampleCount / 50);

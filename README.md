@@ -103,7 +103,7 @@ Custom queries added via Telegram are merged into the scan list each cycle.
 2. **Size matching:** Tries size-specific group first, falls back to brand+category if < 5 samples
 3. **Outlier removal:** IQR method (Q1 − 1.5×IQR … Q3 + 1.5×IQR)
 4. **Reference price:** P25 if < 10 samples, otherwise median
-5. **Underpriced gate:** Item must be ≥ 65% below reference price (`dealThreshold = 0.35`)
+5. **Underpriced gate:** Item must be ≥ 55% below reference price (`deal_threshold = 0.45`, adjustable via `/set`)
 6. **Confidence:** `min(sampleSize / 50, 1.0)`
 
 ## Decision Scoring
@@ -206,6 +206,7 @@ All settings have enforced min/max limits to prevent misconfiguration. Running `
 | `daily_ai_limit` | 100 | 50–5000 | Max Gemini photo verifications per day | > 1000 = expensive |
 | `instant_threshold` | 60 | 40–90 | Min discount % for instant alert | < 50 = too many instant alerts |
 | `min_profit` | 50 | 10–200 | Min est. profit (PLN) to notify | < 20 = spam, > 100 = miss deals |
+| `deal_threshold` | 0.45 | 0.20–0.70 | Price threshold (0.45 = price ≤ 45% of median → 55% discount) | < 0.30 = too few deals, > 0.60 = too much junk |
 | `ai_enabled` | 0 | 0–1 | AI photo verify for vague titles (0=off, 1=on) | 1 = requires GEMINI_API_KEY |
 
 ## Project Structure

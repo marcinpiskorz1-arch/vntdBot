@@ -290,7 +290,7 @@ async function main(): Promise<void> {
     scanConfigs: scanConfigs.length,
     customQueries: botState.customQueries,
     intervalMs: config.scanIntervalMs,
-    threshold: config.dealThreshold,
+    threshold: settings.dealThreshold,
     proxies: config.proxyUrls.length,
     scoring: settings.aiEnabled ? "reguły + AI photo verify" : "rule-based",
   }, "Configuration loaded");

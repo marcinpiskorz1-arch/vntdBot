@@ -76,6 +76,9 @@ export const settings = {
   get minProfitToNotify(): number {
     return getNumber("min_profit", 35);
   },
+  get dealThreshold(): number {
+    return getNumber("deal_threshold", config.dealThreshold);
+  },
 
   /** Return all current values (for /status display) */
   dump(): Record<string, string | number | boolean> {
@@ -88,12 +91,13 @@ export const settings = {
       daily_ai_limit: getNumber("daily_ai_limit", 100),
       instant_threshold: getNumber("instant_threshold", 60),
       min_profit: getNumber("min_profit", 35),
+      deal_threshold: getNumber("deal_threshold", config.dealThreshold),
       ai_enabled: getBool("ai_enabled", true),
     };
   },
 
   /** List of valid setting keys for /set command */
-  VALID_KEYS: ["notify_threshold", "hot_threshold", "hot_min_profit", "min_price", "daily_ai_limit", "instant_threshold", "min_profit", "ai_enabled"] as const,
+  VALID_KEYS: ["notify_threshold", "hot_threshold", "hot_min_profit", "min_price", "daily_ai_limit", "instant_threshold", "min_profit", "deal_threshold", "ai_enabled"] as const,
 
   /** Validation rules: min, max, description, warning */
   RULES: {
@@ -104,6 +108,7 @@ export const settings = {
     daily_ai_limit: { min: 50, max: 5000, desc: "Twardy dzienny limit weryfikacji AI", warn: "< 100 = mało weryfikacji, > 1000 = drogo" },
     instant_threshold: { min: 40, max: 90, desc: "Min % zniżki do instant alertu", warn: "< 50 = dużo fałszywych, > 80 = prawie nic nie przejdzie" },
     min_profit: { min: 10, max: 200, desc: "Min zysk (PLN) żeby powiadomić", warn: "< 20 = powiadomienia za tanio, > 100 = pominiesz dobre deale" },
+    deal_threshold: { min: 0.20, max: 0.70, desc: "Próg cenowy (0.45 = cena ≤ 45% mediany → 55% zniżki)", warn: "< 0.30 = za mało deali, > 0.60 = za dużo śmieci" },
     ai_enabled: { min: 0, max: 1, desc: "AI photo verify dla niejasnych tytułów (0=wył., 1=wł.)", warn: "1 = weryfikacja zdjęć dla krótkich tytułów, wymaga GEMINI_API_KEY" },
   } as Record<string, { min: number; max: number; desc: string; warn: string }>,
 };

@@ -78,6 +78,7 @@ export class TelegramAgent {
         `  min_price: ${s.min_price} PLN — pomijaj tańsze oferty`,
         `  instant_threshold: ${s.instant_threshold}% — instant alert od tej zniżki`,
         `  min_profit: ${s.min_profit} PLN — min zysk żeby powiadomić`,
+        `  deal_threshold: ${s.deal_threshold} — próg cenowy (${Math.round((1 - (s.deal_threshold as number)) * 100)}% zniżki)`,
         ...(s.ai_enabled ? [
           `  daily_ai_limit: ${s.daily_ai_limit} — twardy limit AI / dzień`,
           "",
