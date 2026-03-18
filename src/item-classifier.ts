@@ -18,7 +18,7 @@ const BAG_PATTERN = /(?:^|[\s,;(\/-])(plecak|backpack|torb[aęy]|bag|duffel|tote
 
 const HEADWEAR_PATTERN = /(?:^|[\s,;(\/-])(czapk[aięy]|cap|hat|beanie|kapelusz|beret|headband|opask[aię]|bandana|šiltovk|čepice|klobouk|cappello|gorra|sombrero|hoed|keps|mössa|hattu|kepurė)/i;
 
-const ACCESSORY_PATTERN = /(?:^|[\s,;(\/-])(r[ęe]kawiczk|gloves|szalik|scarf|pasek|belt|portfel|wallet|okulary|sunglasses|gogle|goggles|zegarek|watch|bielizn|underwear|skarpet|socks|gaitr|gaiter|stuptuty|getry)/i;
+const ACCESSORY_PATTERN = /(?:^|[\s,;(\/-])(r[ęe]kawiczk|gloves|szalik|scarf|pasek|belt|portfel|wallet|okulary|sunglasses|gogle|goggles|zegarek|watch|bielizn|underwear|stopk|skarpet|socks|gaitr|gaiter|stuptuty|getry)/i;
 
 // Unambiguous top-clothing words that MUST take priority over shoe model names.
 // Prevents "Bluza Nike Air Max" from being classified as shoes.
