@@ -184,6 +184,8 @@ async function runPipeline(): Promise<void> {
           url: item.url,
           photoUrl: item.photoUrls?.[0],
         });
+        // Persist decision so dedup works across batches from different queries
+        decision.decideWithRules(item, signal);
       }
 
       // RULE-BASED SCORING — skip items already sent as instant alerts

@@ -167,6 +167,8 @@ export const scanConfigs: ScanConfig[] = [
   // Tier 2 resell
   { searchText: "columbia", brandIds: [17161], categoryIds: SHOES_JACKETS_BAGS },
   { searchText: "converse chuck 70", priority: true },
+  { searchText: "reebok", categoryIds: SHOES },
+  { searchText: "puma", categoryIds: SHOES },
   { searchText: "on running", brandIds: [267947], categoryIds: SHOES },
   { searchText: "on cloudmonster", priority: true },
   // Skate
