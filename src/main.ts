@@ -36,6 +36,8 @@ const aiAnalyst = new AiAnalystAgent();
 const decision = new DecisionAgent();
 const telegram = new TelegramAgent();
 
+scraper.onAlert = (msg) => telegram.sendMessage(msg).catch(() => {});
+
 // ============================================================
 // Define what to scan — loaded from src/data/scan-configs.ts
 // ============================================================

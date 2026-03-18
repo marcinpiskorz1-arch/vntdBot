@@ -21,6 +21,9 @@ export class ScraperAgent {
   private proxyPool = new ProxyPool();
   private sessionCreatedAt = 0;
   private readonly sessionMaxAgeMs = 10 * 60 * 1000; // 10 min
+  private consecutiveErrors = 0;
+  private lastAlertTime = 0;
+  onAlert?: (message: string) => void;
 
   /** Ensure we have a valid session, refresh if stale */
   private async ensureSession(): Promise<VintedSession> {
@@ -103,12 +106,29 @@ export class ScraperAgent {
         "New items saved"
       );
 
+      this.consecutiveErrors = 0;
       return newItems;
     } catch (err) {
       logger.error({ err, scanConfig }, "Scan failed for config");
-      if (err instanceof Error && (err.message.includes("401") || err.message.includes("429"))) {
+      const msg = err instanceof Error ? err.message : "";
+      const is429 = msg.includes("429");
+      const is401 = msg.includes("401");
+      const is403 = msg.includes("403");
+
+      if (is401 || is429) {
         this.session = null;
       }
+
+      this.consecutiveErrors++;
+
+      // Alert on Telegram (throttle: max once per 5 min)
+      const now = Date.now();
+      if ((is429 || is401 || is403) && this.consecutiveErrors >= 3 && now - this.lastAlertTime > 5 * 60 * 1000) {
+        this.lastAlertTime = now;
+        const code = is429 ? "429 Rate Limited" : is401 ? "401 Unauthorized" : "403 Forbidden";
+        this.onAlert?.(`🚨 <b>Vinted blokada!</b>\n\nKod: <b>${code}</b>\nKolejnych błędów: ${this.consecutiveErrors}\n\n⚠️ Prawdopodobnie IP zablokowane — potrzebne proxy.`);
+      }
+
       return [];
     }
   }
