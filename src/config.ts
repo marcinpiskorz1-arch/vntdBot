@@ -30,7 +30,8 @@ export const config = {
     .filter(Boolean),
 
   // Scan settings
-  scanIntervalMs: parseInt(optionalEnv("SCAN_INTERVAL_MS", "30000"), 10),
+  // TEMP: 90s default (was 30s) — reduced to lower Vinted API load without proxy
+  scanIntervalMs: parseInt(optionalEnv("SCAN_INTERVAL_MS", "90000"), 10),
   dealThreshold: parseFloat(optionalEnv("DEAL_THRESHOLD", "0.60")),
 
   // Vinted

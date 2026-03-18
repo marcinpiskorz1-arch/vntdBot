@@ -1,6 +1,26 @@
 import { chromium, type BrowserContext, type Cookie } from "playwright";
 import { config } from "../../config.js";
 import { logger } from "../../logger.js";
+import { randomBytes } from "node:crypto";
+
+/** Parse proxy URL with auth (http://user:pass@host:port) into Playwright proxy config */
+export function parseProxyUrl(raw: string): { server: string; username?: string; password?: string } {
+  const parsed = new URL(raw);
+  const server = `${parsed.protocol}//${parsed.hostname}:${parsed.port}`;
+  if (parsed.username) {
+    return { server, username: decodeURIComponent(parsed.username), password: decodeURIComponent(parsed.password) };
+  }
+  return { server };
+}
+
+/** Append a unique sticky-session suffix to proxy username (LunaProxy / Proxy-Seller compatible) */
+export function withStickySession(proxyUrl: string, ttlMinutes: number): string {
+  const parsed = new URL(proxyUrl);
+  if (!parsed.username) return proxyUrl;
+  const sessionId = randomBytes(4).toString("hex");
+  parsed.username = `${parsed.username}-session-${sessionId}-sessTime-${ttlMinutes}`;
+  return parsed.toString();
+}
 
 const USER_AGENTS = [
   "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36",
@@ -40,7 +60,7 @@ export async function createSession(proxyUrl?: string): Promise<VintedSession> {
   };
 
   if (proxyUrl) {
-    launchOptions.proxy = { server: proxyUrl };
+    launchOptions.proxy = parseProxyUrl(proxyUrl);
   }
 
   const browser = await chromium.launch(launchOptions);

@@ -4,7 +4,7 @@ import { stmts } from "../../database.js";
 import type { RawItem, ScanConfig } from "../../types.js";
 import { resolveItemType } from "../../item-classifier.js";
 import { extractModel } from "../../model-extractor.js";
-import { createSession, type VintedSession } from "./session-manager.js";
+import { createSession, withStickySession, type VintedSession } from "./session-manager.js";
 import { fetchCatalogItems } from "./vinted-api.js";
 import { ProxyPool } from "./proxy-pool.js";
 
@@ -33,7 +33,9 @@ export class ScraperAgent {
 
     if (isStale) {
       logger.info("Refreshing Vinted session via Playwright...");
-      const proxy = this.proxyPool.next();
+      const rawProxy = this.proxyPool.next();
+      // Sticky session: same IP for entire 10-min session (LunaProxy / Proxy-Seller compatible)
+      const proxy = rawProxy ? withStickySession(rawProxy, 10) : undefined;
       this.session = await createSession(proxy);
       this.sessionCreatedAt = Date.now();
     }
@@ -46,23 +48,19 @@ export class ScraperAgent {
     return this.ensureSession();
   }
 
-  /** Scan a single config: fetch page 1+2, dedup, persist to DB */
+  /** Scan a single config: fetch pages, dedup, persist to DB.
+   *  TEMP: 1 page for non-priority, 2 pages for priority (bandwidth saving). */
   private async scanSingleConfig(session: VintedSession, scanConfig: ScanConfig): Promise<RawItem[]> {
     try {
       const page1 = await fetchCatalogItems(session, scanConfig, 1);
-      await jitter(800, 1500);
-      const page2 = await fetchCatalogItems(session, scanConfig, 2);
-      const seen = new Set(page1.map(i => i.vintedId));
-      const uniquePage2 = page2.filter(i => !seen.has(i.vintedId));
-      const items = [...page1, ...uniquePage2];
+      const items = [...page1];
 
       // Priority configs get 1 extra page
-      const extraPages = scanConfig.priority ? 1 : 0;
-      for (let p = 3; p <= 2 + extraPages; p++) {
+      if (scanConfig.priority) {
         await jitter(800, 1500);
-        const extra = await fetchCatalogItems(session, scanConfig, p);
-        const seenAll = new Set(items.map(i => i.vintedId));
-        const unique = extra.filter(i => !seenAll.has(i.vintedId));
+        const page2 = await fetchCatalogItems(session, scanConfig, 2);
+        const seen = new Set(items.map(i => i.vintedId));
+        const unique = page2.filter(i => !seen.has(i.vintedId));
         items.push(...unique);
       }
 
