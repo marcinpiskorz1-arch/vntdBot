@@ -96,7 +96,7 @@ export async function fetchCatalogItems(
     if (response.status !== 429) break;
 
     if (attempt < MAX_RETRIES) {
-      const backoffMs = (2 ** attempt) * 10000 + Math.random() * 5000; // 10s, 25s, 55s
+      const backoffMs = (2 ** attempt) * 5000 + Math.random() * 3000; // 5s, 13s, 29s
       logger.warn(
         { attempt: attempt + 1, backoffMs: Math.round(backoffMs), url: url.pathname },
         "429 rate limited — backing off"
