@@ -129,8 +129,9 @@ describe("isBrandTypeWorthNotifying", () => {
   it("blocks TNF pants", () => {
     expect(isBrandTypeWorthNotifying("The North Face", "pants")).toBe(false);
   });
-  it("allows TNF bags", () => {
-    expect(isBrandTypeWorthNotifying("The North Face", "bag")).toBe(true);
+  // TEMP: shoes-only mode — bags blocked for TNF
+  it("blocks TNF bags (temp shoes-only)", () => {
+    expect(isBrandTypeWorthNotifying("The North Face", "bag")).toBe(false);
   });
   it("blocks Salomon tops", () => {
     expect(isBrandTypeWorthNotifying("Salomon", "top")).toBe(false);
@@ -140,8 +141,9 @@ describe("isBrandTypeWorthNotifying", () => {
   it("allows Nike shoes", () => {
     expect(isBrandTypeWorthNotifying("Nike", "shoes")).toBe(true);
   });
-  it("allows Nike jackets", () => {
-    expect(isBrandTypeWorthNotifying("Nike", "jacket")).toBe(true);
+  // TEMP: shoes-only mode — jackets blocked for Nike
+  it("blocks Nike jackets (temp shoes-only)", () => {
+    expect(isBrandTypeWorthNotifying("Nike", "jacket")).toBe(false);
   });
   it("blocks Nike tops", () => {
     expect(isBrandTypeWorthNotifying("Nike", "top")).toBe(false);
@@ -164,9 +166,9 @@ describe("isBrandTypeWorthNotifying", () => {
     expect(isBrandTypeWorthNotifying("Crocs", "top")).toBe(false);
   });
 
-  // Arc'teryx: shoes+jackets+bags
-  it("allows Arc'teryx jackets", () => {
-    expect(isBrandTypeWorthNotifying("Arc'teryx", "jacket")).toBe(true);
+  // TEMP: shoes-only mode — jackets blocked for Arc'teryx
+  it("blocks Arc'teryx jackets (temp shoes-only)", () => {
+    expect(isBrandTypeWorthNotifying("Arc'teryx", "jacket")).toBe(false);
   });
   it("blocks Arc'teryx tops", () => {
     expect(isBrandTypeWorthNotifying("Arc'teryx", "top")).toBe(false);

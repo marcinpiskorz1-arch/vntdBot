@@ -131,12 +131,20 @@ async function runPipeline(): Promise<void> {
     let analyzedCount = 0;
     const photoVerifyCandidates: Array<[import("./types.js").RawItem, import("./types.js").PriceSignal, import("./types.js").Decision]> = [];
 
+    // In-memory dedup within a single cycle (prevents duplicates from overlapping queries)
+    const seenThisCycle = new Set<string>();
+
     // Process items immediately as each scan batch arrives
     const processBatch = async (newItems: import("./types.js").RawItem[]): Promise<void> => {
       if (newItems.length === 0) return;
-      totalNewItems += newItems.length;
-
-      await processResaleBatch(newItems);
+      // Dedup within cycle — same item can appear from "nike" and "nike air max" queries
+      const unique = newItems.filter(i => {
+        if (seenThisCycle.has(i.vintedId)) return false;
+        seenThisCycle.add(i.vintedId);
+        return true;
+      });
+      totalNewItems += unique.length;
+      await processResaleBatch(unique);
     };
 
     const processResaleBatch = async (items: import("./types.js").RawItem[]): Promise<void> => {

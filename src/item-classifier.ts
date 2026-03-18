@@ -105,13 +105,16 @@ const SHOES_ONLY_BRANDS = new Set([
   "crocs",
 ]);
 
-/** Brands where only shoes + jackets + bags have resale value */
+// TEMP: shoes-only mode — all brands restricted to shoes only
+// Original: shoes + jackets + bags for these brands
 const SHOES_JACKETS_BAGS_BRANDS = new Set([
   "nike", "nike air", "adidas",
   "the north face",
   "mammut", "salewa", "salomon", "norrøna", "haglöfs",
   "canada goose", "fjallraven", "fjällräven",
   "arc'teryx", "arcteryx",
+  // TEMP: puma blocked entirely (not in any scan config)
+  "puma",
 ]);
 
 /**
@@ -128,7 +131,7 @@ export function isBrandTypeWorthNotifying(brand: string, itemType: ItemType): bo
   }
 
   if (SHOES_JACKETS_BAGS_BRANDS.has(b)) {
-    return itemType === "shoes" || itemType === "jacket" || itemType === "bag";
+    return itemType === "shoes"; // TEMP: shoes-only mode (was: shoes || jacket || bag)
   }
 
   return true;
