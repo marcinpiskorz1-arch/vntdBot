@@ -107,6 +107,7 @@ const SHOES_ONLY_BRANDS = new Set([
 
 /** Brands where only shoes + jackets + bags have resale value */
 const SHOES_JACKETS_BAGS_BRANDS = new Set([
+  "nike", "nike air", "adidas",
   "the north face",
   "mammut", "salewa", "salomon", "norrøna", "haglöfs",
   "canada goose", "fjallraven", "fjällräven",

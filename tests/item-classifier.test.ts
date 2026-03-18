@@ -136,9 +136,24 @@ describe("isBrandTypeWorthNotifying", () => {
     expect(isBrandTypeWorthNotifying("Salomon", "top")).toBe(false);
   });
 
-  // Unrestricted brands
-  it("allows Nike everything", () => {
-    expect(isBrandTypeWorthNotifying("Nike", "top")).toBe(true);
+  // Nike/Adidas: shoes + jackets + bags only (leginsy/spodnie/tops blocked)
+  it("allows Nike shoes", () => {
+    expect(isBrandTypeWorthNotifying("Nike", "shoes")).toBe(true);
+  });
+  it("allows Nike jackets", () => {
+    expect(isBrandTypeWorthNotifying("Nike", "jacket")).toBe(true);
+  });
+  it("blocks Nike tops", () => {
+    expect(isBrandTypeWorthNotifying("Nike", "top")).toBe(false);
+  });
+  it("blocks Nike pants", () => {
+    expect(isBrandTypeWorthNotifying("Nike", "pants")).toBe(false);
+  });
+  it("allows Adidas shoes", () => {
+    expect(isBrandTypeWorthNotifying("adidas", "shoes")).toBe(true);
+  });
+  it("blocks Adidas pants", () => {
+    expect(isBrandTypeWorthNotifying("adidas", "pants")).toBe(false);
   });
 
   // Shoes-only brands (Crocs)
