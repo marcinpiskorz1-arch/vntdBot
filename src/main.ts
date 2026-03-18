@@ -184,8 +184,9 @@ async function runPipeline(): Promise<void> {
           url: item.url,
           photoUrl: item.photoUrls?.[0],
         });
-        // Persist decision so dedup works across batches from different queries
+        // Persist decision + mark as notified after successful send
         decision.decideWithRules(item, signal);
+        stmts.markNotified.run({ vinted_id: item.vintedId });
       }
 
       // RULE-BASED SCORING — skip items already sent as instant alerts
@@ -200,16 +201,18 @@ async function runPipeline(): Promise<void> {
         const itemType = resolveItemType(item.title, item.category);
         if (!isBrandTypeWorthNotifying(item.brand, itemType)) continue;
 
+        // Skip if already decided (dedup across queries)
+        if (stmts.hasDecision.get({ vinted_id: item.vintedId })) continue;
+
         const result = decision.decideWithRules(item, signal);
         analyzedCount++;
         if (result.level !== "ignore") {
-          // Skip if already notified (dedup)
-          if (stmts.isAlreadyNotified.get({ vinted_id: item.vintedId })) continue;
           // Items with vague titles + high score → queue for AI photo verification
           if (settings.aiEnabled && needsPhotoVerification(item.title, result.score)) {
             photoVerifyCandidates.push([item, signal, result]);
           } else {
             await telegram.notify(result);
+            stmts.markNotified.run({ vinted_id: item.vintedId });
             notifiedCount++;
           }
         }
@@ -243,6 +246,7 @@ async function runPipeline(): Promise<void> {
           // AI confirmed — enrich reasons and notify
           ruleDecision.reasons.push(`📸 AI: ${verification.identifiedModel} — ${verification.reason}`);
           await telegram.notify(ruleDecision);
+          stmts.markNotified.run({ vinted_id: item.vintedId });
           notifiedCount++;
           logger.info({ item: item.vintedId, model: verification.identifiedModel }, "✅ AI confirmed deal");
         } else {
@@ -284,10 +288,54 @@ async function runPipeline(): Promise<void> {
         sellerRating: row.seller_rating || 0,
         sellerTransactions: row.seller_transactions || 0,
         listedAt: row.listed_at || "",
-        discoveredAt: "",
       }));
       logger.info({ count: catchupItems.length }, "🔄 Catch-up: evaluating undecided items");
       await processResaleBatch(catchupItems);
+    }
+
+    // ============================================================
+    // RETRY: send decisions that were made but never sent to Telegram
+    // (e.g. phantom notified=1 from old bug, or telegram failure)
+    // ============================================================
+    const unsent = stmts.getUnsentDecisions.all({ hours: CATCHUP_HOURS, limit: CATCHUP_LIMIT }) as Array<{
+      vinted_id: string; score: number; level: string; ai_reasoning: string; risk_flags: string;
+      title: string; brand: string; model: string; price: number; currency: string;
+      size: string; category: string; condition: string; description: string;
+      photo_urls: string; seller_rating: number; seller_transactions: number;
+      listed_at: string; url: string;
+    }>;
+    if (unsent.length > 0) {
+      logger.info({ count: unsent.length }, "📨 Retry: sending unsent notifications");
+      for (const row of unsent) {
+        const item: import("./types.js").RawItem = {
+          vintedId: row.vinted_id,
+          title: row.title,
+          brand: row.brand,
+          model: row.model || "",
+          price: row.price,
+          currency: row.currency || "PLN",
+          size: row.size || "",
+          condition: row.condition || "",
+          category: row.category || "",
+          description: row.description || "",
+          url: row.url,
+          photoUrls: row.photo_urls ? JSON.parse(row.photo_urls) : [],
+          sellerRating: row.seller_rating || 0,
+          sellerTransactions: row.seller_transactions || 0,
+          listedAt: row.listed_at || "",
+        };
+        const syntheticDecision: import("./types.js").Decision = {
+          score: row.score,
+          level: row.level as "notify" | "hot" | "ignore",
+          reasons: [`📨 Retry — previously unsent`],
+          item,
+          pricing: { medianPrice: 0, sampleSize: 0, isUnderpriced: true, discountPct: 0, confidence: 0, p25Price: 0, priceDiscountScore: 0 },
+          ai: { resalePotential: row.score, reasoning: row.ai_reasoning, riskFlags: JSON.parse(row.risk_flags || "[]"), conditionConfidence: 0, brandLiquidity: 0, estimatedProfit: 0, suggestedPrice: 0 },
+        };
+        await telegram.notify(syntheticDecision);
+        stmts.markNotified.run({ vinted_id: row.vinted_id });
+        notifiedCount++;
+      }
     }
 
     // Update cumulative stats

@@ -61,7 +61,7 @@ export class DecisionAgent {
         level: decision.level,
         ai_reasoning: decision.ai.reasoning,
         risk_flags: JSON.stringify(decision.ai.riskFlags),
-        notified: decision.level !== "ignore" ? 1 : 0,
+        notified: 0,
       });
     } catch (err) {
       logger.error({ err, item: decision.item.vintedId }, "Failed to persist decision");

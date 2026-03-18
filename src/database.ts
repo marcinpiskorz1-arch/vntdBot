@@ -2,6 +2,7 @@ import Database from "better-sqlite3";
 import { mkdirSync } from "fs";
 import { dirname } from "path";
 import { config } from "./config.js";
+import { logger } from "./logger.js";
 import { classifyItemType, vintedCategoryToItemType } from "./item-classifier.js";
 import { extractModel } from "./model-extractor.js";
 
@@ -129,6 +130,20 @@ try {
   db.exec(`ALTER TABLE ai_queue ADD COLUMN discount_pct REAL NOT NULL DEFAULT 0`);
 } catch {
   // Column already exists — ignore
+}
+
+// One-time fix: reset phantom notified=1 set by persist() before actual Telegram send
+// Uses a sentinel row in settings to ensure it only runs once
+{
+  const alreadyRan = db.prepare(`SELECT 1 FROM settings WHERE key = 'migration_reset_notified_v1'`).get();
+  if (!alreadyRan) {
+    const reset = db.prepare(`UPDATE decisions SET notified = 0 WHERE notified = 1`);
+    const result = reset.run();
+    if (result.changes > 0) {
+      logger.info({ count: result.changes }, "🔧 Reset phantom notified flags — items will be re-sent");
+    }
+    db.prepare(`INSERT OR REPLACE INTO settings (key, value) VALUES ('migration_reset_notified_v1', '1')`).run();
+  }
 }
 
 // Backfill item type classification for items with empty category
@@ -282,6 +297,12 @@ export const stmts = {
   isAlreadyNotified: db.prepare<{ vinted_id: string }>(
     `SELECT 1 FROM decisions WHERE vinted_id = @vinted_id AND notified = 1 LIMIT 1`
   ),
+  markNotified: db.prepare<{ vinted_id: string }>(
+    `UPDATE decisions SET notified = 1 WHERE vinted_id = @vinted_id`
+  ),
+  hasDecision: db.prepare<{ vinted_id: string }>(
+    `SELECT 1 FROM decisions WHERE vinted_id = @vinted_id LIMIT 1`
+  ),
 
   // Heartbeat stats
   insertHeartbeat: db.prepare(`
@@ -370,6 +391,21 @@ export const stmts = {
      WHERE discovered_at >= datetime('now', '-' || @hours || ' hours')
        AND vinted_id NOT IN (SELECT vinted_id FROM decisions)
      ORDER BY discovered_at DESC
+     LIMIT @limit`
+  ),
+
+  // Catch-up: decisions made but never sent to Telegram (notified=0, level != ignore)
+  getUnsentDecisions: db.prepare<{ hours: number; limit: number }>(
+    `SELECT d.vinted_id, d.score, d.level, d.ai_reasoning, d.risk_flags,
+            i.title, i.brand, i.model, i.price, i.currency, i.size, i.category,
+            i.condition, i.description, i.photo_urls, i.seller_rating,
+            i.seller_transactions, i.listed_at, i.url
+     FROM decisions d
+     JOIN items i ON i.vinted_id = d.vinted_id
+     WHERE d.notified = 0
+       AND d.level != 'ignore'
+       AND d.created_at >= datetime('now', '-' || @hours || ' hours')
+     ORDER BY d.score DESC
      LIMIT @limit`
   ),
 };
