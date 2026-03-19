@@ -130,12 +130,22 @@ export function calculateProfit(itemPrice: number, referencePrice: number): numb
   return Math.round(referencePrice - itemPrice - shippingCost - vintedFee);
 }
 
-/** Get popularity bonus from Vinted favourite_count (+0 to +0.5) */
-export function getPopularityBonus(favouriteCount: number): number {
-  if (favouriteCount >= 10) return 1.0;
-  if (favouriteCount >= 5) return 0.7;
-  if (favouriteCount >= 2) return 0.3;
-  return 0;
+/** Get popularity bonus from favourite_count + view_count demand ratio */
+export function getPopularityBonus(favouriteCount: number, viewCount: number): number {
+  // Base bonus from absolute favourite count
+  let bonus = 0;
+  if (favouriteCount >= 10) bonus = 1.0;
+  else if (favouriteCount >= 5) bonus = 0.7;
+  else if (favouriteCount >= 2) bonus = 0.3;
+
+  // Demand ratio: high fav/view ratio = strong demand
+  if (viewCount >= 10) {
+    const ratio = favouriteCount / viewCount;
+    if (ratio >= 0.3) bonus = Math.min(1.0, bonus + 0.2);
+    else if (ratio < 0.05 && favouriteCount < 2) bonus = Math.max(0, bonus - 0.1);
+  }
+
+  return Math.round(bonus * 10) / 10;
 }
 
 // ============================================================
@@ -176,7 +186,7 @@ export function computeRuleScore(
   const condition = getConditionScore(item.condition);
   const sizeBonus = getSizeBonus(item.size);
   const sellerBonus = getSellerBonus(item.sellerRating, item.sellerTransactions);
-  const popularityBonus = getPopularityBonus(item.favouriteCount);
+  const popularityBonus = getPopularityBonus(item.favouriteCount, item.viewCount);
   const profit = calculateProfit(item.price, pricing.medianPrice);
 
   // Weighted score: 60% price + 15% brand + 15% condition + small bonuses
@@ -215,7 +225,12 @@ export function computeRuleScore(
   if (condition.score >= 7) reasons.push(`✅ Stan: ${condition.label} (${condition.score}/10)`);
   if (sizeBonus > 0) reasons.push(`📏 Popularny rozmiar (+${sizeBonus})`);
   if (sellerBonus > 0) reasons.push(`👤 Zaufany sprzedawca (+${sellerBonus})`);
-  if (popularityBonus > 0) reasons.push(`❤️ Popularne (${item.favouriteCount} polubień, +${popularityBonus})`);
+  if (popularityBonus > 0) {
+    const ratioInfo = item.viewCount >= 10
+      ? `, ${Math.round(item.favouriteCount / item.viewCount * 100)}% konwersja`
+      : "";
+    reasons.push(`❤️ Popularne (${item.favouriteCount} polubień, ${item.viewCount} wyświetleń${ratioInfo}, +${popularityBonus})`);
+  }
   if (profit > 0) reasons.push(`💵 Szacowany zysk: ~${profit} PLN`);
 
   // Clamp to 0-10 before level determination
