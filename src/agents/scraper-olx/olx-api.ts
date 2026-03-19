@@ -134,6 +134,8 @@ function mapOlxToRawItem(offer: OlxOffer): RawItem {
     photoUrls,
     sellerRating: 0, // OLX doesn't expose rating in search API
     sellerTransactions: 0,
+    favouriteCount: 0, // OLX doesn't expose this
+    viewCount: 0,
     listedAt: offer.created_time || "",
     url: offer.url || "",
   };

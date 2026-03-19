@@ -45,6 +45,8 @@ export class OlxScraperAgent {
           photo_urls: JSON.stringify(item.photoUrls),
           seller_rating: item.sellerRating,
           seller_transactions: item.sellerTransactions,
+          favourite_count: item.favouriteCount,
+          view_count: item.viewCount,
           listed_at: item.listedAt,
           url: item.url,
         });
