@@ -13,75 +13,55 @@ const SHOES = [2961, 2711, 2952, 2955, 2695, 2713, 2706, 2960, 2945, 2954, 2694,
 // const SHOES_JACKETS_BAGS = [...SHOES, ...JACKETS, ...BAGS];
 
 /**
- * TEMPORARY: Shoes-only mode — reduced queries to lower Vinted API load.
- * Full config list is in git history (commit before this change).
+ * Shoes-only mode — all queries have categoryIds: SHOES.
  *
- * `priority: true` = scanned every cycle (hype models).
- * Others = scanned every 2nd cycle (full scan).
+ * `priority: true` = scanned every cycle (2 pages, 192 items).
+ * Others = scanned every 2nd cycle (1 page, 96 items).
+ *
+ * TODO: fill missing brandIds — run scripts/lookup-brands.cjs with NL VPN
  */
 export const scanConfigs: ScanConfig[] = [
   // ============================================================
-  // High-volume brands — shoes only (categoryIds: SHOES)
+  // Priority — scanned every cycle (high-value / fast-moving)
+  // ============================================================
+  { searchText: "adidas samba", brandIds: [14], priority: true, categoryIds: SHOES },
+  { searchText: "adidas gazelle", brandIds: [14], priority: true, categoryIds: SHOES },
+  { searchText: "adidas spezial", brandIds: [14], priority: true, categoryIds: SHOES },
+  { searchText: "salomon speedcross", brandIds: [15457], priority: true, categoryIds: SHOES },
+  { searchText: "nike air max", brandIds: [53], priority: true, categoryIds: SHOES },
+  { searchText: "nike metcon", brandIds: [53], priority: true, categoryIds: SHOES },
+  { searchText: "asics", brandIds: [1195], priority: true, categoryIds: SHOES },
+  { searchText: "onitsuka tiger", priority: true, categoryIds: SHOES }, // TODO: brandIds
+  { searchText: "la sportiva", brandIds: [201320], priority: true, categoryIds: SHOES },
+  { searchText: "scarpa", priority: true, categoryIds: SHOES }, // TODO: brandIds
+  { searchText: "dynafit", priority: true, categoryIds: SHOES }, // TODO: brandIds
+  { searchText: "salomon", brandIds: [15457], priority: true, categoryIds: SHOES },
+  { searchText: "lowa", priority: true, categoryIds: SHOES }, // TODO: brandIds
+
+  // ============================================================
+  // High — scanned every 2nd cycle (broad brand queries)
   // ============================================================
   { searchText: "nike", brandIds: [53], categoryIds: SHOES },
   { searchText: "jordan", brandIds: [2703], categoryIds: SHOES },
-  { searchText: "adidas", brandIds: [14], categoryIds: SHOES },
   { searchText: "new balance", brandIds: [1775], categoryIds: SHOES },
+  { searchText: "adidas yeezy", brandIds: [14], categoryIds: SHOES },
+  { searchText: "adidas", brandIds: [14], categoryIds: SHOES },
   { searchText: "under armour", brandIds: [52035], categoryIds: SHOES },
-  { searchText: "asics", brandIds: [1195], categoryIds: SHOES },
-  { searchText: "vans", brandIds: [139], categoryIds: SHOES },
-  { searchText: "converse", brandIds: [11445], categoryIds: SHOES },
   { searchText: "the north face", brandIds: [2319], categoryIds: SHOES },
-  { searchText: "salomon", brandIds: [15457], categoryIds: SHOES },
+  { searchText: "merrell", categoryIds: SHOES }, // TODO: brandIds
+  { searchText: "meindl", categoryIds: SHOES }, // TODO: brandIds
+  { searchText: "salomon xt-6", brandIds: [15457], categoryIds: SHOES },
+  { searchText: "nike cortez", brandIds: [53], categoryIds: SHOES },
+  { searchText: "adidas superstar", brandIds: [14], categoryIds: SHOES },
+  { searchText: "adidas terrex", brandIds: [14], categoryIds: SHOES },
+  { searchText: "adidas ultraboost", brandIds: [14], categoryIds: SHOES },
+  { searchText: "nike vapormax", brandIds: [53], categoryIds: SHOES },
 
   // ============================================================
-  // Priority hype models — scanned every cycle (ALL with categoryIds: SHOES)
+  // Standard — scanned every 2nd cycle (lower volume)
   // ============================================================
-  // Jordan
-  { searchText: "jordan 1", priority: true, categoryIds: SHOES },
-  { searchText: "jordan 4", priority: true, categoryIds: SHOES },
-  // New Balance
-  { searchText: "new balance 550", priority: true, categoryIds: SHOES },
-  { searchText: "new balance 574", priority: true, categoryIds: SHOES },
-  { searchText: "new balance 530", priority: true, categoryIds: SHOES },
-  // Nike
-  { searchText: "nike air max", priority: true, categoryIds: SHOES },
-  { searchText: "nike dunk", priority: true, categoryIds: SHOES },
-  { searchText: "nike air force", priority: true, categoryIds: SHOES },
-  { searchText: "nike sb", priority: true, categoryIds: SHOES },
-  // Adidas
-  { searchText: "adidas samba", priority: true, categoryIds: SHOES },
-  { searchText: "adidas gazelle", priority: true, categoryIds: SHOES },
-  { searchText: "adidas yeezy", priority: true, categoryIds: SHOES },
-  { searchText: "adidas spezial", priority: true, categoryIds: SHOES },
-  // Salomon
-  { searchText: "salomon xt-6", priority: true, categoryIds: SHOES },
-  { searchText: "salomon speedcross", priority: true, categoryIds: SHOES },
-  // On Running
-  { searchText: "on cloudmonster", priority: true, categoryIds: SHOES },
-
-  // ============================================================
-  // Standard shoe queries — scanned every 2nd cycle (ALL with categoryIds: SHOES)
-  // ============================================================
-  { searchText: "asics gel lyte", categoryIds: SHOES },
-  { searchText: "asics gel kayano", categoryIds: SHOES },
-  { searchText: "onitsuka tiger", categoryIds: SHOES },
-  { searchText: "nike cortez", categoryIds: SHOES },
-  { searchText: "nike blazer", categoryIds: SHOES },
-  { searchText: "nike vapormax", categoryIds: SHOES },
-  { searchText: "adidas superstar", categoryIds: SHOES },
-  { searchText: "adidas ultraboost", categoryIds: SHOES },
-  { searchText: "adidas forum", categoryIds: SHOES },
-  { searchText: "adidas terrex", categoryIds: SHOES },
-  { searchText: "converse chuck 70", categoryIds: SHOES },
-  { searchText: "reebok", categoryIds: SHOES },
+  { searchText: "converse", brandIds: [11445], categoryIds: SHOES },
+  { searchText: "reebok", brandIds: [29], categoryIds: SHOES },
   { searchText: "on running", brandIds: [267947], categoryIds: SHOES },
-
-  // Outdoor shoe brands
-  { searchText: "la sportiva", categoryIds: SHOES },
-  { searchText: "scarpa", categoryIds: SHOES },
-  { searchText: "merrell", categoryIds: SHOES },
-  { searchText: "meindl", categoryIds: SHOES },
-  { searchText: "lowa", categoryIds: SHOES },
-  { searchText: "crocs", categoryIds: SHOES },
+  { searchText: "vans", brandIds: [139], categoryIds: SHOES },
 ];
