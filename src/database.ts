@@ -132,6 +132,18 @@ try {
   // Column already exists — ignore
 }
 
+try {
+  db.exec(`ALTER TABLE items ADD COLUMN favourite_count INTEGER NOT NULL DEFAULT 0`);
+} catch {
+  // Column already exists — ignore
+}
+
+try {
+  db.exec(`ALTER TABLE items ADD COLUMN view_count INTEGER NOT NULL DEFAULT 0`);
+} catch {
+  // Column already exists — ignore
+}
+
 // One-time fix: reset phantom notified=1 set by persist() before actual Telegram send
 // Uses a sentinel row in settings to ensure it only runs once
 {
@@ -236,11 +248,11 @@ export const stmts = {
     INSERT OR IGNORE INTO items (
       vinted_id, title, brand, model, price, currency, size, category,
       condition, description, photo_urls, seller_rating, seller_transactions,
-      listed_at, url
+      favourite_count, view_count, listed_at, url
     ) VALUES (
       @vinted_id, @title, @brand, @model, @price, @currency, @size, @category,
       @condition, @description, @photo_urls, @seller_rating, @seller_transactions,
-      @listed_at, @url
+      @favourite_count, @view_count, @listed_at, @url
     )
   `),
   getItemByVintedId: db.prepare<{ vinted_id: string }>(

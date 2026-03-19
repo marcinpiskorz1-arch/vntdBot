@@ -37,6 +37,8 @@ interface VintedApiItem {
     buyer_currency: string;
   };
   is_visible?: boolean;
+  favourite_count?: number;
+  view_count?: number;
 }
 
 /**
@@ -54,7 +56,7 @@ export async function fetchCatalogItems(
   // Build query params
   url.searchParams.set("page", String(page));
   url.searchParams.set("per_page", String(perPage));
-  url.searchParams.set("order", "newest_first");
+  url.searchParams.set("order", scanConfig.order || "newest_first");
 
   if (scanConfig.categoryIds && scanConfig.categoryIds.length > 0) {
     url.searchParams.set("catalog_ids", scanConfig.categoryIds.join(","));
@@ -161,6 +163,8 @@ function mapApiItemToRawItem(item: VintedApiItem): RawItem {
     photoUrls: extractPhotoUrls(item.photos),
     sellerRating: item.user?.feedback_reputation || 0,
     sellerTransactions: item.user?.given_item_count || 0,
+    favouriteCount: item.favourite_count || 0,
+    viewCount: item.view_count || 0,
     listedAt: item.created_at_ts || "",
     url: item.url
       ? item.url.startsWith("http")

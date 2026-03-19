@@ -6,6 +6,7 @@ import {
   getConditionScore,
   getSizeBonus,
   getSellerBonus,
+  getPopularityBonus,
   calculateProfit,
   computeRuleScore,
   needsPhotoVerification,
@@ -146,6 +147,36 @@ describe("getSellerBonus", () => {
 });
 
 // ============================================================
+// Popularity bonus
+// ============================================================
+describe("getPopularityBonus", () => {
+  it("returns 0 for 0 favourites", () => {
+    expect(getPopularityBonus(0)).toBe(0);
+  });
+  it("returns 0 for 1 favourite", () => {
+    expect(getPopularityBonus(1)).toBe(0);
+  });
+  it("returns 0.3 for 2 favourites", () => {
+    expect(getPopularityBonus(2)).toBe(0.3);
+  });
+  it("returns 0.3 for 4 favourites", () => {
+    expect(getPopularityBonus(4)).toBe(0.3);
+  });
+  it("returns 0.7 for 5 favourites", () => {
+    expect(getPopularityBonus(5)).toBe(0.7);
+  });
+  it("returns 0.7 for 9 favourites", () => {
+    expect(getPopularityBonus(9)).toBe(0.7);
+  });
+  it("returns 1.0 for 10 favourites", () => {
+    expect(getPopularityBonus(10)).toBe(1.0);
+  });
+  it("returns 1.0 for 50 favourites", () => {
+    expect(getPopularityBonus(50)).toBe(1.0);
+  });
+});
+
+// ============================================================
 // Profit calculation
 // ============================================================
 describe("calculateProfit", () => {
@@ -243,6 +274,22 @@ describe("computeRuleScore", () => {
     const result = computeRuleScore(item, signal, defaultCfg);
     expect(result.score).toBeLessThanOrEqual(10);
     expect(result.score).toBeGreaterThanOrEqual(0);
+  });
+
+  it("includes popularity reason when item has favourites", () => {
+    const item = mockItem({ brand: "Nike", favouriteCount: 12 });
+    const signal = mockSignal({ priceDiscountScore: 7, medianPrice: 300, p25Price: 250 });
+    const result = computeRuleScore(item, signal, defaultCfg);
+    expect(result.reasons.some(r => r.includes("Popularne") && r.includes("12 polubień"))).toBe(true);
+  });
+
+  it("popularity bonus increases score", () => {
+    const item0 = mockItem({ brand: "Nike", favouriteCount: 0 });
+    const item10 = mockItem({ brand: "Nike", favouriteCount: 10 });
+    const signal = mockSignal({ priceDiscountScore: 6, medianPrice: 200, p25Price: 150, sampleSize: 30 });
+    const r0 = computeRuleScore(item0, signal, defaultCfg);
+    const r10 = computeRuleScore(item10, signal, defaultCfg);
+    expect(r10.score).toBeGreaterThan(r0.score);
   });
 
   it("syntheticAi has valid structure", () => {

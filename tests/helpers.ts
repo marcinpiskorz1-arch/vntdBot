@@ -15,6 +15,8 @@ export function mockItem(overrides: Partial<RawItem> = {}): RawItem {
     photoUrls: ["https://example.com/photo.jpg"],
     sellerRating: 4.5,
     sellerTransactions: 10,
+    favouriteCount: 0,
+    viewCount: 0,
     listedAt: "2026-03-15",
     url: "https://www.vinted.pl/items/test-1",
     ...overrides,

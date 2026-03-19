@@ -10,6 +10,7 @@ export interface ScanConfig {
   sizes?: string[];
   searchText?: string;
   priority?: boolean; // scanned every cycle (vs every other cycle for standard)
+  order?: string; // API sort order: "newest_first" (default), "relevance", "price_low_to_high", etc.
 }
 
 /** Scraper → Pricing: surowa oferta z Vinted */
@@ -27,6 +28,8 @@ export interface RawItem {
   photoUrls: string[];
   sellerRating: number;
   sellerTransactions: number;
+  favouriteCount: number;
+  viewCount: number;
   listedAt: string;
   url: string;
 }

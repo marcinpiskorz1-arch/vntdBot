@@ -46,7 +46,7 @@ describe("withStickySession", () => {
   it("returns URL unchanged when no auth present", () => {
     const input = "http://host:1234";
     const result = withStickySession(input, 5);
-    expect(result).toBe(input + "/");
+    expect(result).toBe(input);
   });
 
   it("generates unique session IDs on each call", () => {

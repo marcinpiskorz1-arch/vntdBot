@@ -130,6 +130,14 @@ export function calculateProfit(itemPrice: number, referencePrice: number): numb
   return Math.round(referencePrice - itemPrice - shippingCost - vintedFee);
 }
 
+/** Get popularity bonus from Vinted favourite_count (+0 to +0.5) */
+export function getPopularityBonus(favouriteCount: number): number {
+  if (favouriteCount >= 10) return 1.0;
+  if (favouriteCount >= 5) return 0.7;
+  if (favouriteCount >= 2) return 0.3;
+  return 0;
+}
+
 // ============================================================
 // Main rule-based scoring
 // ============================================================
@@ -168,6 +176,7 @@ export function computeRuleScore(
   const condition = getConditionScore(item.condition);
   const sizeBonus = getSizeBonus(item.size);
   const sellerBonus = getSellerBonus(item.sellerRating, item.sellerTransactions);
+  const popularityBonus = getPopularityBonus(item.favouriteCount);
   const profit = calculateProfit(item.price, pricing.medianPrice);
 
   // Weighted score: 60% price + 15% brand + 15% condition + small bonuses
@@ -176,7 +185,8 @@ export function computeRuleScore(
     0.15 * brand.score +
     0.15 * condition.score +
     sizeBonus * 0.3 +
-    sellerBonus * 0.5;
+    sellerBonus * 0.5 +
+    popularityBonus * 0.5;
 
   // Low sample penalty
   if (pricing.sampleSize < 10) {
@@ -205,6 +215,7 @@ export function computeRuleScore(
   if (condition.score >= 7) reasons.push(`✅ Stan: ${condition.label} (${condition.score}/10)`);
   if (sizeBonus > 0) reasons.push(`📏 Popularny rozmiar (+${sizeBonus})`);
   if (sellerBonus > 0) reasons.push(`👤 Zaufany sprzedawca (+${sellerBonus})`);
+  if (popularityBonus > 0) reasons.push(`❤️ Popularne (${item.favouriteCount} polubień, +${popularityBonus})`);
   if (profit > 0) reasons.push(`💵 Szacowany zysk: ~${profit} PLN`);
 
   // Clamp to 0-10 before level determination
