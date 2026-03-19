@@ -79,6 +79,7 @@ export interface NotificationPayload {
   title: string;
   priceLine: string;          // "45 PLN (mediana: 120 PLN, -63%)"
   scoreLine: string;          // "⭐ 8.2 / 10 — HOT DEAL"
+  favouriteLine: string;      // "❤️ 12 polubień" (empty when 0)
   profitLine: string;         // "💰 Szacowany zysk: ~75 PLN"
   aiReasoning: string;
   riskFlags: string[];

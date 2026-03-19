@@ -19,6 +19,7 @@ export function formatNotification(decision: Decision): NotificationPayload {
 
   const priceLine = `${item.price} ${item.currency} (${medianStr}, ${discountStr})`;
   const scoreLine = `⭐ ${score.toFixed(1)} / 10 — ${levelEmoji}`;
+  const favouriteLine = item.favouriteCount > 0 ? `❤️ ${item.favouriteCount} polubień` : "";
   const profitLine =
     ai.estimatedProfit > 0
       ? `💰 Szacowany zysk: ~${ai.estimatedProfit} PLN (sprzedaż za ~${ai.suggestedPrice} PLN)`
@@ -46,6 +47,7 @@ export function formatNotification(decision: Decision): NotificationPayload {
     title: `${safeBrand ? `[${safeBrand}] ` : ""}${safeTitle}`,
     priceLine,
     scoreLine,
+    favouriteLine,
     profitLine,
     aiReasoning: ai.reasoning,
     riskFlags: riskFlagsFiltered,
@@ -66,6 +68,10 @@ export function buildMessageText(payload: NotificationPayload): string {
     `💵 ${payload.priceLine}`,
     payload.profitLine,
   ];
+
+  if (payload.favouriteLine) {
+    lines.push(payload.favouriteLine);
+  }
 
   if (payload.riskFlags.length > 0) {
     lines.push("", `🚩 <b>Ryzyka:</b> ${payload.riskFlags.map(escapeHtml).join(", ")}`);
