@@ -402,25 +402,25 @@ describe("isNotHardwareJunk", () => {
 // isInSizeRange
 // ============================================================
 describe("isInSizeRange", () => {
-  it("keeps sizes 36-46", () => {
-    expect(isInSizeRange(mockItem({ size: "36" }))).toBe(true);
+  it("keeps sizes 37-44", () => {
     expect(isInSizeRange(mockItem({ size: "37" }))).toBe(true);
     expect(isInSizeRange(mockItem({ size: "38" }))).toBe(true);
     expect(isInSizeRange(mockItem({ size: "42" }))).toBe(true);
     expect(isInSizeRange(mockItem({ size: "42.5" }))).toBe(true);
     expect(isInSizeRange(mockItem({ size: "44" }))).toBe(true);
-    expect(isInSizeRange(mockItem({ size: "45" }))).toBe(true);
-    expect(isInSizeRange(mockItem({ size: "46" }))).toBe(true);
     expect(isInSizeRange(mockItem({ size: "42,5" }))).toBe(true);
   });
 
-  it("filters sizes below 36", () => {
+  it("filters sizes below 37", () => {
     expect(isInSizeRange(mockItem({ size: "32" }))).toBe(false);
     expect(isInSizeRange(mockItem({ size: "34" }))).toBe(false);
     expect(isInSizeRange(mockItem({ size: "35" }))).toBe(false);
+    expect(isInSizeRange(mockItem({ size: "36" }))).toBe(false);
   });
 
-  it("filters sizes above 46", () => {
+  it("filters sizes above 44", () => {
+    expect(isInSizeRange(mockItem({ size: "45" }))).toBe(false);
+    expect(isInSizeRange(mockItem({ size: "46" }))).toBe(false);
     expect(isInSizeRange(mockItem({ size: "47" }))).toBe(false);
     expect(isInSizeRange(mockItem({ size: "48" }))).toBe(false);
   });
