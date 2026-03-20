@@ -36,6 +36,8 @@ export const scanConfigs: ScanConfig[] = [
   { searchText: "salomon", brandIds: [15457], priority: true, categoryIds: SHOES },
   { searchText: "lowa", brandIds: [233698], priority: true, categoryIds: SHOES },
   { searchText: "dachstein", brandIds: [468642], priority: true, categoryIds: SHOES },
+  { searchText: "gore-tex", priority: true, categoryIds: SHOES },
+  { searchText: "goretex", priority: true, categoryIds: SHOES },
 
   // ============================================================
   // High — scanned every 2nd cycle (broad brand queries)

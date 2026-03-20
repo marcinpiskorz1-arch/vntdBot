@@ -199,33 +199,35 @@ async function runPipeline(): Promise<void> {
         stmts.markNotified.run({ vinted_id: item.vintedId });
       }
 
-      // RULE-BASED SCORING — skip items already sent as instant alerts
+      // RULE-BASED SCORING — score all items first, then send sorted by score (best first)
       const MIN_PRICE_TO_SCORE = 30;
+      const scoredItems: Array<{ result: import("./types.js").Decision; item: import("./types.js").RawItem; signal: import("./types.js").PriceSignal }> = [];
+
       for (const [item, signal] of underpriced) {
         if (instantIds.has(item.vintedId)) continue;
-
-        // Skip very cheap items — likely worn out / junk despite high discount %
         if (item.price < MIN_PRICE_TO_SCORE) continue;
 
-        // Skip items that don't match brand's worthwhile item types
         const itemType = resolveItemType(item.title, item.category);
         if (!isBrandTypeWorthNotifying(item.brand, itemType)) continue;
-
-        // Skip if already decided (dedup across queries)
         if (stmts.hasDecision.get({ vinted_id: item.vintedId })) continue;
 
         const result = decision.decideWithRules(item, signal);
         analyzedCount++;
         if (result.level !== "ignore") {
-          // Items with vague titles + high score → queue for AI photo verification
           if (settings.aiEnabled && needsPhotoVerification(item.title, result.score)) {
             photoVerifyCandidates.push([item, signal, result]);
           } else {
-            await telegram.notify(result);
-            stmts.markNotified.run({ vinted_id: item.vintedId });
-            notifiedCount++;
+            scoredItems.push({ result, item, signal });
           }
         }
+      }
+
+      // Send notifications sorted by score descending (best deals first in Telegram)
+      scoredItems.sort((a, b) => b.result.score - a.result.score);
+      for (const { result, item } of scoredItems) {
+        await telegram.notify(result);
+        stmts.markNotified.run({ vinted_id: item.vintedId });
+        notifiedCount++;
       }
     };
 
