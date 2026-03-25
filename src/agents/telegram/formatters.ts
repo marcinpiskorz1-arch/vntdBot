@@ -13,7 +13,7 @@ export function escapeHtml(s: string): string {
 export function formatNotification(decision: Decision): NotificationPayload {
   const { item, pricing, ai, score, level } = decision;
 
-  const levelEmoji = level === "hot" ? "🔥 HOT DEAL" : "📦 Okazja";
+  const levelEmoji = level === "hot" ? "🔥 HOT DEAL" : level === "popular" ? "❤️ POPULARNE" : "📦 Okazja";
   const discountStr = pricing.discountPct > 0 ? `-${pricing.discountPct.toFixed(0)}%` : "";
   const medianStr = pricing.medianPrice > 0 ? `rynek: ${pricing.medianPrice} PLN` : "brak danych";
 

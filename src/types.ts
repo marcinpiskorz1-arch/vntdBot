@@ -59,7 +59,7 @@ export interface AiAnalysis {
 /** Decision → Telegram: finalna decyzja */
 export interface Decision {
   score: number;              // 0-10 weighted
-  level: "ignore" | "notify" | "hot";
+  level: "ignore" | "notify" | "hot" | "popular";
   reasons: string[];
   item: RawItem;
   pricing: PriceSignal;

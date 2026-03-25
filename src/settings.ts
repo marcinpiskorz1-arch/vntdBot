@@ -79,6 +79,12 @@ export const settings = {
   get dealThreshold(): number {
     return getNumber("deal_threshold", config.dealThreshold);
   },
+  get popularDealThreshold(): number {
+    return getNumber("popular_deal_threshold", 0.75);
+  },
+  get popularMinFavourites(): number {
+    return getNumber("popular_min_favourites", 5);
+  },
 
   /** Return all current values (for /status display) */
   dump(): Record<string, string | number | boolean> {
@@ -92,12 +98,14 @@ export const settings = {
       instant_threshold: getNumber("instant_threshold", 60),
       min_profit: getNumber("min_profit", 20),
       deal_threshold: getNumber("deal_threshold", config.dealThreshold),
+      popular_deal_threshold: getNumber("popular_deal_threshold", 0.75),
+      popular_min_favourites: getNumber("popular_min_favourites", 5),
       ai_enabled: getBool("ai_enabled", true),
     };
   },
 
   /** List of valid setting keys for /set command */
-  VALID_KEYS: ["notify_threshold", "hot_threshold", "hot_min_profit", "min_price", "daily_ai_limit", "instant_threshold", "min_profit", "deal_threshold", "ai_enabled"] as const,
+  VALID_KEYS: ["notify_threshold", "hot_threshold", "hot_min_profit", "min_price", "daily_ai_limit", "instant_threshold", "min_profit", "deal_threshold", "popular_deal_threshold", "popular_min_favourites", "ai_enabled"] as const,
 
   /** Validation rules: min, max, description, warning */
   RULES: {
@@ -109,6 +117,8 @@ export const settings = {
     instant_threshold: { min: 40, max: 90, desc: "Min % zniżki do instant alertu", warn: "< 50 = dużo fałszywych, > 80 = prawie nic nie przejdzie" },
     min_profit: { min: 10, max: 200, desc: "Min zysk (PLN) żeby powiadomić", warn: "< 20 = powiadomienia za tanio, > 100 = pominiesz dobre deale" },
     deal_threshold: { min: 0.20, max: 0.70, desc: "Próg cenowy (0.45 = cena ≤ 45% mediany → 55% zniżki)", warn: "< 0.30 = za mało deali, > 0.60 = za dużo śmieci" },
+    popular_deal_threshold: { min: 0.50, max: 0.90, desc: "Próg cenowy dla popularnych itemów (domyslnie 0.75 = 25% zniżki)", warn: "< 0.60 = prawie jak normalny, > 0.85 = za dużo śmieci" },
+    popular_min_favourites: { min: 2, max: 20, desc: "Min polubienia żeby traktować jako popularny", warn: "< 3 = za dużo, > 10 = za mało" },
     ai_enabled: { min: 0, max: 1, desc: "AI photo verify dla niejasnych tytułów (0=wył., 1=wł.)", warn: "1 = weryfikacja zdjęć dla krótkich tytułów, wymaga GEMINI_API_KEY" },
   } as Record<string, { min: number; max: number; desc: string; warn: string }>,
 };

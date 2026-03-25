@@ -4,7 +4,7 @@ import { stmts } from "./database.js";
 import { logger } from "./logger.js";
 import { settings } from "./settings.js";
 import { botState } from "./bot-state.js";
-import { scanConfigs } from "./data/scan-configs.js";
+import { scanConfigs, popularityConfigs } from "./data/scan-configs.js";
 import { filterItems } from "./filters.js";
 import { buildHeartbeatMessage } from "./heartbeat.js";
 import type { ScanConfig } from "./types.js";
@@ -78,7 +78,7 @@ function buildScanLists() {
   botState.priorityQueries = scanConfigs.filter(c => c.priority).length;
   botState.customQueries = customRows.length;
 
-  return { allVinted, allOlx, priority, olxPriority };
+  return { allVinted, allOlx, priority, olxPriority, popularity: popularityConfigs };
 }
 
 // ============================================================
@@ -120,9 +120,10 @@ async function runPipeline(): Promise<void> {
     // 1. SCRAPER — fetch new items from Vinted + OLX
     // Priority (hype models) every cycle, standard (generic brands) every other cycle
     const isFullCycle = botState.cycleCount % 2 === 0;
+    const isPopularityCycle = botState.cycleCount % 3 === 0;
     const vintedToScan = isFullCycle ? lists.allVinted : lists.priority;
     const olxToScan = isFullCycle ? lists.allOlx : lists.olxPriority;
-    logger.info({ cycle: botState.cycleCount, full: isFullCycle, vintedQueries: vintedToScan.length, olxQueries: olxToScan.length }, "🔍 Pipeline: Starting scan...");
+    logger.info({ cycle: botState.cycleCount, full: isFullCycle, popularity: isPopularityCycle, vintedQueries: vintedToScan.length, olxQueries: olxToScan.length }, "🔍 Pipeline: Starting scan...");
 
     // Streaming counters — updated by processBatch callback
     let totalNewItems = 0;
@@ -163,7 +164,16 @@ async function runPipeline(): Promise<void> {
       stats.underpriced += underpriced.length;
       totalUnderpriced += underpriced.length;
 
-      if (underpriced.length === 0) return;
+      // ❤️ POPULAR — items not deeply discounted but with high engagement (sell fast)
+      const popularDiscountMin = (1 - settings.popularDealThreshold) * 100;
+      const popular = evaluated.filter(([item, signal]) =>
+        !signal.isUnderpriced &&
+        item.favouriteCount >= settings.popularMinFavourites &&
+        signal.discountPct >= popularDiscountMin &&
+        signal.sampleSize >= 5
+      );
+
+      if (underpriced.length === 0 && popular.length === 0) return;
 
       // ⚡ INSTANT ALERTS
       const INSTANT_DISCOUNT = settings.instantThreshold;
@@ -229,13 +239,45 @@ async function runPipeline(): Promise<void> {
         stmts.markNotified.run({ vinted_id: item.vintedId });
         notifiedCount++;
       }
+
+      // ❤️ POPULAR ITEMS — softer threshold, high engagement
+      const popularScoredItems: typeof scoredItems = [];
+      for (const [item, signal] of popular) {
+        if (item.price < MIN_PRICE_TO_SCORE) continue;
+        const itemType = resolveItemType(item.title, item.category);
+        if (!isBrandTypeWorthNotifying(item.brand, itemType)) continue;
+        if (stmts.hasDecision.get({ vinted_id: item.vintedId })) continue;
+
+        const result = decision.decideWithRules(item, signal);
+        analyzedCount++;
+        // Popular items get a lower score threshold — popularity bonus compensates
+        const popularThreshold = settings.notifyThreshold - 1.5;
+        if (result.score >= popularThreshold) {
+          result.level = "popular";
+          result.reasons.unshift(`❤️ POPULARNE — ${item.favouriteCount} polubień, sprzedaje się szybko`);
+          popularScoredItems.push({ result, item, signal });
+        }
+      }
+
+      // Send popular items sorted by score
+      popularScoredItems.sort((a, b) => b.result.score - a.result.score);
+      for (const { result, item } of popularScoredItems) {
+        await telegram.notify(result);
+        stmts.markNotified.run({ vinted_id: item.vintedId });
+        notifiedCount++;
+      }
     };
 
     // Run Vinted + OLX in parallel, streaming batches through processBatch
-    await Promise.all([
+    // Popularity sweep runs every 3rd cycle alongside normal scans
+    const scanTasks: Promise<import("./types.js").RawItem[]>[] = [
       scraper.scan(vintedToScan, processBatch),
       olxScraper.scan(olxToScan, processBatch),
-    ]);
+    ];
+    if (isPopularityCycle) {
+      scanTasks.push(scraper.scan(lists.popularity, processBatch));
+    }
+    await Promise.all(scanTasks);
     botState.cycleCount++;
 
     if (totalUnderpriced > 0) {

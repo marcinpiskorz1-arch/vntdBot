@@ -69,3 +69,34 @@ export const scanConfigs: ScanConfig[] = [
   { searchText: "on running", brandIds: [267947], categoryIds: SHOES },
   { searchText: "vans", brandIds: [139], categoryIds: SHOES },
 ];
+
+// ============================================================
+// Popularity sweep — order: "relevance" (Vinted algorithmic sort)
+// One per unique brand, 1 page, every 3rd cycle.
+// Catches popular items with many favourites that sell fast.
+// ============================================================
+export const popularityConfigs: ScanConfig[] = [
+  { searchText: "adidas", brandIds: [14], order: "relevance", categoryIds: SHOES },
+  { searchText: "nike", brandIds: [53], order: "relevance", categoryIds: SHOES },
+  { searchText: "salomon", brandIds: [15457], order: "relevance", categoryIds: SHOES },
+  { searchText: "asics", brandIds: [1195], order: "relevance", categoryIds: SHOES },
+  { searchText: "onitsuka tiger", brandIds: [33863], order: "relevance", categoryIds: SHOES },
+  { searchText: "la sportiva", brandIds: [201320], order: "relevance", categoryIds: SHOES },
+  { searchText: "scarpa", brandIds: [23853], order: "relevance", categoryIds: SHOES },
+  { searchText: "dynafit", brandIds: [348408], order: "relevance", categoryIds: SHOES },
+  { searchText: "lowa", brandIds: [233698], order: "relevance", categoryIds: SHOES },
+  { searchText: "dachstein", brandIds: [468642], order: "relevance", categoryIds: SHOES },
+  { searchText: "zamberlan", brandIds: [465062], order: "relevance", categoryIds: SHOES },
+  { searchText: "dolomite", brandIds: [103034], order: "relevance", categoryIds: SHOES },
+  { searchText: "jordan", brandIds: [2703], order: "relevance", categoryIds: SHOES },
+  { searchText: "new balance", brandIds: [1775], order: "relevance", categoryIds: SHOES },
+  { searchText: "under armour", brandIds: [52035], order: "relevance", categoryIds: SHOES },
+  { searchText: "the north face", brandIds: [2319], order: "relevance", categoryIds: SHOES },
+  { searchText: "merrell", brandIds: [98860], order: "relevance", categoryIds: SHOES },
+  { searchText: "meindl", brandIds: [283168], order: "relevance", categoryIds: SHOES },
+  { searchText: "converse", brandIds: [11445], order: "relevance", categoryIds: SHOES },
+  { searchText: "reebok", brandIds: [162], order: "relevance", categoryIds: SHOES },
+  { searchText: "on running", brandIds: [267947], order: "relevance", categoryIds: SHOES },
+  { searchText: "vans", brandIds: [139], order: "relevance", categoryIds: SHOES },
+  { searchText: "gore-tex", order: "relevance", categoryIds: SHOES },
+];
