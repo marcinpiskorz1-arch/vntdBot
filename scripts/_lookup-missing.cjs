@@ -1,7 +1,7 @@
 const { chromium } = require("playwright");
 
 const BRANDS = [
-  "dachstein", "crank brothers",
+  "zamberlan", "dolomite",
 ];
 
 async function main() {
