@@ -178,8 +178,17 @@ describe("isBrandTypeWorthNotifying", () => {
   it("allows unknown brand", () => {
     expect(isBrandTypeWorthNotifying("RandomBrand", "top")).toBe(true);
   });
-  it("allows empty item type", () => {
-    expect(isBrandTypeWorthNotifying("The North Face", "")).toBe(true);
+  it("blocks empty item type for known brand", () => {
+    expect(isBrandTypeWorthNotifying("The North Face", "")).toBe(false);
+  });
+  it("blocks empty item type for Nike", () => {
+    expect(isBrandTypeWorthNotifying("Nike", "")).toBe(false);
+  });
+  it("blocks Salomon with unknown type (rullaluistimet case)", () => {
+    expect(isBrandTypeWorthNotifying("Salomon", "")).toBe(false);
+  });
+  it("allows unknown brand with empty type", () => {
+    expect(isBrandTypeWorthNotifying("Pozostałe", "")).toBe(true);
   });
 });
 

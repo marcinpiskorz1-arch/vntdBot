@@ -271,6 +271,16 @@ describe("isNotJunk", () => {
     expect(isNotJunk(mockItem({ title: "gumipapucs 41" }))).toBe(false);
   });
 
+  it("filters baleriny, gloves, inline skates", () => {
+    expect(isNotJunk(mockItem({ title: "Sportowe baleriny Nike" }))).toBe(false);
+    expect(isNotJunk(mockItem({ title: "Baleriny czarne" }))).toBe(false);
+    expect(isNotJunk(mockItem({ title: "Ballerina flats" }))).toBe(false);
+    expect(isNotJunk(mockItem({ title: "Rękawiczki rowerowe męskie" }))).toBe(false);
+    expect(isNotJunk(mockItem({ title: "Winter gloves North Face" }))).toBe(false);
+    expect(isNotJunk(mockItem({ title: "Gants de ski Salomon" }))).toBe(false);
+    expect(isNotJunk(mockItem({ title: "Rullaluistimet Salomon" }))).toBe(false);
+  });
+
   it("filters tech junk (apple tv, magsafe, powerbank, base station)", () => {
     expect(isNotJunk(mockItem({ title: "Apple TV 4K" }))).toBe(false);
     expect(isNotJunk(mockItem({ title: "MagSafe charger iPhone" }))).toBe(false);

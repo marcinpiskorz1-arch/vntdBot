@@ -124,14 +124,13 @@ const SHOES_JACKETS_BAGS_BRANDS = new Set([
  */
 export function isBrandTypeWorthNotifying(brand: string, itemType: ItemType): boolean {
   const b = brand.toLowerCase().trim();
-  if (!b || !itemType) return true; // unknown brand or type — let through
+  if (!b) return true; // unknown brand — let through
 
-  if (SHOES_ONLY_BRANDS.has(b)) {
+  const isKnownBrand = SHOES_ONLY_BRANDS.has(b) || SHOES_JACKETS_BAGS_BRANDS.has(b);
+
+  // Known brands: block if type is unknown or not shoes
+  if (isKnownBrand) {
     return itemType === "shoes";
-  }
-
-  if (SHOES_JACKETS_BAGS_BRANDS.has(b)) {
-    return itemType === "shoes"; // TEMP: shoes-only mode (was: shoes || jacket || bag)
   }
 
   return true;
