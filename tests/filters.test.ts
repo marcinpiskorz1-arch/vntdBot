@@ -431,6 +431,10 @@ describe("isInSizeRange", () => {
     expect(isInSizeRange(mockItem({ size: "32" }))).toBe(false);
     expect(isInSizeRange(mockItem({ size: "34" }))).toBe(false);
     expect(isInSizeRange(mockItem({ size: "35" }))).toBe(false);
+    expect(isInSizeRange(mockItem({ size: "24" }))).toBe(false);
+    expect(isInSizeRange(mockItem({ size: "28" }))).toBe(false);
+    expect(isInSizeRange(mockItem({ size: "20" }))).toBe(false);
+    expect(isInSizeRange(mockItem({ size: "16" }))).toBe(false);
   });
 
   it("filters sizes above 44", () => {

@@ -125,8 +125,8 @@ export function isInSizeRange(item: RawItem): boolean {
     const num = parseInt(numMatch[1], 10);
     // Kids clothing sizes in cm (80-170) — always block
     if (num >= 80 && num <= 170) return false;
-    // Shoe/clothing sizes 30-59 — only allow 36-44
-    if (num >= 30 && num <= 59) {
+    // Shoe sizes 16-59 — only allow 36-44 (blocks kids 16-35 and oversized 45+)
+    if (num >= 16 && num <= 59) {
       return num >= 36 && num <= 44;
     }
   }

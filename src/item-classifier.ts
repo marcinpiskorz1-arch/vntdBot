@@ -102,7 +102,8 @@ const SHOES_ONLY_BRANDS = new Set([
   "jordan", "air jordan", "nike sb", "asics", "new balance",
   "vans", "converse", "on running", "hoka", "saucony", "brooks",
   "dc shoes", "merrell", "lowa", "meindl", "scarpa", "la sportiva",
-  "crocs",
+  "crocs", "black diamond", "zamberlan", "dolomite", "dachstein",
+  "dynafit", "onitsuka tiger",
 ]);
 
 // TEMP: shoes-only mode — all brands restricted to shoes only
