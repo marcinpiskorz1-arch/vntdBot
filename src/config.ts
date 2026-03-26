@@ -30,7 +30,7 @@ export const config = {
     .filter(Boolean),
 
   // Scan settings
-  scanIntervalMs: parseInt(optionalEnv("SCAN_INTERVAL_MS", "60000"), 10),
+  scanIntervalMs: parseInt(optionalEnv("SCAN_INTERVAL_MS", "90000"), 10),
   scanConcurrency: parseInt(optionalEnv("SCAN_CONCURRENCY", "3"), 10),
   dealThreshold: parseFloat(optionalEnv("DEAL_THRESHOLD", "0.60")),
 

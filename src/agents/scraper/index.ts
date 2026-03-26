@@ -56,18 +56,7 @@ export class ScraperAgent {
   private async scanSingleConfig(session: VintedSession, scanConfig: ScanConfig): Promise<RawItem[]> {
     const proxy = this.proxyPool.next();
     try {
-      const page1 = await fetchCatalogItems(session, scanConfig, 1, 96, proxy);
-      const items = [...page1];
-
-      // Priority configs get 1 extra page (different proxy if available)
-      if (scanConfig.priority) {
-        await jitter(800, 1500);
-        const proxy2 = this.proxyPool.next() ?? proxy;
-        const page2 = await fetchCatalogItems(session, scanConfig, 2, 96, proxy2);
-        const seen = new Set(items.map(i => i.vintedId));
-        const unique = page2.filter(i => !seen.has(i.vintedId));
-        items.push(...unique);
-      }
+      const items = await fetchCatalogItems(session, scanConfig, 1, 96, proxy);
 
       logger.info(
         { query: scanConfig.searchText || scanConfig.categoryIds, count: items.length },
