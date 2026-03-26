@@ -83,6 +83,7 @@ export async function fetchCatalogItems(
 
   const headers: Record<string, string> = {
     Accept: "application/json, text/plain, */*",
+    "Accept-Encoding": "gzip, deflate, br",
     "Accept-Language": "pl",
     "User-Agent": session.userAgent,
     Cookie: cookieHeader(session.cookies),
@@ -199,6 +200,7 @@ export async function checkItemAvailable(itemUrl: string, session: VintedSession
           method: "GET",
           headers: {
             Accept: "application/json",
+            "Accept-Encoding": "gzip, deflate, br",
             "User-Agent": session.userAgent,
             Cookie: cookieHeader(session.cookies),
           },
@@ -209,6 +211,7 @@ export async function checkItemAvailable(itemUrl: string, session: VintedSession
           method: "GET",
           headers: {
             Accept: "application/json",
+            "Accept-Encoding": "gzip, deflate, br",
             "User-Agent": session.userAgent,
             Cookie: cookieHeader(session.cookies),
           },

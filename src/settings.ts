@@ -74,7 +74,7 @@ export const settings = {
     set("ai_enabled", v ? "1" : "0");
   },
   get minProfitToNotify(): number {
-    return getNumber("min_profit", 35);
+    return getNumber("min_profit", 25);
   },
   get dealThreshold(): number {
     return getNumber("deal_threshold", config.dealThreshold);
@@ -96,7 +96,7 @@ export const settings = {
       min_price: getNumber("min_price", 30),
       daily_ai_limit: getNumber("daily_ai_limit", 100),
       instant_threshold: getNumber("instant_threshold", 60),
-      min_profit: getNumber("min_profit", 20),
+      min_profit: getNumber("min_profit", 25),
       deal_threshold: getNumber("deal_threshold", config.dealThreshold),
       popular_deal_threshold: getNumber("popular_deal_threshold", 0.75),
       popular_min_favourites: getNumber("popular_min_favourites", 5),

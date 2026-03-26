@@ -24,10 +24,14 @@ export class ScraperAgent {
   private lastAlertTime = 0;
   onAlert?: (message: string) => void;
 
+  // Adaptive scanning: track first vintedId per config to detect unchanged results
+  private lastTopIds = new Map<string, string>();
+
   /**
    * Ensure we have a valid session, refresh if stale.
-   * Sessions created LOCALLY (no proxy) to save bandwidth.
-   * Sessions created through proxy when available to avoid exposing home IP.
+   * Sessions created LOCALLY (no proxy) to save bandwidth — Playwright
+   * page loads are ~1.5 MB each and cause proxy tunnel failures.
+   * Only API calls are routed through proxy.
    */
   private async ensureSession(): Promise<VintedSession> {
     const isStale =
@@ -35,9 +39,8 @@ export class ScraperAgent {
       Date.now() - this.sessionCreatedAt > this.sessionMaxAgeMs;
 
     if (isStale) {
-      const proxy = this.proxyPool.next();
-      logger.info({ proxy: proxy ? "via proxy" : "local" }, "Refreshing Vinted session via Playwright...");
-      this.session = await createSession(proxy);
+      logger.info("Refreshing Vinted session via Playwright (local)...");
+      this.session = await createSession();
       this.sessionCreatedAt = Date.now();
     }
 
@@ -52,11 +55,24 @@ export class ScraperAgent {
   /**
    * Scan a single config: fetch pages, dedup, persist to DB.
    * Each API call goes through a different proxy from the pool.
+   * Non-priority configs fetch fewer items (48) to save bandwidth.
    */
   private async scanSingleConfig(session: VintedSession, scanConfig: ScanConfig): Promise<RawItem[]> {
     const proxy = this.proxyPool.next();
+    const perPage = scanConfig.priority ? 96 : 48;
     try {
-      const items = await fetchCatalogItems(session, scanConfig, 1, 96, proxy);
+      const items = await fetchCatalogItems(session, scanConfig, 1, perPage, proxy);
+
+      // Adaptive scanning: if the newest item hasn't changed, skip DB work
+      const configKey = JSON.stringify(scanConfig.brandIds ?? scanConfig.searchText ?? "");
+      const topId = items[0]?.vintedId;
+      if (topId && topId === this.lastTopIds.get(configKey)) {
+        logger.debug({ query: scanConfig.searchText || scanConfig.brandIds }, "Adaptive skip — no new top item");
+        if (proxy) this.proxyPool.markGood(proxy);
+        this.consecutiveErrors = 0;
+        return [];
+      }
+      if (topId) this.lastTopIds.set(configKey, topId);
 
       logger.info(
         { query: scanConfig.searchText || scanConfig.categoryIds, count: items.length },
