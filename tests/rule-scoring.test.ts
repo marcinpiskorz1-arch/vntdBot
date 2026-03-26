@@ -27,8 +27,32 @@ describe("getBrandTier", () => {
   it("returns mid for Under Armour", () => {
     expect(getBrandTier("Under Armour")).toEqual({ score: 5, tier: "mid" });
   });
-  it("returns mid for JBL", () => {
-    expect(getBrandTier("JBL")).toEqual({ score: 5, tier: "mid" });
+  it("returns mid for Onitsuka Tiger", () => {
+    expect(getBrandTier("Onitsuka Tiger")).toEqual({ score: 5, tier: "mid" });
+  });
+  it("returns mid for La Sportiva", () => {
+    expect(getBrandTier("La Sportiva")).toEqual({ score: 5, tier: "mid" });
+  });
+  it("returns mid for Scarpa", () => {
+    expect(getBrandTier("Scarpa")).toEqual({ score: 5, tier: "mid" });
+  });
+  it("returns mid for Zamberlan", () => {
+    expect(getBrandTier("Zamberlan")).toEqual({ score: 5, tier: "mid" });
+  });
+  it("returns mid for Dolomite", () => {
+    expect(getBrandTier("Dolomite")).toEqual({ score: 5, tier: "mid" });
+  });
+  it("returns mid for Dachstein", () => {
+    expect(getBrandTier("Dachstein")).toEqual({ score: 5, tier: "mid" });
+  });
+  it("returns mid for Lowa", () => {
+    expect(getBrandTier("Lowa")).toEqual({ score: 5, tier: "mid" });
+  });
+  it("returns mid for Meindl", () => {
+    expect(getBrandTier("Meindl")).toEqual({ score: 5, tier: "mid" });
+  });
+  it("returns mid for Dynafit", () => {
+    expect(getBrandTier("Dynafit")).toEqual({ score: 5, tier: "mid" });
   });
   it("returns budget for unknown brand", () => {
     expect(getBrandTier("XYZ NoName")).toEqual({ score: 2, tier: "budget" });
@@ -38,33 +62,6 @@ describe("getBrandTier", () => {
   });
   it("handles partial match: 'The North Face'", () => {
     expect(getBrandTier("The North Face")).toEqual({ score: 8, tier: "premium" });
-  });
-  it("returns mid for Dickies", () => {
-    expect(getBrandTier("Dickies")).toEqual({ score: 5, tier: "mid" });
-  });
-  it("returns mid for Superdry", () => {
-    expect(getBrandTier("Superdry")).toEqual({ score: 5, tier: "mid" });
-  });
-  it("returns mid for Turbokolor", () => {
-    expect(getBrandTier("Turbokolor")).toEqual({ score: 5, tier: "mid" });
-  });
-  it("returns mid for Dakine", () => {
-    expect(getBrandTier("Dakine")).toEqual({ score: 5, tier: "mid" });
-  });
-  it("returns mid for Quiksilver", () => {
-    expect(getBrandTier("Quiksilver")).toEqual({ score: 5, tier: "mid" });
-  });
-  it("returns mid for Onitsuka Tiger", () => {
-    expect(getBrandTier("Onitsuka Tiger")).toEqual({ score: 5, tier: "mid" });
-  });
-  it("returns mid for Barbour", () => {
-    expect(getBrandTier("Barbour")).toEqual({ score: 5, tier: "mid" });
-  });
-  it("returns mid for Arc'teryx", () => {
-    expect(getBrandTier("Arc'teryx")).toEqual({ score: 5, tier: "mid" });
-  });
-  it("returns mid for Peak Performance", () => {
-    expect(getBrandTier("Peak Performance")).toEqual({ score: 5, tier: "mid" });
   });
 });
 

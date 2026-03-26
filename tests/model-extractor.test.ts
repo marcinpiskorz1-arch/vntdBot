@@ -92,21 +92,6 @@ describe("extractModel — Salomon", () => {
 });
 
 // ============================================================
-// Model extraction — Apple / Sony / Nintendo
-// ============================================================
-describe("extractModel — Electronics", () => {
-  it("extracts WH-1000XM5", () => {
-    expect(extractModel("Sony", "Sony WH-1000XM5 słuchawki")).toBe("wh-1000xm5");
-  });
-  it("extracts PS5", () => {
-    expect(extractModel("Sony", "Sony PS5 Disc Edition")).toBe("ps5");
-  });
-  it("extracts Switch OLED", () => {
-    expect(extractModel("Nintendo", "Nintendo Switch OLED nowa")).toBe("switch oled");
-  });
-});
-
-// ============================================================
 // Model extraction — edge cases
 // ============================================================
 describe("extractModel — edge cases", () => {

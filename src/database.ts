@@ -355,14 +355,6 @@ export const stmts = {
     `SELECT search_text, priority, enabled FROM custom_queries ORDER BY added_at`
   ),
 
-  // AI Queue (legacy — kept for schema compatibility)
-  enqueueAi: db.prepare(
-    `INSERT OR IGNORE INTO ai_queue (vinted_id, item_json, signal_json, discount_pct) VALUES (@vinted_id, @item_json, @signal_json, @discount_pct)`
-  ),
-  clearAiQueue: db.prepare(
-    `DELETE FROM ai_queue`
-  ),
-
   // Favorites
   addFavorite: db.prepare(
     `INSERT OR IGNORE INTO favorites (vinted_id, title, brand, price, url, photo_url, score)

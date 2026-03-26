@@ -1,7 +1,7 @@
 const { chromium } = require("playwright");
 
 const BRANDS = [
-  "zamberlan", "dolomite",
+  "black diamond",
 ];
 
 async function main() {

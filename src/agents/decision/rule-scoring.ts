@@ -6,21 +6,14 @@ import type { RawItem, PriceSignal, AiAnalysis } from "../../types.js";
 
 const PREMIUM_BRANDS = new Set([
   "nike", "jordan", "adidas", "new balance", "the north face",
-  "salomon", "sony", "nintendo", "lego",
-  "ray-ban", "seiko",
-  "gucci", "prada", "yeezy",
+  "salomon",
 ]);
 
 const MID_BRANDS = new Set([
-  "under armour", "asics", "vans", "puma", "reebok", "converse", "columbia",
-  "jbl", "garmin", "samsung", "kindle", "mammut", "salewa", "la sportiva",
-  "carhartt", "helly hansen", "fjallraven",
-  "petzl", "nalgene", "osprey", "deuter", "jack wolfskin", "merrell",
-  "brooks", "hoka", "on running", "saucony",
-  "dickies", "superdry", "turbokolor", "dakine", "quiksilver",
-  "onitsuka tiger", "palladium", "barbour", "norrøna", "haglöfs",
-  "dainese", "arc'teryx", "arcteryx", "peak performance", "dynafit",
-  "canada goose", "fjallraven", "fjällräven",
+  "under armour", "asics", "converse",
+  "la sportiva", "scarpa", "zamberlan", "dolomite", "dachstein", "lowa", "meindl",
+  "merrell", "dynafit",
+  "onitsuka tiger", "black diamond",
 ]);
 
 // ============================================================
