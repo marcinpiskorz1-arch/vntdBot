@@ -13,75 +13,44 @@ const SHOES = [2961, 2711, 2952, 2955, 2695, 2713, 2706, 2960, 2945, 2954, 2694,
 // const SHOES_JACKETS_BAGS = [...SHOES, ...JACKETS, ...BAGS];
 
 /**
- * Model-focused queries — each query targets a specific resale-worthy model.
- * All have categoryIds: SHOES to filter accessories.
+ * Brand-level catch-all queries — one API call per brand catches ALL shoe listings.
+ * No searchText = Vinted filters by brandId + categoryIds only.
  *
- * `priority: true` = scanned every cycle (2 pages, 192 items).
+ * `priority: true` = scanned every cycle (1 page, 96 items).
  * Others = scanned every 2nd cycle (1 page, 96 items).
  */
 export const scanConfigs: ScanConfig[] = [
   // ============================================================
-  // Priority — hype models (fast-moving, high resale value)
+  // Priority — high-volume brands (many listings, fast-moving)
   // ============================================================
-  { searchText: "adidas samba", brandIds: [14], priority: true, categoryIds: SHOES },
-  { searchText: "adidas gazelle", brandIds: [14], priority: true, categoryIds: SHOES },
-  { searchText: "adidas spezial", brandIds: [14], priority: true, categoryIds: SHOES },
-  { searchText: "adidas bold", brandIds: [14], priority: true, categoryIds: SHOES },
-  { searchText: "nike air max", brandIds: [53], priority: true, categoryIds: SHOES },
-  { searchText: "nike air force", brandIds: [53], priority: true, categoryIds: SHOES },
-  { searchText: "nike metcon", brandIds: [53], priority: true, categoryIds: SHOES },
-  { searchText: "asics gel", brandIds: [1195], priority: true, categoryIds: SHOES },
-  { searchText: "onitsuka tiger", brandIds: [33863], priority: true, categoryIds: SHOES },
-  { searchText: "new balance 574", brandIds: [1775], priority: true, categoryIds: SHOES },
-  { searchText: "new balance 530", brandIds: [1775], priority: true, categoryIds: SHOES },
-  { searchText: "new balance 550", brandIds: [1775], priority: true, categoryIds: SHOES },
-  { searchText: "under armour", brandIds: [52035], priority: true, categoryIds: SHOES },
-
-  // ============================================================
-  // Priority — outdoor premium (high margin)
-  // ============================================================
-  { searchText: "la sportiva", brandIds: [201320], priority: true, categoryIds: SHOES },
-  { searchText: "scarpa", brandIds: [23853], priority: true, categoryIds: SHOES },
-  { searchText: "zamberlan", brandIds: [465062], categoryIds: SHOES },
-  { searchText: "dolomite", brandIds: [103034], categoryIds: SHOES },
-  { searchText: "lowa", brandIds: [233698], categoryIds: SHOES },
-  { searchText: "meindl", brandIds: [283168], categoryIds: SHOES },
-  { searchText: "dachstein", brandIds: [468642], categoryIds: SHOES },
-  { searchText: "dynafit", brandIds: [348408], categoryIds: SHOES },
-  { searchText: "salomon", brandIds: [15457], priority: true, categoryIds: SHOES },
-  { searchText: "merrell", brandIds: [98860], priority: true, categoryIds: SHOES },
-  { searchText: "salewa", brandIds: [60412], priority: true, categoryIds: SHOES },
-  { searchText: "black diamond", brandIds: [279381], priority: true },
-  { searchText: "the north face", brandIds: [2319], priority: true, categoryIds: SHOES },
+  { brandIds: [14], priority: true, categoryIds: SHOES },      // adidas
+  { brandIds: [53], priority: true, categoryIds: SHOES },      // nike
+  { brandIds: [1195], priority: true, categoryIds: SHOES },    // asics
+  { brandIds: [1775], priority: true, categoryIds: SHOES },    // new balance
+  { brandIds: [2703], priority: true, categoryIds: SHOES },    // jordan
+  { brandIds: [15457], priority: true, categoryIds: SHOES },   // salomon
+  { brandIds: [201320], priority: true, categoryIds: SHOES },  // la sportiva
+  { brandIds: [2319], priority: true, categoryIds: SHOES },    // the north face
   { searchText: "gore-tex", priority: true, categoryIds: SHOES },
   { searchText: "goretex", priority: true, categoryIds: SHOES },
 
   // ============================================================
-  // High — streetwear / other models (every 2nd cycle)
+  // Non-priority — lower volume brands (every 2nd cycle)
   // ============================================================
-  { searchText: "jordan", brandIds: [2703], categoryIds: SHOES },
-  { searchText: "nike cortez", brandIds: [53], categoryIds: SHOES },
-  { searchText: "nike vapormax", brandIds: [53], categoryIds: SHOES },
-  { searchText: "adidas superstar", brandIds: [14], categoryIds: SHOES },
-  { searchText: "adidas ultraboost", brandIds: [14], categoryIds: SHOES },
-  { searchText: "adidas terrex", brandIds: [14], categoryIds: SHOES },
-  { searchText: "converse run star", brandIds: [11445], categoryIds: SHOES },
-
-  // ============================================================
-  // Catch-all — brandId-only, no searchText (every 2nd cycle)
-  // Catches generic listings like "adidasy", "conversy", "sko asics"
-  // that model-specific queries miss.
-  // ============================================================
-  { brandIds: [14], categoryIds: SHOES },      // adidas
-  { brandIds: [53], categoryIds: SHOES },      // nike
-  { brandIds: [1195], categoryIds: SHOES },    // asics
   { brandIds: [11445], categoryIds: SHOES },   // converse
-  { brandIds: [2319], categoryIds: SHOES },    // the north face
-  { brandIds: [2703], categoryIds: SHOES },    // jordan
-  { brandIds: [1775], categoryIds: SHOES },    // new balance
+  { brandIds: [52035], categoryIds: SHOES },   // under armour
+  { brandIds: [33863], categoryIds: SHOES },   // onitsuka tiger
+  { brandIds: [23853], categoryIds: SHOES },   // scarpa
+  { brandIds: [98860], categoryIds: SHOES },   // merrell
   { brandIds: [60412], categoryIds: SHOES },   // salewa
-  { brandIds: [15457], categoryIds: SHOES },   // salomon
-  { brandIds: [201320], categoryIds: SHOES },  // la sportiva
+  { brandIds: [279381] },                      // black diamond
+  { brandIds: [11943], categoryIds: SHOES },   // crocs
+  { brandIds: [465062], categoryIds: SHOES },  // zamberlan
+  { brandIds: [103034], categoryIds: SHOES },  // dolomite
+  { brandIds: [233698], categoryIds: SHOES },  // lowa
+  { brandIds: [283168], categoryIds: SHOES },  // meindl
+  { brandIds: [468642], categoryIds: SHOES },  // dachstein
+  { brandIds: [348408], categoryIds: SHOES },  // dynafit
 ];
 
 // ============================================================
