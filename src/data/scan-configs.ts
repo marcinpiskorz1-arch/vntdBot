@@ -50,6 +50,7 @@ export const scanConfigs: ScanConfig[] = [
   { searchText: "dynafit", brandIds: [348408], priority: true, categoryIds: SHOES },
   { searchText: "salomon", brandIds: [15457], priority: true, categoryIds: SHOES },
   { searchText: "merrell", brandIds: [98860], priority: true, categoryIds: SHOES },
+  { searchText: "salewa", brandIds: [60412], priority: true, categoryIds: SHOES },
   { searchText: "black diamond", brandIds: [279381], priority: true },
   { searchText: "the north face", brandIds: [2319], priority: true, categoryIds: SHOES },
   { searchText: "gore-tex", priority: true, categoryIds: SHOES },
@@ -65,6 +66,22 @@ export const scanConfigs: ScanConfig[] = [
   { searchText: "adidas ultraboost", brandIds: [14], categoryIds: SHOES },
   { searchText: "adidas terrex", brandIds: [14], categoryIds: SHOES },
   { searchText: "converse run star", brandIds: [11445], categoryIds: SHOES },
+
+  // ============================================================
+  // Catch-all — brandId-only, no searchText (every 2nd cycle)
+  // Catches generic listings like "adidasy", "conversy", "sko asics"
+  // that model-specific queries miss.
+  // ============================================================
+  { brandIds: [14], categoryIds: SHOES },      // adidas
+  { brandIds: [53], categoryIds: SHOES },      // nike
+  { brandIds: [1195], categoryIds: SHOES },    // asics
+  { brandIds: [11445], categoryIds: SHOES },   // converse
+  { brandIds: [2319], categoryIds: SHOES },    // the north face
+  { brandIds: [2703], categoryIds: SHOES },    // jordan
+  { brandIds: [1775], categoryIds: SHOES },    // new balance
+  { brandIds: [60412], categoryIds: SHOES },   // salewa
+  { brandIds: [15457], categoryIds: SHOES },   // salomon
+  { brandIds: [201320], categoryIds: SHOES },  // la sportiva
 ];
 
 // ============================================================
@@ -86,5 +103,7 @@ export const popularityConfigs: ScanConfig[] = [
   { searchText: "the north face", brandIds: [2319], order: "relevance", categoryIds: SHOES },
   { searchText: "merrell", brandIds: [98860], order: "relevance", categoryIds: SHOES },
   { searchText: "lowa", brandIds: [233698], order: "relevance", categoryIds: SHOES },
+  { searchText: "salewa", brandIds: [60412], order: "relevance", categoryIds: SHOES },
+  { searchText: "converse", brandIds: [11445], order: "relevance", categoryIds: SHOES },
   { searchText: "gore-tex", order: "relevance", categoryIds: SHOES },
 ];
