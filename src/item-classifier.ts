@@ -97,25 +97,19 @@ export function resolveItemType(title: string, vintedCategoryId: string): ItemTy
 // Only these item types are worth notifying for each brand group.
 // ============================================================
 
-/** Brands where ONLY shoes have real resale value */
-const SHOES_ONLY_BRANDS = new Set([
-  "jordan", "air jordan", "nike sb", "asics", "new balance",
-  "vans", "converse", "on running", "hoka", "saucony", "brooks",
-  "dc shoes", "merrell", "lowa", "meindl", "scarpa", "la sportiva",
-  "crocs", "black diamond", "zamberlan", "dolomite", "dachstein",
-  "dynafit", "onitsuka tiger", "under armour",
-]);
-
-// TEMP: shoes-only mode — all brands restricted to shoes only
-// Original: shoes + jackets + bags for these brands
-const SHOES_JACKETS_BAGS_BRANDS = new Set([
-  "nike", "nike air", "adidas",
-  "the north face",
-  "mammut", "salewa", "salomon", "norrøna", "haglöfs",
+/** All tracked brands — only shoes are worth notifying */
+const KNOWN_BRANDS = new Set([
+  // Streetwear / sport
+  "nike", "nike air", "nike sb", "adidas", "jordan", "air jordan",
+  "asics", "new balance", "under armour", "onitsuka tiger",
+  "converse", "vans", "on running", "hoka", "saucony", "brooks",
+  "dc shoes", "crocs", "puma",
+  // Outdoor
+  "the north face", "salomon", "salewa", "la sportiva", "scarpa",
+  "merrell", "lowa", "meindl", "dynafit", "dachstein",
+  "zamberlan", "dolomite", "black diamond", "mammut",
+  "arc'teryx", "arcteryx", "norrøna", "haglöfs",
   "canada goose", "fjallraven", "fjällräven",
-  "arc'teryx", "arcteryx",
-  // TEMP: puma blocked entirely (not in any scan config)
-  "puma",
 ]);
 
 /**
@@ -127,10 +121,7 @@ export function isBrandTypeWorthNotifying(brand: string, itemType: ItemType): bo
   const b = brand.toLowerCase().trim();
   if (!b) return true; // unknown brand — let through
 
-  const isKnownBrand = SHOES_ONLY_BRANDS.has(b) || SHOES_JACKETS_BAGS_BRANDS.has(b);
-
-  // Known brands: block if type is unknown or not shoes
-  if (isKnownBrand) {
+  if (KNOWN_BRANDS.has(b)) {
     return itemType === "shoes";
   }
 
