@@ -1,48 +1,117 @@
 import { config } from "../../config.js";
 import { logger } from "../../logger.js";
 
+interface ProxyState {
+  url: string;
+  requestCount: number;
+  consecutiveErrors: number;
+  blockedUntil: number;   // Date.now() timestamp — skip until this time
+}
+
 /**
- * Round-robin proxy pool with per-proxy request tracking.
- * One session per proxy — don't mix cookies between IPs.
+ * Round-robin proxy pool with per-proxy request tracking,
+ * blacklisting (skip after repeated 429s), and stats.
  */
 export class ProxyPool {
-  private proxies: string[];
+  private states: ProxyState[];
   private index = 0;
-  private requestCounts = new Map<string, number>();
-  private readonly maxRequestsPerProxy = 50;
+  private readonly maxRequestsPerProxy = 200;
+  private readonly blockDurationMs = 5 * 60 * 1000; // 5 min
+  private readonly blockAfterErrors = 3;
+
+  // Cumulative stats (reset via resetStats)
+  stats = { requests: 0, errors429: 0, blocked: 0 };
 
   constructor() {
-    this.proxies = config.proxyUrls;
-    if (this.proxies.length === 0) {
+    this.states = config.proxyUrls.map((url) => ({
+      url,
+      requestCount: 0,
+      consecutiveErrors: 0,
+      blockedUntil: 0,
+    }));
+    if (this.states.length === 0) {
       logger.warn("No proxies configured — running without proxy rotation");
     }
   }
 
-  /** Get next proxy URL (round-robin), or undefined if no proxies configured */
+  /** Get next available proxy URL (round-robin, skipping blocked). Returns undefined if none available. */
   next(): string | undefined {
-    if (this.proxies.length === 0) return undefined;
+    if (this.states.length === 0) return undefined;
 
-    const proxy = this.proxies[this.index % this.proxies.length]!;
-    this.index++;
+    const now = Date.now();
+    // Try each proxy once — if all blocked, return undefined
+    for (let i = 0; i < this.states.length; i++) {
+      const state = this.states[this.index % this.states.length]!;
+      this.index++;
 
-    const count = (this.requestCounts.get(proxy) || 0) + 1;
-    this.requestCounts.set(proxy, count);
+      // Unblock if cooldown expired
+      if (state.blockedUntil > 0 && now >= state.blockedUntil) {
+        state.blockedUntil = 0;
+        state.consecutiveErrors = 0;
+        logger.info({ proxy: redact(state.url) }, "Proxy unblocked after cooldown");
+      }
 
-    if (count >= this.maxRequestsPerProxy) {
-      logger.info({ proxy: proxy.replace(/\/\/.*@/, "//<redacted>@") }, "Proxy reached max requests, rotating");
-      this.requestCounts.set(proxy, 0);
+      if (state.blockedUntil > 0) continue; // Still blocked — skip
+
+      state.requestCount++;
+      this.stats.requests++;
+
+      if (state.requestCount >= this.maxRequestsPerProxy) {
+        state.requestCount = 0;
+      }
+
+      return state.url;
     }
 
-    return proxy;
+    // All proxies blocked
+    logger.warn("All proxies blocked — returning undefined");
+    return undefined;
   }
 
-  /** Check if any proxies are available */
+  /** Mark proxy as having returned an error (429/403). Blocks after repeated failures. */
+  markBad(proxyUrl: string): void {
+    const state = this.states.find((s) => s.url === proxyUrl);
+    if (!state) return;
+
+    state.consecutiveErrors++;
+    this.stats.errors429++;
+
+    if (state.consecutiveErrors >= this.blockAfterErrors) {
+      state.blockedUntil = Date.now() + this.blockDurationMs;
+      this.stats.blocked++;
+      logger.warn(
+        { proxy: redact(state.url), errors: state.consecutiveErrors, blockMinutes: this.blockDurationMs / 60000 },
+        "Proxy blocked after consecutive errors",
+      );
+    }
+  }
+
+  /** Mark proxy as successful — resets consecutive error counter */
+  markGood(proxyUrl: string): void {
+    const state = this.states.find((s) => s.url === proxyUrl);
+    if (state) state.consecutiveErrors = 0;
+  }
+
+  /** Reset cumulative stats (called by heartbeat) */
+  resetStats(): void {
+    this.stats = { requests: 0, errors429: 0, blocked: 0 };
+  }
+
   hasProxies(): boolean {
-    return this.proxies.length > 0;
+    return this.states.length > 0;
   }
 
-  /** How many proxies in the pool */
   get size(): number {
-    return this.proxies.length;
+    return this.states.length;
   }
+
+  /** Count of currently blocked proxies */
+  get blockedCount(): number {
+    const now = Date.now();
+    return this.states.filter((s) => s.blockedUntil > now).length;
+  }
+}
+
+function redact(url: string): string {
+  return url.replace(/\/\/.*@/, "//<redacted>@");
 }

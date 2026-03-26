@@ -1,10 +1,11 @@
 import { logger } from "../../logger.js";
+import { config } from "../../config.js";
 import { settings } from "../../settings.js";
 import { stmts } from "../../database.js";
 import type { RawItem, ScanConfig } from "../../types.js";
 import { resolveItemType } from "../../item-classifier.js";
 import { extractModel } from "../../model-extractor.js";
-import { createSession, withStickySession, type VintedSession } from "./session-manager.js";
+import { createSession, type VintedSession } from "./session-manager.js";
 import { fetchCatalogItems } from "./vinted-api.js";
 import { ProxyPool } from "./proxy-pool.js";
 
@@ -14,29 +15,28 @@ function jitter(minMs: number, maxMs: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
-const SCAN_CONCURRENCY = 3;
-
 export class ScraperAgent {
   private session: VintedSession | null = null;
-  private proxyPool = new ProxyPool();
+  readonly proxyPool = new ProxyPool();
   private sessionCreatedAt = 0;
-  private readonly sessionMaxAgeMs = 10 * 60 * 1000; // 10 min
+  private readonly sessionMaxAgeMs = 20 * 60 * 1000; // 20 min (local session lives longer)
   private consecutiveErrors = 0;
   private lastAlertTime = 0;
   onAlert?: (message: string) => void;
 
-  /** Ensure we have a valid session, refresh if stale */
+  /**
+   * Ensure we have a valid session, refresh if stale.
+   * Sessions created LOCALLY (no proxy) to save bandwidth.
+   * Proxy is only used for API calls, not session creation.
+   */
   private async ensureSession(): Promise<VintedSession> {
     const isStale =
       !this.session ||
       Date.now() - this.sessionCreatedAt > this.sessionMaxAgeMs;
 
     if (isStale) {
-      logger.info("Refreshing Vinted session via Playwright...");
-      const rawProxy = this.proxyPool.next();
-      // Sticky session: same IP for entire 10-min session (LunaProxy / Proxy-Seller compatible)
-      const proxy = rawProxy ? withStickySession(rawProxy, 10) : undefined;
-      this.session = await createSession(proxy);
+      logger.info("Refreshing Vinted session via Playwright (local)...");
+      this.session = await createSession();
       this.sessionCreatedAt = Date.now();
     }
 
@@ -48,17 +48,21 @@ export class ScraperAgent {
     return this.ensureSession();
   }
 
-  /** Scan a single config: fetch pages, dedup, persist to DB.
-   *  TEMP: 1 page for non-priority, 2 pages for priority (bandwidth saving). */
+  /**
+   * Scan a single config: fetch pages, dedup, persist to DB.
+   * Each API call goes through a different proxy from the pool.
+   */
   private async scanSingleConfig(session: VintedSession, scanConfig: ScanConfig): Promise<RawItem[]> {
+    const proxy = this.proxyPool.next();
     try {
-      const page1 = await fetchCatalogItems(session, scanConfig, 1);
+      const page1 = await fetchCatalogItems(session, scanConfig, 1, 96, proxy);
       const items = [...page1];
 
-      // Priority configs get 1 extra page
+      // Priority configs get 1 extra page (different proxy if available)
       if (scanConfig.priority) {
         await jitter(800, 1500);
-        const page2 = await fetchCatalogItems(session, scanConfig, 2);
+        const proxy2 = this.proxyPool.next() ?? proxy;
+        const page2 = await fetchCatalogItems(session, scanConfig, 2, 96, proxy2);
         const seen = new Set(items.map(i => i.vintedId));
         const unique = page2.filter(i => !seen.has(i.vintedId));
         items.push(...unique);
@@ -76,7 +80,6 @@ export class ScraperAgent {
 
       // Persist new items to DB
       for (const item of newItems) {
-        // Normalize category: title keywords first, Vinted catalog_id fallback
         item.category = resolveItemType(item.title, item.category);
         item.model = item.model || extractModel(item.brand, item.title);
 
@@ -106,6 +109,7 @@ export class ScraperAgent {
         "New items saved"
       );
 
+      if (proxy) this.proxyPool.markGood(proxy);
       this.consecutiveErrors = 0;
       return newItems;
     } catch (err) {
@@ -115,8 +119,12 @@ export class ScraperAgent {
       const is401 = msg.includes("401");
       const is403 = msg.includes("403");
 
-      if (is401 || is429) {
-        this.session = null;
+      if (is401) {
+        this.session = null; // Cookies expired — refresh session
+      }
+
+      if ((is429 || is403) && proxy) {
+        this.proxyPool.markBad(proxy); // Proxy blocked — blacklist it
       }
 
       this.consecutiveErrors++;
@@ -126,7 +134,10 @@ export class ScraperAgent {
       if ((is429 || is401 || is403) && this.consecutiveErrors >= 3 && now - this.lastAlertTime > 5 * 60 * 1000) {
         this.lastAlertTime = now;
         const code = is429 ? "429 Rate Limited" : is401 ? "401 Unauthorized" : "403 Forbidden";
-        this.onAlert?.(`🚨 <b>Vinted blokada!</b>\n\nKod: <b>${code}</b>\nKolejnych błędów: ${this.consecutiveErrors}\n\n⚠️ Prawdopodobnie IP zablokowane — potrzebne proxy.`);
+        const proxyInfo = this.proxyPool.hasProxies()
+          ? `\n🔄 Proxy: ${this.proxyPool.size - this.proxyPool.blockedCount}/${this.proxyPool.size} aktywnych`
+          : "\n⚠️ Brak proxy — potrzebne PROXY_URLS w .env";
+        this.onAlert?.(`🚨 <b>Vinted blokada!</b>\n\nKod: <b>${code}</b>\nKolejnych błędów: ${this.consecutiveErrors}${proxyInfo}`);
       }
 
       return [];
@@ -135,7 +146,7 @@ export class ScraperAgent {
 
   /**
    * Scan Vinted for items matching configs.
-   * Processes queries in parallel batches (SCAN_CONCURRENCY).
+   * Processes queries in parallel batches.
    * Calls onBatch after each batch so items can be processed immediately.
    */
   async scan(
@@ -143,8 +154,9 @@ export class ScraperAgent {
     onBatch?: (items: RawItem[]) => Promise<void>,
   ): Promise<RawItem[]> {
     const allNewItems: RawItem[] = [];
+    const concurrency = config.scanConcurrency;
 
-    for (let i = 0; i < scanConfigs.length; i += SCAN_CONCURRENCY) {
+    for (let i = 0; i < scanConfigs.length; i += concurrency) {
       if (settings.paused) {
         logger.info("⏸️ Vinted scan interrupted — bot paused");
         break;
@@ -153,7 +165,7 @@ export class ScraperAgent {
       // Re-check session between batches (may have been invalidated by 401)
       const session = await this.ensureSession();
 
-      const batch = scanConfigs.slice(i, i + SCAN_CONCURRENCY);
+      const batch = scanConfigs.slice(i, i + concurrency);
       const results = await Promise.all(
         batch.map(cfg => this.scanSingleConfig(session, cfg))
       );
@@ -165,8 +177,8 @@ export class ScraperAgent {
       }
 
       // Jitter between batches to avoid 429 rate limits
-      if (i + SCAN_CONCURRENCY < scanConfigs.length) {
-        await jitter(2500, 5000);
+      if (i + concurrency < scanConfigs.length) {
+        await jitter(1500, 3000);
       }
     }
 

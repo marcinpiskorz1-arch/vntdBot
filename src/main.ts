@@ -472,8 +472,15 @@ async function main(): Promise<void> {
   let lastHeartbeat = Date.now();
   cron.schedule("0 * * * *", () => {
     const uptime = Math.round((Date.now() - lastHeartbeat) / 60000);
-    const msg = buildHeartbeatMessage({ uptime });
+    const proxyPool = scraper.proxyPool;
+    const msg = buildHeartbeatMessage({
+      uptime,
+      proxyStats: { ...proxyPool.stats },
+      proxyActive: proxyPool.size - proxyPool.blockedCount,
+      proxyTotal: proxyPool.size,
+    });
     telegram.sendMessage(msg).catch(() => {});
+    proxyPool.resetStats();
     stmts.insertHeartbeat.run({
       cycles: stats.cycles,
       scanned: stats.scanned,

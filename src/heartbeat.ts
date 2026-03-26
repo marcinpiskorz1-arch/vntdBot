@@ -1,12 +1,21 @@
 import { settings } from "./settings.js";
 import { botState } from "./bot-state.js";
 
+interface ProxyStats {
+  requests: number;
+  errors429: number;
+  blocked: number;
+}
+
 interface HeartbeatData {
   uptime: number;
+  proxyStats?: ProxyStats;
+  proxyActive?: number;
+  proxyTotal?: number;
 }
 
 /** Build the hourly heartbeat Telegram message */
-export function buildHeartbeatMessage({ uptime }: HeartbeatData): string {
+export function buildHeartbeatMessage({ uptime, proxyStats, proxyActive, proxyTotal }: HeartbeatData): string {
   const stats = botState.stats;
   const aiOn = settings.aiEnabled;
 
@@ -25,6 +34,14 @@ export function buildHeartbeatMessage({ uptime }: HeartbeatData): string {
     `  📩 Powiadomień: ${stats.notified}`,
     `  ❌ Błędów: ${stats.errors}`,
   ];
+
+  if (proxyStats && proxyTotal && proxyTotal > 0) {
+    lines.push(``);
+    lines.push(`🔄 Proxy: ${proxyActive}/${proxyTotal} aktywnych`);
+    lines.push(`  📡 Requestów: ${proxyStats.requests}`);
+    if (proxyStats.errors429 > 0) lines.push(`  ⚠️ Błędów 429: ${proxyStats.errors429}`);
+    if (proxyStats.blocked > 0) lines.push(`  🚫 Zablokowanych: ${proxyStats.blocked}`);
+  }
 
   if (aiOn) {
     const dailyPct = settings.dailyAiLimit > 0

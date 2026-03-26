@@ -2,6 +2,7 @@ import { config } from "../../config.js";
 import { logger } from "../../logger.js";
 import type { RawItem, ScanConfig } from "../../types.js";
 import { type VintedSession, cookieHeader } from "./session-manager.js";
+import { ProxyAgent, fetch as proxiedFetch } from "undici";
 
 // Vinted API response shape (partial — only fields we need)
 interface VintedCatalogResponse {
@@ -44,12 +45,14 @@ interface VintedApiItem {
 /**
  * Fetch catalog items from Vinted's internal API.
  * Uses session cookies obtained via Playwright.
+ * Optionally routes through a proxy (proxyUrl).
  */
 export async function fetchCatalogItems(
   session: VintedSession,
   scanConfig: ScanConfig,
   page = 1,
-  perPage = 96
+  perPage = 96,
+  proxyUrl?: string,
 ): Promise<RawItem[]> {
   const url = new URL(`${config.vintedDomain}/api/v2/catalog/items`);
 
@@ -88,12 +91,13 @@ export async function fetchCatalogItems(
   // Retry with exponential backoff on 429 rate limits
   const MAX_RETRIES = 3;
   let response: Response | null = null;
+  const dispatcher = proxyUrl ? new ProxyAgent(proxyUrl) : undefined;
 
   for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
-    response = await fetch(url.toString(), {
-      method: "GET",
-      headers,
-    });
+    response = await (dispatcher
+      ? proxiedFetch(url.toString(), { method: "GET", headers, dispatcher }) as unknown as Response
+      : fetch(url.toString(), { method: "GET", headers })
+    );
 
     if (response.status !== 429) break;
 
@@ -178,22 +182,34 @@ function mapApiItemToRawItem(item: VintedApiItem): RawItem {
  * Check if a Vinted item is still available (not sold/removed).
  * Makes a HEAD request to the item URL — sold items return 301/302 to a "sold" page or 404.
  */
-export async function checkItemAvailable(itemUrl: string, session: VintedSession): Promise<boolean> {
+export async function checkItemAvailable(itemUrl: string, session: VintedSession, proxyUrl?: string): Promise<boolean> {
   try {
     // Use Vinted's item API endpoint if we can extract the ID
     const idMatch = itemUrl.match(/\/(\d+)-/);
     if (!idMatch) return true; // Can't parse — assume still available
 
     const apiUrl = `${config.vintedDomain}/api/v2/items/${idMatch[1]}`;
-    const response = await fetch(apiUrl, {
-      method: "GET",
-      headers: {
-        Accept: "application/json",
-        "User-Agent": session.userAgent,
-        Cookie: cookieHeader(session.cookies),
-      },
-      redirect: "manual",
-    });
+    const dispatcher = proxyUrl ? new ProxyAgent(proxyUrl) : undefined;
+    const response = dispatcher
+      ? await proxiedFetch(apiUrl, {
+          method: "GET",
+          headers: {
+            Accept: "application/json",
+            "User-Agent": session.userAgent,
+            Cookie: cookieHeader(session.cookies),
+          },
+          redirect: "manual",
+          dispatcher,
+        }) as unknown as Response
+      : await fetch(apiUrl, {
+          method: "GET",
+          headers: {
+            Accept: "application/json",
+            "User-Agent": session.userAgent,
+            Cookie: cookieHeader(session.cookies),
+          },
+          redirect: "manual",
+        });
 
     // Only treat 404 as "gone". Rate limits (429), server errors (5xx) = assume available
     if (response.status === 404) return false;
