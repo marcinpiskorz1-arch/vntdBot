@@ -27,7 +27,7 @@ export class ScraperAgent {
   /**
    * Ensure we have a valid session, refresh if stale.
    * Sessions created LOCALLY (no proxy) to save bandwidth.
-   * Proxy is only used for API calls, not session creation.
+   * Sessions created through proxy when available to avoid exposing home IP.
    */
   private async ensureSession(): Promise<VintedSession> {
     const isStale =
@@ -35,8 +35,9 @@ export class ScraperAgent {
       Date.now() - this.sessionCreatedAt > this.sessionMaxAgeMs;
 
     if (isStale) {
-      logger.info("Refreshing Vinted session via Playwright (local)...");
-      this.session = await createSession();
+      const proxy = this.proxyPool.next();
+      logger.info({ proxy: proxy ? "via proxy" : "local" }, "Refreshing Vinted session via Playwright...");
+      this.session = await createSession(proxy);
       this.sessionCreatedAt = Date.now();
     }
 
