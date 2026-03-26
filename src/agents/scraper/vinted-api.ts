@@ -77,6 +77,10 @@ export async function fetchCatalogItems(
     url.searchParams.set("search_text", scanConfig.searchText);
   }
 
+  // Only fetch items in good+ condition (skip zadowalający/słaby)
+  // 6=nowy z metką, 1=nowy, 2=bardzo dobry, 3=dobry
+  url.searchParams.set("status_ids", "6,1,2,3");
+
   const headers: Record<string, string> = {
     Accept: "application/json, text/plain, */*",
     "Accept-Language": "pl",
