@@ -103,7 +103,7 @@ const SHOES_ONLY_BRANDS = new Set([
   "vans", "converse", "on running", "hoka", "saucony", "brooks",
   "dc shoes", "merrell", "lowa", "meindl", "scarpa", "la sportiva",
   "crocs", "black diamond", "zamberlan", "dolomite", "dachstein",
-  "dynafit", "onitsuka tiger",
+  "dynafit", "onitsuka tiger", "under armour",
 ]);
 
 // TEMP: shoes-only mode — all brands restricted to shoes only
