@@ -1,60 +1,87 @@
 import { config } from "../../config.js";
 import { logger } from "../../logger.js";
 
+type ProxyTier = "datacenter" | "residential";
+
 interface ProxyState {
   url: string;
+  tier: ProxyTier;
   requestCount: number;
   consecutiveErrors: number;
   blockedUntil: number;   // Date.now() timestamp — skip until this time
 }
 
+export interface ProxyPoolStats {
+  dcRequests: number;
+  dcErrors: number;
+  dcBlocked: number;
+  resRequests: number;
+  resErrors: number;
+  resBlocked: number;
+}
+
 /**
- * Round-robin proxy pool with per-proxy request tracking,
- * blacklisting (skip after repeated 429s), and stats.
+ * Two-tier proxy pool: datacenter primary, residential fallback.
+ * Residential proxies are only used when ALL datacenter proxies are blocked.
  */
 export class ProxyPool {
-  private states: ProxyState[];
-  private index = 0;
+  private dcStates: ProxyState[];
+  private resStates: ProxyState[];
+  private dcIndex = 0;
+  private resIndex = 0;
   private readonly maxRequestsPerProxy = 200;
   private readonly blockDurationMs = 5 * 60 * 1000; // 5 min
   private readonly blockAfterErrors = 3;
 
-  // Cumulative stats (reset via resetStats)
-  stats = { requests: 0, errors429: 0, blocked: 0 };
+  stats: ProxyPoolStats = {
+    dcRequests: 0, dcErrors: 0, dcBlocked: 0,
+    resRequests: 0, resErrors: 0, resBlocked: 0,
+  };
 
   constructor() {
-    this.states = config.proxyUrls.map((url) => ({
-      url,
-      requestCount: 0,
-      consecutiveErrors: 0,
-      blockedUntil: 0,
+    this.dcStates = config.proxyUrls.map((url) => ({
+      url, tier: "datacenter" as const, requestCount: 0, consecutiveErrors: 0, blockedUntil: 0,
     }));
-    if (this.states.length === 0) {
+    this.resStates = config.residentialProxyUrls.map((url) => ({
+      url, tier: "residential" as const, requestCount: 0, consecutiveErrors: 0, blockedUntil: 0,
+    }));
+
+    logger.info(
+      { datacenter: this.dcStates.length, residential: this.resStates.length },
+      "Proxy pool initialized",
+    );
+    if (this.dcStates.length === 0 && this.resStates.length === 0) {
       logger.warn("No proxies configured — running without proxy rotation");
     }
   }
 
-  /** Get next available proxy URL (round-robin, skipping blocked). Returns undefined if none available. */
+  /** Get next available proxy URL. Tries datacenter first, falls back to residential. */
   next(): string | undefined {
-    if (this.states.length === 0) return undefined;
+    return this.nextFromTier(this.dcStates, "dc")
+      ?? this.nextFromTier(this.resStates, "res");
+  }
+
+  private nextFromTier(states: ProxyState[], prefix: "dc" | "res"): string | undefined {
+    if (states.length === 0) return undefined;
 
     const now = Date.now();
-    // Try each proxy once — if all blocked, return undefined
-    for (let i = 0; i < this.states.length; i++) {
-      const state = this.states[this.index % this.states.length]!;
-      this.index++;
+    const indexRef = prefix === "dc" ? "dcIndex" : "resIndex";
 
-      // Unblock if cooldown expired
+    for (let i = 0; i < states.length; i++) {
+      const state = states[this[indexRef] % states.length]!;
+      this[indexRef]++;
+
       if (state.blockedUntil > 0 && now >= state.blockedUntil) {
         state.blockedUntil = 0;
         state.consecutiveErrors = 0;
-        logger.info({ proxy: redact(state.url) }, "Proxy unblocked after cooldown");
+        logger.info({ proxy: redact(state.url), tier: state.tier }, "Proxy unblocked after cooldown");
       }
 
-      if (state.blockedUntil > 0) continue; // Still blocked — skip
+      if (state.blockedUntil > 0) continue;
 
       state.requestCount++;
-      this.stats.requests++;
+      if (prefix === "dc") this.stats.dcRequests++;
+      else this.stats.resRequests++;
 
       if (state.requestCount >= this.maxRequestsPerProxy) {
         state.requestCount = 0;
@@ -63,24 +90,24 @@ export class ProxyPool {
       return state.url;
     }
 
-    // All proxies blocked
-    logger.warn("All proxies blocked — returning undefined");
     return undefined;
   }
 
   /** Mark proxy as having returned an error (429/403). Blocks after repeated failures. */
   markBad(proxyUrl: string): void {
-    const state = this.states.find((s) => s.url === proxyUrl);
+    const state = this.findState(proxyUrl);
     if (!state) return;
 
     state.consecutiveErrors++;
-    this.stats.errors429++;
+    if (state.tier === "datacenter") this.stats.dcErrors++;
+    else this.stats.resErrors++;
 
     if (state.consecutiveErrors >= this.blockAfterErrors) {
       state.blockedUntil = Date.now() + this.blockDurationMs;
-      this.stats.blocked++;
+      if (state.tier === "datacenter") this.stats.dcBlocked++;
+      else this.stats.resBlocked++;
       logger.warn(
-        { proxy: redact(state.url), errors: state.consecutiveErrors, blockMinutes: this.blockDurationMs / 60000 },
+        { proxy: redact(state.url), tier: state.tier, errors: state.consecutiveErrors },
         "Proxy blocked after consecutive errors",
       );
     }
@@ -88,27 +115,47 @@ export class ProxyPool {
 
   /** Mark proxy as successful — resets consecutive error counter */
   markGood(proxyUrl: string): void {
-    const state = this.states.find((s) => s.url === proxyUrl);
+    const state = this.findState(proxyUrl);
     if (state) state.consecutiveErrors = 0;
   }
 
   /** Reset cumulative stats (called by heartbeat) */
   resetStats(): void {
-    this.stats = { requests: 0, errors429: 0, blocked: 0 };
+    this.stats = {
+      dcRequests: 0, dcErrors: 0, dcBlocked: 0,
+      resRequests: 0, resErrors: 0, resBlocked: 0,
+    };
   }
 
   hasProxies(): boolean {
-    return this.states.length > 0;
+    return this.dcStates.length > 0 || this.resStates.length > 0;
   }
 
   get size(): number {
-    return this.states.length;
+    return this.dcStates.length + this.resStates.length;
   }
 
-  /** Count of currently blocked proxies */
+  get dcSize(): number { return this.dcStates.length; }
+  get resSize(): number { return this.resStates.length; }
+
   get blockedCount(): number {
     const now = Date.now();
-    return this.states.filter((s) => s.blockedUntil > now).length;
+    return [...this.dcStates, ...this.resStates].filter((s) => s.blockedUntil > now).length;
+  }
+
+  get dcBlockedCount(): number {
+    const now = Date.now();
+    return this.dcStates.filter((s) => s.blockedUntil > now).length;
+  }
+
+  get resBlockedCount(): number {
+    const now = Date.now();
+    return this.resStates.filter((s) => s.blockedUntil > now).length;
+  }
+
+  private findState(proxyUrl: string): ProxyState | undefined {
+    return this.dcStates.find((s) => s.url === proxyUrl)
+      ?? this.resStates.find((s) => s.url === proxyUrl);
   }
 }
 

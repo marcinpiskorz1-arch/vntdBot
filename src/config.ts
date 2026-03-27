@@ -23,8 +23,14 @@ export const config = {
   telegramBotToken: requireEnv("TELEGRAM_BOT_TOKEN"),
   telegramChatId: requireEnv("TELEGRAM_CHAT_ID"),
 
-  // Proxy (comma-separated, optional)
+  // Proxy — datacenter (primary, comma-separated)
   proxyUrls: (process.env["PROXY_URLS"] || "")
+    .split(",")
+    .map((u) => u.trim())
+    .filter(Boolean),
+
+  // Proxy — residential (fallback, comma-separated)
+  residentialProxyUrls: (process.env["RESIDENTIAL_PROXY_URLS"] || "")
     .split(",")
     .map((u) => u.trim())
     .filter(Boolean),

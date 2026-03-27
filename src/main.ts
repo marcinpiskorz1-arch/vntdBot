@@ -476,8 +476,10 @@ async function main(): Promise<void> {
     const msg = buildHeartbeatMessage({
       uptime,
       proxyStats: { ...proxyPool.stats },
-      proxyActive: proxyPool.size - proxyPool.blockedCount,
-      proxyTotal: proxyPool.size,
+      dcActive: proxyPool.dcSize - proxyPool.dcBlockedCount,
+      dcTotal: proxyPool.dcSize,
+      resActive: proxyPool.resSize - proxyPool.resBlockedCount,
+      resTotal: proxyPool.resSize,
     });
     telegram.sendMessage(msg).catch(() => {});
     proxyPool.resetStats();

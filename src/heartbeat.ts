@@ -1,21 +1,18 @@
 import { settings } from "./settings.js";
 import { botState } from "./bot-state.js";
-
-interface ProxyStats {
-  requests: number;
-  errors429: number;
-  blocked: number;
-}
+import type { ProxyPoolStats } from "./agents/scraper/proxy-pool.js";
 
 interface HeartbeatData {
   uptime: number;
-  proxyStats?: ProxyStats;
-  proxyActive?: number;
-  proxyTotal?: number;
+  proxyStats?: ProxyPoolStats;
+  dcActive?: number;
+  dcTotal?: number;
+  resActive?: number;
+  resTotal?: number;
 }
 
 /** Build the hourly heartbeat Telegram message */
-export function buildHeartbeatMessage({ uptime, proxyStats, proxyActive, proxyTotal }: HeartbeatData): string {
+export function buildHeartbeatMessage({ uptime, proxyStats, dcActive, dcTotal, resActive, resTotal }: HeartbeatData): string {
   const stats = botState.stats;
   const aiOn = settings.aiEnabled;
 
@@ -35,12 +32,18 @@ export function buildHeartbeatMessage({ uptime, proxyStats, proxyActive, proxyTo
     `  ❌ Błędów: ${stats.errors}`,
   ];
 
-  if (proxyStats && proxyTotal && proxyTotal > 0) {
+  if (proxyStats && dcTotal != null && dcTotal > 0) {
     lines.push(``);
-    lines.push(`🔄 Proxy: ${proxyActive}/${proxyTotal} aktywnych`);
-    lines.push(`  📡 Requestów: ${proxyStats.requests}`);
-    if (proxyStats.errors429 > 0) lines.push(`  ⚠️ Błędów 429: ${proxyStats.errors429}`);
-    if (proxyStats.blocked > 0) lines.push(`  🚫 Zablokowanych: ${proxyStats.blocked}`);
+    lines.push(`🏢 DC proxy: ${dcActive}/${dcTotal} aktywnych`);
+    lines.push(`  📡 Requestów: ${proxyStats.dcRequests}`);
+    if (proxyStats.dcErrors > 0) lines.push(`  ⚠️ Błędów: ${proxyStats.dcErrors}`);
+  }
+
+  if (proxyStats && resTotal != null && resTotal > 0) {
+    lines.push(``);
+    lines.push(`🏠 Residential proxy: ${resActive}/${resTotal} aktywnych`);
+    lines.push(`  📡 Requestów: ${proxyStats.resRequests}`);
+    if (proxyStats.resErrors > 0) lines.push(`  ⚠️ Błędów: ${proxyStats.resErrors}`);
   }
 
   if (aiOn) {
