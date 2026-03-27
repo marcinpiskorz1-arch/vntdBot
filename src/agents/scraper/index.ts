@@ -135,9 +135,9 @@ export class ScraperAgent {
 
       this.consecutiveErrors++;
 
-      // Alert on Telegram (throttle: max once per 5 min)
+      // Alert on Telegram only when residential also fails (throttle: max once per 10 min)
       const now = Date.now();
-      if ((is429 || is401 || is403) && this.consecutiveErrors >= 3 && now - this.lastAlertTime > 5 * 60 * 1000) {
+      if ((is429 || is401 || is403) && this.consecutiveErrors >= 5 && now - this.lastAlertTime > 10 * 60 * 1000) {
         this.lastAlertTime = now;
         const code = is429 ? "429 Rate Limited" : is401 ? "401 Unauthorized" : "403 Forbidden";
         const proxyInfo = this.proxyPool.hasProxies()
