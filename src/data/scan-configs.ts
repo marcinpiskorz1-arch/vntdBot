@@ -31,7 +31,6 @@ export const scanConfigs: ScanConfig[] = [
   { brandIds: [15457], priority: true, categoryIds: SHOES },   // salomon
   { brandIds: [201320], priority: true, categoryIds: SHOES },  // la sportiva
   { brandIds: [2319], priority: true, categoryIds: SHOES },    // the north face
-  { searchText: "puma", priority: true, categoryIds: SHOES },    // puma
   { searchText: "reebok", priority: true, categoryIds: SHOES },  // reebok
   { searchText: "gore-tex", priority: true, categoryIds: SHOES },
   { searchText: "goretex", priority: true, categoryIds: SHOES },
@@ -78,7 +77,6 @@ export const popularityConfigs: ScanConfig[] = [
   { searchText: "lowa", brandIds: [233698], order: "relevance", categoryIds: SHOES },
   { searchText: "salewa", brandIds: [60412], order: "relevance", categoryIds: SHOES },
   { searchText: "converse", brandIds: [11445], order: "relevance", categoryIds: SHOES },
-  { searchText: "puma", order: "relevance", categoryIds: SHOES },
   { searchText: "reebok", order: "relevance", categoryIds: SHOES },
   { searchText: "hoka", order: "relevance", categoryIds: SHOES },
   { searchText: "vans", order: "relevance", categoryIds: SHOES },

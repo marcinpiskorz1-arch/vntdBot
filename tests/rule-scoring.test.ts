@@ -60,9 +60,6 @@ describe("getBrandTier", () => {
   it("returns premium for Reebok", () => {
     expect(getBrandTier("Reebok")).toEqual({ score: 8, tier: "premium" });
   });
-  it("returns premium for Puma", () => {
-    expect(getBrandTier("Puma")).toEqual({ score: 8, tier: "premium" });
-  });
   it("returns mid for Hoka", () => {
     expect(getBrandTier("Hoka")).toEqual({ score: 5, tier: "mid" });
   });

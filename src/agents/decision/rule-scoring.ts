@@ -6,7 +6,7 @@ import type { RawItem, PriceSignal, AiAnalysis } from "../../types.js";
 
 const PREMIUM_BRANDS = new Set([
   "nike", "jordan", "adidas", "new balance", "the north face",
-  "salomon", "puma", "reebok",
+  "salomon", "reebok",
 ]);
 
 const MID_BRANDS = new Set([
