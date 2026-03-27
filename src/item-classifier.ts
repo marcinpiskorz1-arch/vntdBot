@@ -102,8 +102,8 @@ const KNOWN_BRANDS = new Set([
   // Streetwear / sport
   "nike", "nike air", "nike sb", "adidas", "jordan", "air jordan",
   "asics", "new balance", "under armour", "onitsuka tiger",
-  "converse", "vans", "on running", "hoka", "saucony", "brooks",
-  "dc shoes", "crocs", "reebok", "hoka", "vans",
+  "converse", "vans", "on running", "hoka", "hoka one one",
+  "saucony", "brooks", "dc shoes", "crocs", "reebok", "puma",
   // Outdoor
   "the north face", "salomon", "salewa", "la sportiva", "scarpa",
   "merrell", "lowa", "meindl", "dynafit", "dachstein",
