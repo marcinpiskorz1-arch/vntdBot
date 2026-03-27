@@ -30,8 +30,10 @@ export class ProxyPool {
   private dcIndex = 0;
   private resIndex = 0;
   private readonly maxRequestsPerProxy = 200;
-  private readonly blockDurationMs = 5 * 60 * 1000; // 5 min
-  private readonly blockAfterErrors = 3;
+  private readonly dcBlockDurationMs = 2 * 60 * 1000; // 2 min for datacenter
+  private readonly resBlockDurationMs = 5 * 60 * 1000; // 5 min for residential
+  private readonly dcBlockAfterErrors = 1;  // block DC fast — they get 403 easily
+  private readonly resBlockAfterErrors = 3; // residential is more reliable
 
   stats: ProxyPoolStats = {
     dcRequests: 0, dcErrors: 0, dcBlocked: 0,
@@ -102,8 +104,10 @@ export class ProxyPool {
     if (state.tier === "datacenter") this.stats.dcErrors++;
     else this.stats.resErrors++;
 
-    if (state.consecutiveErrors >= this.blockAfterErrors) {
-      state.blockedUntil = Date.now() + this.blockDurationMs;
+    const threshold = state.tier === "datacenter" ? this.dcBlockAfterErrors : this.resBlockAfterErrors;
+    const duration = state.tier === "datacenter" ? this.dcBlockDurationMs : this.resBlockDurationMs;
+    if (state.consecutiveErrors >= threshold) {
+      state.blockedUntil = Date.now() + duration;
       if (state.tier === "datacenter") this.stats.dcBlocked++;
       else this.stats.resBlocked++;
       logger.warn(

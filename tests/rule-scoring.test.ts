@@ -57,6 +57,18 @@ describe("getBrandTier", () => {
   it("returns budget for unknown brand", () => {
     expect(getBrandTier("XYZ NoName")).toEqual({ score: 2, tier: "budget" });
   });
+  it("returns premium for Reebok", () => {
+    expect(getBrandTier("Reebok")).toEqual({ score: 8, tier: "premium" });
+  });
+  it("returns premium for Puma", () => {
+    expect(getBrandTier("Puma")).toEqual({ score: 8, tier: "premium" });
+  });
+  it("returns mid for Hoka", () => {
+    expect(getBrandTier("Hoka")).toEqual({ score: 5, tier: "mid" });
+  });
+  it("returns mid for Vans", () => {
+    expect(getBrandTier("Vans")).toEqual({ score: 5, tier: "mid" });
+  });
   it("returns unknown for empty string", () => {
     expect(getBrandTier("")).toEqual({ score: 2, tier: "unknown" });
   });
@@ -105,8 +117,8 @@ describe("getSizeBonus", () => {
   it("returns 1.0 for shoe size '42 EU'", () => {
     expect(getSizeBonus("42 EU")).toBe(1.0);
   });
-  it("returns 0.5 for shoe size 40", () => {
-    expect(getSizeBonus("40")).toBe(0.5);
+  it("returns 1.0 for shoe size 40", () => {
+    expect(getSizeBonus("40")).toBe(1.0);
   });
   it("returns 0.5 for shoe size 36", () => {
     expect(getSizeBonus("36")).toBe(0.5);

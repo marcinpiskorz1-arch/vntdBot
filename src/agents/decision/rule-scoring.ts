@@ -6,7 +6,7 @@ import type { RawItem, PriceSignal, AiAnalysis } from "../../types.js";
 
 const PREMIUM_BRANDS = new Set([
   "nike", "jordan", "adidas", "new balance", "the north face",
-  "salomon",
+  "salomon", "puma", "reebok",
 ]);
 
 const MID_BRANDS = new Set([
@@ -14,6 +14,7 @@ const MID_BRANDS = new Set([
   "la sportiva", "scarpa", "zamberlan", "dolomite", "dachstein", "lowa", "meindl",
   "merrell", "dynafit",
   "onitsuka tiger", "black diamond",
+  "hoka", "vans", "saucony", "brooks",
 ]);
 
 // ============================================================
@@ -48,8 +49,8 @@ const CONDITION_MAP: Record<string, number> = {
 // Size popularity — popular sizes sell faster
 // ============================================================
 
-const POPULAR_SHOE_SIZES = new Set(["41", "42", "43", "44", "45"]);
-const AVERAGE_SHOE_SIZES = new Set(["36", "37", "38", "39", "40", "46"]);
+const POPULAR_SHOE_SIZES = new Set(["40", "41", "42", "43", "44", "45"]);
+const AVERAGE_SHOE_SIZES = new Set(["35", "36", "37", "38", "39", "46", "47"]);
 const POPULAR_CLOTHING = new Set(["M", "L", "XL"]);
 const AVERAGE_CLOTHING = new Set(["S", "XXL"]);
 

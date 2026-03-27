@@ -31,6 +31,8 @@ export const scanConfigs: ScanConfig[] = [
   { brandIds: [15457], priority: true, categoryIds: SHOES },   // salomon
   { brandIds: [201320], priority: true, categoryIds: SHOES },  // la sportiva
   { brandIds: [2319], priority: true, categoryIds: SHOES },    // the north face
+  { brandIds: [73], priority: true, categoryIds: SHOES },      // puma
+  { brandIds: [16], priority: true, categoryIds: SHOES },      // reebok
   { searchText: "gore-tex", priority: true, categoryIds: SHOES },
   { searchText: "goretex", priority: true, categoryIds: SHOES },
 
@@ -51,6 +53,8 @@ export const scanConfigs: ScanConfig[] = [
   { brandIds: [283168], categoryIds: SHOES },  // meindl
   { brandIds: [468642], categoryIds: SHOES },  // dachstein
   { brandIds: [348408], categoryIds: SHOES },  // dynafit
+  { brandIds: [369816], categoryIds: SHOES },  // hoka
+  { brandIds: [11952], categoryIds: SHOES },   // vans
 ];
 
 // ============================================================
@@ -74,5 +78,9 @@ export const popularityConfigs: ScanConfig[] = [
   { searchText: "lowa", brandIds: [233698], order: "relevance", categoryIds: SHOES },
   { searchText: "salewa", brandIds: [60412], order: "relevance", categoryIds: SHOES },
   { searchText: "converse", brandIds: [11445], order: "relevance", categoryIds: SHOES },
+  { searchText: "puma", brandIds: [73], order: "relevance", categoryIds: SHOES },
+  { searchText: "reebok", brandIds: [16], order: "relevance", categoryIds: SHOES },
+  { searchText: "hoka", brandIds: [369816], order: "relevance", categoryIds: SHOES },
+  { searchText: "vans", brandIds: [11952], order: "relevance", categoryIds: SHOES },
   { searchText: "gore-tex", order: "relevance", categoryIds: SHOES },
 ];
