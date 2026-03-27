@@ -54,12 +54,11 @@ export class ScraperAgent {
 
   /**
    * Scan a single config: fetch pages, dedup, persist to DB.
-   * Each API call goes through a different proxy from the pool.
-   * Low perPage (24) to save residential proxy bandwidth — adaptive
-   * scanning means we only need the newest items each cycle.
+   * No proxy — direct connection to save costs.
+   * Low perPage (24) with adaptive scanning = only newest items each cycle.
    */
   private async scanSingleConfig(session: VintedSession, scanConfig: ScanConfig): Promise<RawItem[]> {
-    const proxy = this.proxyPool.next();
+    const proxy = this.proxyPool.next(); // undefined when no proxies configured
     const perPage = 24;
     try {
       const items = await fetchCatalogItems(session, scanConfig, 1, perPage, proxy);

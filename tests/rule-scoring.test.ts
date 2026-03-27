@@ -260,12 +260,12 @@ describe("computeRuleScore", () => {
     expect(result.level).toBe("notify");
   });
 
-  it("returns 'ignore' when profit too small", () => {
+  it("returns 'notify' when score is above threshold regardless of profit", () => {
     const item = mockItem({ brand: "Nike", price: 80 });
     const signal = mockSignal({ priceDiscountScore: 7, medianPrice: 100, p25Price: 80, sampleSize: 30 });
     const result = computeRuleScore(item, signal, defaultCfg);
-    // profit = calculateProfit(80, 80) = 80 - 80 - 15 - 4 = -19 → too small
-    expect(result.level).toBe("ignore");
+    // No profit gate — score alone decides
+    expect(result.level).toBe("notify");
   });
 
   it("clamps score to 0-10 range", () => {

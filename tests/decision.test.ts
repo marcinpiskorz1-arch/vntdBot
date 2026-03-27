@@ -39,7 +39,7 @@ describe("computeRuleScore — decision levels", () => {
     expect(result.reasons[0]).toContain("HOT DEAL");
   });
 
-  it("returns 'ignore' when profit is too small despite high score", () => {
+  it("returns 'notify' when score is above threshold regardless of profit", () => {
     const item = mockItem({ brand: "Nike", price: 80 });
     const signal = mockSignal({
       priceDiscountScore: 7,
@@ -48,7 +48,7 @@ describe("computeRuleScore — decision levels", () => {
       sampleSize: 30,
     });
     const result = computeRuleScore(item, signal, cfg);
-    expect(result.level).toBe("ignore");
+    expect(result.level).toBe("notify");
   });
 
   it("returns 'ignore' when score is low", () => {

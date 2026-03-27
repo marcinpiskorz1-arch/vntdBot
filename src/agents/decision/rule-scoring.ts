@@ -215,15 +215,13 @@ export function computeRuleScore(
   // Clamp to 0-10 before level determination
   score = Math.round(Math.max(0, Math.min(10, score)) * 10) / 10;
 
-  // Determine level
+  // Determine level — no profit gate, score alone decides
   let level: RuleScoreResult["level"] = "ignore";
   if (score >= cfg.hotThreshold && profit >= cfg.hotMinProfit) {
     level = "hot";
     reasons.unshift("🔥 HOT DEAL — wysoki score + duży zysk");
-  } else if (score >= cfg.notifyThreshold && profit >= cfg.minProfitToNotify) {
+  } else if (score >= cfg.notifyThreshold) {
     level = "notify";
-  } else if (score >= cfg.notifyThreshold && profit < cfg.minProfitToNotify) {
-    reasons.push(`⛔ Zysk za mały (${profit} PLN < ${cfg.minProfitToNotify} PLN)`);
   }
 
   // Build synthetic AiAnalysis for Decision/Telegram compatibility

@@ -116,13 +116,18 @@ const KNOWN_BRANDS = new Set([
  * Check if a brand + item type combination is worth notifying.
  * Returns true if the item should pass through, false if it should be blocked.
  * Brands not in any restriction set always pass.
+ *
+ * For known shoe brands: if type is "shoes" or unresolved (""), assume shoes
+ * and let through — most listings from these brands are shoes.
+ * Block only when we're SURE it's not shoes (e.g. "top", "pants").
  */
 export function isBrandTypeWorthNotifying(brand: string, itemType: ItemType): boolean {
   const b = brand.toLowerCase().trim();
   if (!b) return true; // unknown brand — let through
 
   if (KNOWN_BRANDS.has(b)) {
-    return itemType === "shoes";
+    // Explicitly non-shoe items are blocked; unresolved ("") is treated as shoes
+    return itemType === "shoes" || itemType === "";
   }
 
   return true;
