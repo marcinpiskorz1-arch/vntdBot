@@ -119,8 +119,8 @@ async function runPipeline(): Promise<void> {
 
     // 1. SCRAPER — fetch new items from Vinted + OLX
     // Priority (hype models) every cycle, standard (generic brands) every other cycle
-    const isFullCycle = botState.cycleCount % 2 === 0;
-    const isPopularityCycle = botState.cycleCount % 3 === 0;
+    const isFullCycle = botState.cycleCount % 3 === 0;
+    const isPopularityCycle = botState.cycleCount % 6 === 0;
     const vintedToScan = isFullCycle ? lists.allVinted : lists.priority;
     const olxToScan = isFullCycle ? lists.allOlx : lists.olxPriority;
     logger.info({ cycle: botState.cycleCount, full: isFullCycle, popularity: isPopularityCycle, vintedQueries: vintedToScan.length, olxQueries: olxToScan.length }, "🔍 Pipeline: Starting scan...");

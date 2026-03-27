@@ -55,11 +55,12 @@ export class ScraperAgent {
   /**
    * Scan a single config: fetch pages, dedup, persist to DB.
    * Each API call goes through a different proxy from the pool.
-   * Non-priority configs fetch fewer items (48) to save bandwidth.
+   * Low perPage (24) to save residential proxy bandwidth — adaptive
+   * scanning means we only need the newest items each cycle.
    */
   private async scanSingleConfig(session: VintedSession, scanConfig: ScanConfig): Promise<RawItem[]> {
     const proxy = this.proxyPool.next();
-    const perPage = scanConfig.priority ? 96 : 48;
+    const perPage = 24;
     try {
       const items = await fetchCatalogItems(session, scanConfig, 1, perPage, proxy);
 
